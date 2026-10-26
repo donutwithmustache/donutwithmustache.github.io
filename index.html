@@ -412,78 +412,119 @@
         const ARCHIVE_DATA = {
             aces: [
                 {
-                    id: "ace-donut",
+                    id: "ace-canvas",
                     recordNo: "NO.001",
                     headerTag: "[PILOT DATA]",
-                    title: "DONUT",
-                    subtitle: "BLACK EAGLES // TENEBRIS AQUILAS",
+                    title: "CANVAS",
+                    subtitle: "TRCOLORI SQUADRON // PAINT SHOP",
                     extraLines: [
-                        "STATUS: COMMANDER / PRIME ACE",
-                        "AFFILIATION: DML / DONUT DEFENSE INDUSTRIES"
+                        "AFFILIATION: DONUT MERCENARY LEGION [DML]",
+                        "STATUS: LEGIONNAIRE"
                     ],
-                    aircraftName: "Su-47DXi Super Berkut",
+                    aircraftName: "JAS39E GRIPEN",
                     planform: "berkut",
-                    modelUrl: "./models/nova_su33.glb", // Optional path to .glb/.obj for GitHub Pages
-                    emblemType: "black-eagles",
-                    tagline: "\"TENEBRIS AQUILAS — FROM THE SHADOWS, WE STRIKE.\"",
+                    modelUrl: "./models/canvas_jas39.glb", // Optional path to .glb/.obj for GitHub Pages
+                    emblemType: "tricolori monochrome",
+                    tagline: "\"SCARRED IN A HEARTBEAT.\"",
                     palette: [
-                        { hex: "#4b4b4b", name: "DML LIGHT GRAY" },
+                        { hex: "#ae3332", name: "DML ACCENT RED" },
                         { hex: "#2f2f2f", name: "DML DARK GRAY" },
+                        { hex: "#4b4b4b", name: "DDI LIGHT GRAY" }
+                        { hex: "#b7b7b7", name: "DDI FLAT GRAY" }
                         { hex: "#1c1c1c", name: "DML DIELEC. BLACK" },
-                        { hex: "#ae3332", name: "DML ACCENT RED" }
+                        { hex: "#bbbf80", name: "DDI UNPAINTED PRIMER" }
                     ],
                     specs: {
-                        "CALLSIGN": "DONUT",
-                        "SQUADRON": "Black Eagles",
-                        "AIRFRAME": "Su-47DXi Super Berkut",
-                        "WING CONFIG": "Forward-Swept + Canards",
-                        "PROPULSION": "2x 2D Thrust-Vectoring Rectangular Nozzles",
-                        "LIVERY PATTERN": "Dark Urban Splinter w/ Red Circuit Telemetry",
-                        "WING MARKING": "Black Eagles Winged Shield (Left Wing)",
-                        "COMBAT RATING": "S-CLASS MERCENARY ACE"
+                        "REAL NAME": "[REDACTED]",
+                        "AGE": "[REDACTED]",
+                        "SEX": "FEMALE",
+                        "NATIONALITY": "ESTOVAKIAN",
+                        "CALLSIGN": "CANVAS",
+                        "JOINED DML": "[REDACTED]",
+                        "RANK": "LEGIONNAIRE",
+                        "PERSONAL VEHICLE \"(FOR PARKING PURPOSES)\"": "YELLOW 22' S660",
+                        "COMBAT RIBBONS": "2028 - FIRST BAST'AAN CIVIL WAR \n 2029 - MERCENARY WAR \n 2032 - SECOND BAST'AAN CIVIL WAR"
                     },
                     lore: [
-                        "Commander and prime flight lead of the elite 'Black Eagles' mercenary squadron (Motto: Tenebris Aquilas). Known throughout the mercenary air forces for pushing experimental forward-swept wing airframes far beyond standard structural G-limits.",
-                        "DONUT's personal Su-47DXi Super Berkut is heavily modified from the baseline airframe, incorporating twin rectangular 2D thrust-vectoring exhaust nozzles, upgraded dorsal avionics spine, and a distinctive three-tone dark gray splinter camouflage.",
-                        "High-contrast DML Accent Red (#ae3332) circuit-like panel lines trace the fuselage spine, engine nacelles, and forward-swept leading edges, paired with an asymmetric canopy frame tint and the Black Eagles emblem emblazoned on the port outer wing."
+                        "Upstart ace on the way to fame, CANVAS's flying career was cut short when her aircraft took a direct hit from ground fire, severely damaging multiple sections and afflicting a near-fatal injury to the pilot.",
+                        "She was permenantly grounded from combat roles due to her injury, leaving her plane in a slight state of disrepair afterwards. However, CANVAS found her calling in painting aircraft for fellow mercenaries.",
+                        "CANVAS would attain LEGIONNAIRE status after opening the TRICOLORI PAINT SHOP, giving pilots of the DML an accessible and reliable one-stop-shop for all aircraft customization needs, from a simple emblem repaint to entirely new and wild aerobatic liveries.",
+                    ]
+                },
+                {
+                    id: "ace-nova",
+                    recordNo: "NO.002",
+                    headerTag: "[PILOT DATA]",
+                    title: "NOVA",
+                    subtitle: "BLACK EAGLES // 1ST FS",
+                    extraLines: [
+                        "AFFILIATION: DONUT MERCENARY LEGION [DML]",
+                        "STATUS: LEGIONNAIRE"
+                    ],
+                    aircraftName: "SU-37 TERMINATOR",
+                    planform: "berkut",
+                    modelUrl: "./models/nova_su33.glb", // Optional path to .glb/.obj for GitHub Pages
+                    emblemType: "black eagles",
+                    tagline: "\"THE SCARLET BUTTERFLY.\"",
+                    palette: [
+                        { hex: "#2f2f2f", name: "DML DARK GRAY" },
+                        { hex: "#1c1c1c", name: "DDI DARKER GRAY" }
+                        { hex: "#cc0000", name: "SUPERNOVA RED" }
+                        { hex: "#f3f3f3", name: "DML DIELEC. WHITE" }
+                    ],
+                    specs: {
+                        "REAL NAME": "[REDACTED]",
+                        "AGE": "[REDACTED]",
+                        "SEX": "FEMALE",
+                        "NATIONALITY": "ERUSEAN [SHILAGEAN]",
+                        "CALLSIGN": "NOVA",
+                        "JOINED DML": "[REDACTED]",
+                        "RANK": "LEGIONNAIRE",
+                        "PERSONAL VEHICLE \"(FOR PARKING PURPOSES)\"": "RED 72' NOVA",
+                        "COMBAT RIBBONS": "2028 - FIRST BAST'AAN CIVIL WAR \n 2029 - MERCENARY WAR \n 2032 - SECOND BAST'AAN CIVIL WAR \n 2035 - FIRST CASCADIAN CONFLICT \n 2037 - SECOND CASCADIAN CONFLICT \n 2038 - SURMOUNT WAR"
+                    },
+                    lore: [
+                        "The legendary Scarlet Butterfly, NOVA is a pure-blooded, thoroughbred ace; Born in the southeastern Erusean duchy of Shilage, she was taught to fly by the same environment that raised legends of history such as Yellow 13 and Mister X.",
+                        "NOVA was an uncaged bird, yearning to fly at any cost. When political and national hurdles began to get in the way as Shilage seceded from the Erusean Kingdom, NOVA would turn to the life of a Mercenary to keep flying.",
+                        "A highly decorated ace and a member of the legendary Black Eagles today, NOVA's presence in any airspace commands fear and respect from both friend and foe.",
                     ]
                 },
                 {
                     id: "ace-clipper",
-                    recordNo: "NO.002",
+                    recordNo: "NO.003",
                     headerTag: "[PILOT DATA]",
                     title: "CLIPPER",
                     subtitle: "JADEITE SQUADRON // 8TH TFS",
                     extraLines: [
-                        "AFFILIATION: DONUT MERCENARY LEGION (DML)",
-                        "RANK: LEGIONNAIRE"
+                        "AFFILIATION: DONUT MERCENARY LEGION [DML]",
+                        "STATUS: LEGIONNAIRE"
                     ],
-                    aircraftName: "F/A-18CLi",
-                    planform: "hornet",
-                    modelUrl: "./models/clipper_f18.glb",
+                    aircraftName: "F/A-18CLi HORNET",
+                    planform: "berkut",
+                    modelUrl: "./models/clipper_f18.glb", // Optional path to .glb/.obj for GitHub Pages
                     emblemType: "jadeite",
-                    tagline: "\"SILENT WINGS IN THE NIGHT — 8TH TFS JADEITE.\"",
+                    tagline: "\"QUEEN OF THE AMAZONS.\"",
                     palette: [
                         { hex: "#64793f", name: "DML JADE" },
-                        { hex: "#53644b", name: "DML JADEITE" },
-                        { hex: "#504a46", name: "DML BROWNISH GRAY" },
-                        { hex: "#b7b7b7", name: "DML LOW VIS MARKING" },
+                        { hex: "#53644b", name: "DML JADEITE" }
+                        { hex: "#504a46", name: "DML BROWNISH GRAY" }
+                        { hex: "#b7b7b7", name: "DML LOW-VIS GRAY" }
                         { hex: "#1c1c1c", name: "DML DIELEC. BLACK" }
                     ],
                     specs: {
                         "REAL NAME": "[REDACTED]",
-                        "SQUADRON": "Jadeite Squadron (8th TFS)",
-                        "AIRFRAME": "F/A-18CLi",
-                        "MODIFICATION": "Upgraded Multirole Interceptor Variant",
-                        "BORT / FLAP NO.": "032 (Low-Vis Stencil)",
-                        "LIVERY PATTERN": "Polygonal Woodland Jade Splinter",
-                        "SQUADRON CREST": "Night Owl on Bomb w/ 3 Gold Stars",
-                        "SPECIALTY": "All-Weather Low-Altitude Interdiction"
+                        "AGE": "[REDACTED]",
+                        "SEX": "FEMALE",
+                        "NATIONALITY": "OSEAN",
+                        "CALLSIGN": "CLIPPER",
+                        "JOINED DML": "[REDACTED]",
+                        "RANK": "LEGIONNAIRE",
+                        "PERSONAL VEHICLE \"(FOR PARKING PURPOSES)\"": "POLO GREEN 89' CORVETTE [+ MANY MORE]",
+                        "COMBAT RIBBONS": "2028 - FIRST BAST'AAN CIVIL WAR \n 2029 - MERCENARY WAR \n 2032 - SECOND BAST'AAN CIVIL WAR \n 2035 - FIRST CASCADIAN CONFLICT \n 2037 - SECOND CASCADIAN CONFLICT \n 2038 - SURMOUNT WAR"
                     },
                     lore: [
-                        "Veteran multirole fighter ace of the 8th Tactical Fighter Squadron, better known as 'Jadeite Squadron'. CLIPPER earned widespread recognition for pinpoint low-level strike operations and high-angle-of-attack dogfighting.",
-                        "Flying the customized F/A-18CLi bearing low-visibility flap stencil '032', CLIPPER's aircraft is coated in a distinctive three-tone polygonal woodland splinter camouflage comprised of DML Jade (#64793f), DML Jadeite (#53644b), and DML Brownish Gray (#504a46).",
-                        "The aircraft carries the 8th TFS Jadeite emblem—a night owl perched atop an aerial bomb beneath three gold stars—reflecting the squadron's heritage in precision night-strike missions."
+                        "CLIPPER is a highly experienced pilot specializing in one-man-army deep-strike and recon sorties against very high value targets far behind enemy lines. Whenever she is not in the air, she can be found managing her underlings in her workshop, which is the primary repair and service installation for aircraft of the DML.",
+                        "Her other duties include notable important in the sercurity of DML's main Harmony Base headquarters, and running a small automotive workshop on the side as a hobby.",
                     ]
                 }
             ],

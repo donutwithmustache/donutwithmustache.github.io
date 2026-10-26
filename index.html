@@ -231,7 +231,7 @@
             -webkit-appearance: none;
             appearance: none;
             width: 10px;
-            height: 14px;
+            height: 16px;
             background: #f3c623;
             border: 1px solid #fff3a1;
             cursor: pointer;
@@ -239,7 +239,7 @@
         }
         .acz-slider::-moz-range-thumb {
             width: 10px;
-            height: 14px;
+            height: 16px;
             background: #f3c623;
             border: 1px solid #fff3a1;
             cursor: pointer;
@@ -256,8 +256,8 @@
     <!-- Ambient Glowing Embers Container -->
     <div id="embers-container" class="fixed inset-0 pointer-events-none overflow-hidden z-0"></div>
 
-    <!-- ================= TOP HEADER BAR ================= -->
-    <header class="relative z-10 flex flex-wrap items-center justify-between gap-2 pb-1.5 mb-2 border-b border-[#995412]">
+    <!-- ================= TOP HEADER BAR (Elevated z-40 so dropdowns layer above main workspace) ================= -->
+    <header class="relative z-40 flex flex-wrap items-center justify-between gap-2 pb-1.5 mb-2 border-b border-[#995412]">
         <!-- Breadcrumb Path (Authentic ACZ Top Left) -->
         <div class="flex items-center space-x-2 text-xs sm:text-sm md:text-base tracking-widest acz-glow">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-[#f3c623] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,28 +284,27 @@
 
             <div class="h-4 w-[1px] bg-[#733c0a] mx-1 hidden sm:block"></div>
 
-            <!-- Local .GLB / .OBJ Model Uploader -->
-            <label class="acz-tab px-2.5 py-1 text-xs tracking-wider uppercase rounded-sm cursor-pointer" title="Load a local .glb, .gltf, or .obj file onto the currently selected slot">
-                [+ LOAD .GLB/.OBJ]
-                <input id="custom-model-input" type="file" accept=".glb,.gltf,.obj" class="hidden" onchange="handleLocalModelUpload(event)">
-            </label>
+            <!-- Credits Modal Button -->
+            <button id="btn-credits" onclick="openCreditsModal()" class="acz-tab px-2.5 py-1 text-xs tracking-wider uppercase rounded-sm" title="View Archive Credits">
+                [ CREDITS ]
+            </button>
 
             <!-- Audio Toggle -->
             <button id="btn-audio" onclick="toggleAudio()" class="acz-tab px-2.5 py-1 text-xs tracking-wider uppercase rounded-sm" title="Toggle UI Sound Effects">
                 SFX: ON
             </button>
 
-            <!-- BGM Toggle + Instant Hover Volume Slider (Starts at 60%) -->
+            <!-- BGM Toggle + Instant Hover Volume Slider (Starts at 20%, expanded hover hitbox & z-index) -->
             <div class="relative group flex items-center">
                 <button id="btn-bgm" onclick="toggleBGM()" class="acz-tab px-2.5 py-1 text-xs tracking-wider uppercase rounded-sm" title="Toggle Background Music (Hover to adjust volume)">
                     BGM: ON
                 </button>
-                <!-- Instant Dropdown Slider on Mouseover -->
-                <div class="hidden group-hover:flex absolute right-0 top-full pt-1 z-50">
-                    <div class="acz-frame bg-[#1a0402]/95 px-2.5 py-1.5 flex items-center gap-2 shadow-lg border border-[#d99b16]">
-                        <span class="text-[10px] tracking-widest text-[#d99b16] whitespace-nowrap">VOL</span>
-                        <input id="bgm-volume-slider" type="range" min="0" max="100" value="60" oninput="changeBGMVolume(this.value)" class="acz-slider w-20 cursor-pointer">
-                        <span id="bgm-volume-label" class="text-[10px] tracking-widest text-[#f3c623] font-bold w-7 text-right">60%</span>
+                <!-- Generous invisible hover bridge + padding around dropdown so cursor never loses focus on lower half -->
+                <div class="hidden group-hover:block hover:block absolute -right-2 top-full pt-1.5 pb-4 px-2 z-50">
+                    <div class="acz-frame bg-[#1a0402] px-3 py-2.5 flex items-center gap-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.95)] border border-[#f3c623]">
+                        <span class="text-[11px] tracking-widest text-[#d99b16] whitespace-nowrap font-bold">VOL</span>
+                        <input id="bgm-volume-slider" type="range" min="0" max="100" value="20" oninput="changeBGMVolume(this.value)" class="acz-slider w-24 py-2 cursor-pointer">
+                        <span id="bgm-volume-label" class="text-[11px] tracking-widest text-[#f3c623] font-bold w-8 text-right">20%</span>
                     </div>
                 </div>
             </div>
@@ -314,6 +313,33 @@
 
     <!-- Looping Background Music Element -->
     <audio id="bgm-player" src="./audio/bgm.mp3" loop preload="auto"></audio>
+
+    <!-- Centered Credits Modal Overlay -->
+    <div id="credits-modal" onclick="closeCreditsModal()" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div id="credits-modal-card" onclick="event.stopPropagation()" class="acz-frame bg-[#180301]/95 border-[#f3c623] p-6 max-w-lg w-full flex flex-col relative transform scale-95 transition-transform duration-200 shadow-[0_0_40px_rgba(0,0,0,0.95)]">
+            <div class="w-full flex items-center justify-between border-b border-[#8c4d10] pb-2.5 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="inline-block w-2 h-2 bg-[#f3c623]"></span>
+                    <span class="text-sm sm:text-base font-bold tracking-widest text-[#f3c623] acz-glow uppercase">[DDI TERMINAL // CREDITS]</span>
+                </div>
+                <button onclick="closeCreditsModal()" class="text-xs sm:text-sm tracking-widest text-[#f3c623] hover:text-[#ef4444] font-bold px-2 py-0.5 border border-transparent hover:border-[#ef4444] rounded-sm transition-colors">[X] CLOSE</button>
+            </div>
+            <div class="text-xs sm:text-sm leading-relaxed tracking-wider text-[#f3c623] acz-glow space-y-3">
+                <p>CREATED ON A WHIM BY DONUTWITHMUSTACHE</p>
+                <p>Heavily inspired by Ace Combat: ZERO's assault records system. Built to be one of many ways participants can keep track of lore/data of the DML Project.</p>
+                <p class="text-[#d99b16]">
+                    UI &amp; ARCHIVE SYSTEM: DonutWithMustache<br>
+                    3D AIRCRAFT MODELS: LexTheMystic_RO<br>
+                    AIRCRAFT LIVERIES: LexTheMystic_RO &amp; DonutWithMustache<br>
+                    EMBLEMS &amp; ILLUSTRATIONS: DonutWithMustache<br>
+                    BGM &amp; SOUND DESIGN: DonutWithMustache
+                </p>
+                <p class="text-[11px] text-[#9e6312] pt-2 border-t border-[#592d07]">
+                    FUN FACT: THE SONG PLAYING IS CALLED "HANGAR A-3", BY DONUTWITHMUSTACHE.
+                </p>
+            </div>
+        </div>
+    </div>
 
     <!-- Local CORS / Missing Manifest Notice Banner (Hidden unless fetch fails) -->
     <div id="cors-notice" class="hidden relative z-20 mb-2 px-3 py-1.5 border border-[#ef4444] bg-[#2a0502]/90 text-[11px] tracking-wider text-[#f3c623] flex items-center justify-between">
@@ -722,7 +748,7 @@
         const TOTAL_GRID_SLOTS = 20; // 5x4 grid like Ace Combat Zero
         let sfxEnabled = true;
         let bgmEnabled = true;
-        let bgmVolume = 0.60; // Default 60% volume
+        let bgmVolume = 0.20; // Default 20% volume
         let audioCtx = null;
 
         function playUISound(type = 'select') {
@@ -806,7 +832,7 @@
             }
         }
 
-        // Starts BGM automatically at 60% volume or on first user interaction if browser blocks autoplay
+        // Starts BGM automatically at 20% volume or on first user interaction if browser blocks autoplay
         function initBGMAutoplay() {
             const bgm = document.getElementById('bgm-player');
             if (!bgm) return;
@@ -847,6 +873,31 @@
             popup.classList.add('opacity-0', 'pointer-events-none');
             card.classList.remove('scale-100');
             card.classList.add('scale-75');
+        }
+
+        // Centered Credits Modal Functions
+        function openCreditsModal() {
+            const modal = document.getElementById('credits-modal');
+            const card = document.getElementById('credits-modal-card');
+            if (!modal || !card) return;
+
+            playUISound('select');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100', 'pointer-events-auto');
+            card.classList.remove('scale-95');
+            card.classList.add('scale-100');
+        }
+
+        function closeCreditsModal() {
+            const modal = document.getElementById('credits-modal');
+            const card = document.getElementById('credits-modal-card');
+            if (!modal || !card) return;
+
+            playUISound('select');
+            modal.classList.remove('opacity-100', 'pointer-events-auto');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            card.classList.remove('scale-100');
+            card.classList.add('scale-95');
         }
 
         /***************************************************************************
@@ -1045,36 +1096,6 @@
             const mountWrapper = new THREE.Group();
             mountWrapper.add(object3D);
             aircraftMeshGroup.add(mountWrapper);
-        }
-
-        // Handles uploading a local .glb, .gltf, or .obj file to preview on the stand
-        function handleLocalModelUpload(event) {
-            const file = event.target.files && event.target.files[0];
-            if (!file) return;
-
-            playUISound('select');
-            const objectUrl = URL.createObjectURL(file);
-            const ext = file.name.split('.').pop().toLowerCase();
-
-            while (aircraftMeshGroup.children.length > 0) {
-                aircraftMeshGroup.remove(aircraftMeshGroup.children[0]);
-            }
-
-            if (ext === 'obj') {
-                const loader = new THREE.OBJLoader();
-                loader.load(objectUrl, obj => {
-                    normalizeAndMountCustomMesh(obj);
-                    URL.revokeObjectURL(objectUrl);
-                });
-            } else {
-                const loader = new THREE.GLTFLoader();
-                loader.load(objectUrl, gltf => {
-                    normalizeAndMountCustomMesh(gltf.scene);
-                    URL.revokeObjectURL(objectUrl);
-                });
-            }
-
-            event.target.value = '';
         }
 
         function toggleAutoRotate() {

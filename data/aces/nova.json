@@ -1,0 +1,38 @@
+{
+  "id": "ace-nova",
+  "recordNo": "NO.002",
+  "headerTag": "[PILOT DATA]",
+  "title": "NOVA",
+  "subtitle": "BLACK EAGLES // 1ST FS",
+  "extraLines": [
+    "AFFILIATION: DONUT MERCENARY LEGION [DML]",
+    "STATUS: LEGIONNAIRE"
+  ],
+  "aircraftName": "SU-37 TERMINATOR",
+  "thumbnail": "./images/planes/nova.png",
+  "emblem": "./images/emblem/black-eagles.png",
+  "modelUrl": "./models/nova_su33.glb",
+  "tagline": "\"THE SCARLET BUTTERFLY.\"",
+  "palette": [
+    { "hex": "#2f2f2f", "name": "DML DARK GRAY" },
+    { "hex": "#1c1c1c", "name": "DDI DARKER GRAY" },
+    { "hex": "#cc0000", "name": "SUPERNOVA RED" },
+    { "hex": "#f3f3f3", "name": "DML DIELEC. WHITE" }
+
+  ],
+  "specs": {
+    "REAL NAME": "[REDACTED]",
+    "AGE": "[REDACTED]",
+    "SEX": "FEMALE",
+    "NATIONALITY": "ERUSEAN [SHILAGEAN]",
+    "CALLSIGN": "NOVA",
+    "JOINED DML": "[REDACTED]",
+    "RANK": "LEGIONNAIRE",
+    "PERSONAL VEHICLE": "RED 72' NOVA"
+  },
+  "lore": [
+    "The legendary Scarlet Butterfly, NOVA is a pure-blooded, thoroughbred ace; Born in the southeastern Erusean duchy of Shilage, she was taught to fly by the same environment that raised legends of history such as Yellow 13 and Mister X.",
+    "NOVA was an uncaged bird, yearning to fly at any cost. When political and national hurdles began to get in the way as Shilage seceded from the Erusean Kingdom, NOVA would turn to the life of a Mercenary to keep flying.",
+    "A highly decorated ace and a member of the legendary Black Eagles today, NOVA's presence in any airspace commands fear and respect from both friend and foe."
+  ]
+}

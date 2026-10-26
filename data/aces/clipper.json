@@ -1,0 +1,37 @@
+{
+  "id": "ace-clipper",
+  "recordNo": "NO.003",
+  "headerTag": "[PILOT DATA]",
+  "title": "CLIPPER",
+  "subtitle": "JADEITE SQUADRON // 8TH TFS",
+  "extraLines": [
+    "AFFILIATION: DONUT MERCENARY LEGION [DML]",
+    "STATUS: LEGIONNAIRE"
+  ],
+  "aircraftName": "F/A-18CLi HORNET",
+  "thumbnail": "./images/planes/clipper.png",
+  "emblem": "./images/emblem/jadeite.png",
+  "modelUrl": "./models/clipper_f18.glb",
+  "tagline": "\"QUEEN OF THE AMAZONS.\"",
+  "palette": [
+    { "hex": "#64793f", "name": "DML JADE" },
+    { "hex": "#53644b", "name": "DML JADEITE" },
+    { "hex": "#504a46", "name": "DML BROWNISH GRAY" },
+    { "hex": "#b7b7b7", "name": "DML LOW-VIS GRAY" },
+    { "hex": "#1c1c1c", "name": "DML DIELEC. BLACK" }
+  ],
+  "specs": {
+    "REAL NAME": "[REDACTED]",
+    "AGE": "[REDACTED]",
+    "SEX": "FEMALE",
+    "NATIONALITY": "OSEAN",
+    "CALLSIGN": "CANVAS",
+    "JOINED DML": "[REDACTED]",
+    "RANK": "LEGIONNAIRE",
+    "PERSONAL VEHICLE": "POLO GREEN 89' CORVETTE [+ MANY MORE]"
+  },
+  "lore": [
+    "CLIPPER is a highly experienced pilot specializing in one-man-army deep-strike and recon sorties against very high value targets far behind enemy lines. Whenever she is not in the air, she can be found managing her underlings in her workshop, which is the primary repair and service installation for aircraft of the DML.",
+    "Her other duties include notable important in the sercurity of DML's main Harmony Base headquarters, and running a small automotive workshop on the side as a hobby."
+  ]
+}

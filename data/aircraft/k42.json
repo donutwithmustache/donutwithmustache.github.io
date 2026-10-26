@@ -1,0 +1,32 @@
+{
+  "id": "ace-donut",
+  "recordNo": "NO.001",
+  "headerTag": "[PILOT DATA]",
+  "title": "DONUT",
+  "subtitle": "BLACK EAGLES // TENEBRIS AQUILAS",
+  "extraLines": [
+    "STATUS: COMMANDER / PRIME ACE",
+    "AFFILIATION: DML / DONUT DEFENSE INDUSTRIES"
+  ],
+  "aircraftName": "Su-47DXi Super Berkut",
+  "thumbnail": "./images/planes/donut.png",
+  "emblem": "./images/emblem/black-eagles.png",
+  "modelUrl": "./models/nova_su33.glb",
+  "tagline": "\"TENEBRIS AQUILAS — FROM THE SHADOWS, WE STRIKE.\"",
+  "palette": [
+    { "hex": "#4b4b4b", "name": "DML LIGHT GRAY" },
+    { "hex": "#2f2f2f", "name": "DML DARK GRAY" },
+    { "hex": "#1c1c1c", "name": "DML DIELEC. BLACK" },
+    { "hex": "#ae3332", "name": "DML ACCENT RED" }
+  ],
+  "specs": {
+    "CALLSIGN": "DONUT",
+    "SQUADRON": "Black Eagles",
+    "AIRFRAME": "Su-47DXi Super Berkut",
+    "AVIONICS": "[REDACTED]"
+  },
+  "lore": [
+    "Commander and prime flight lead of the elite 'Black Eagles' mercenary squadron.",
+    "DONUT's personal Su-47DXi Super Berkut incorporates twin rectangular 2D thrust-vectoring exhaust nozzles."
+  ]
+}

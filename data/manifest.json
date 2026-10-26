@@ -1,0 +1,10 @@
+{
+  "aces": [
+    "data/aces/canvas.json",
+    "data/aces/nova.json",
+    "data/aces/clipper.json"
+  ],
+  "aircraft": [
+    "data/aircraft/k42.json"
+  ]
+}

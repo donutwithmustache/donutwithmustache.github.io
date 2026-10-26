@@ -1,0 +1,39 @@
+{
+  "id": "ace-canvas",
+  "recordNo": "NO.001",
+  "headerTag": "[PILOT DATA]",
+  "title": "CANVAS",
+  "subtitle": "TRCOLORI SQUADRON // PAINT SHOP",
+  "extraLines": [
+    "AFFILIATION: DONUT MERCENARY LEGION [DML]",
+    "STATUS: LEGIONNAIRE"
+  ],
+  "aircraftName": "JAS39E GRIPEN",
+  "thumbnail": "./images/planes/canvas.png",
+  "emblem": "./images/emblem/tricolori.png",
+  "modelUrl": "./models/canvas_jas39.glb",
+  "tagline": "\"SCARRED IN A HEARTBEAT.\"",
+  "palette": [
+    { "hex": "#ae3332", "name": "DML ACCENT RED" },
+    { "hex": "#2f2f2f", "name": "DML DARK GRAY" },
+    { "hex": "#4b4b4b", "name": "DDI LIGHT GRAY" },
+    { "hex": "#b7b7b7", "name": "DDI FLAT GRAY" },
+    { "hex": "#1c1c1c", "name": "DML DIELEC. BLACK" },
+    { "hex": "#bbbf80", "name": "DDI UNPAINTED PRIMER" }
+  ],
+  "specs": {
+    "REAL NAME": "[REDACTED]",
+    "AGE": "[REDACTED]",
+    "SEX": "FEMALE",
+    "NATIONALITY": "ESTOVAKIAN",
+    "CALLSIGN": "CANVAS",
+    "JOINED DML": "[REDACTED]",
+    "RANK": "LEGIONNAIRE",
+    "PERSONAL VEHICLE": "YELLOW 22' S660"
+  },
+  "lore": [
+    "Upstart ace on the way to fame, CANVAS's flying career was cut short when her aircraft took a direct hit from ground fire, severely damaging multiple sections and afflicting a near-fatal injury to the pilot.",
+    "She was permenantly grounded from combat roles due to her injury, leaving her plane in a slight state of disrepair afterwards. However, CANVAS found her calling in painting aircraft for fellow mercenaries.",
+    "CANVAS would attain LEGIONNAIRE status after opening the TRICOLORI PAINT SHOP, giving pilots of the DML an accessible and reliable one-stop-shop for all aircraft customization needs, from a simple emblem repaint to entirely new and wild aerobatic liveries."
+  ]
+}

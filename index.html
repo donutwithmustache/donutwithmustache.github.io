@@ -216,6 +216,36 @@
             pointer-events: none;
             animation: floatEmber linear infinite;
         }
+
+        /* Tactical Range Slider for BGM Volume */
+        .acz-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #2b0703;
+            border: 1px solid #8c4d10;
+            height: 6px;
+            border-radius: 1px;
+            outline: none;
+        }
+        .acz-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 10px;
+            height: 14px;
+            background: #f3c623;
+            border: 1px solid #fff3a1;
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(243, 198, 35, 0.8);
+        }
+        .acz-slider::-moz-range-thumb {
+            width: 10px;
+            height: 14px;
+            background: #f3c623;
+            border: 1px solid #fff3a1;
+            cursor: pointer;
+            border-radius: 0;
+            box-shadow: 0 0 6px rgba(243, 198, 35, 0.8);
+        }
     </style>
 </head>
 <body class="min-h-screen lg:h-screen lg:overflow-hidden flex flex-col justify-between p-2 sm:p-3 md:p-4 relative">
@@ -265,10 +295,20 @@
                 SFX: ON
             </button>
 
-            <!-- BGM Toggle -->
-            <button id="btn-bgm" onclick="toggleBGM()" class="acz-tab px-2.5 py-1 text-xs tracking-wider uppercase rounded-sm" title="Toggle Background Music">
-                BGM: ON
-            </button>
+            <!-- BGM Toggle + Instant Hover Volume Slider (Starts at 60%) -->
+            <div class="relative group flex items-center">
+                <button id="btn-bgm" onclick="toggleBGM()" class="acz-tab px-2.5 py-1 text-xs tracking-wider uppercase rounded-sm" title="Toggle Background Music (Hover to adjust volume)">
+                    BGM: ON
+                </button>
+                <!-- Instant Dropdown Slider on Mouseover -->
+                <div class="hidden group-hover:flex absolute right-0 top-full pt-1 z-50">
+                    <div class="acz-frame bg-[#1a0402]/95 px-2.5 py-1.5 flex items-center gap-2 shadow-lg border border-[#d99b16]">
+                        <span class="text-[10px] tracking-widest text-[#d99b16] whitespace-nowrap">VOL</span>
+                        <input id="bgm-volume-slider" type="range" min="0" max="100" value="60" oninput="changeBGMVolume(this.value)" class="acz-slider w-20 cursor-pointer">
+                        <span id="bgm-volume-label" class="text-[10px] tracking-widest text-[#f3c623] font-bold w-7 text-right">60%</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -287,57 +327,73 @@
     <main class="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2.5 min-h-0">
 
         <!-- LEFT COLUMN: PILOT/AIRCRAFT HEADER + 3D MODEL STAND (7 Cols on Desktop for wider 3D stage) -->
-        <section class="lg:col-span-7 acz-frame p-3 flex flex-col justify-between relative overflow-hidden min-h-[340px] lg:min-h-0">
+        <section class="lg:col-span-7 acz-frame p-4 flex flex-col justify-between relative overflow-hidden min-h-[340px] lg:min-h-0">
             
-            <!-- Top Metadata Overlay (Matches ACZ Top-Left Readout) -->
+            <!-- Top Metadata Overlay (Matches ACZ Top-Left Readout with Larger Text) -->
             <div class="relative z-10 flex justify-between items-start pointer-events-none">
                 <div>
-                    <div class="flex items-center gap-3 text-xs sm:text-sm tracking-widest text-[#d99b16]">
+                    <div class="flex items-center gap-3 text-sm sm:text-base md:text-lg tracking-widest text-[#d99b16]">
                         <span id="meta-header-tag">[PILOT DATA]</span>
                         <span id="meta-record-no" class="text-[#f3c623] font-bold">NO.001</span>
                     </div>
-                    <h1 id="meta-title" class="text-xl sm:text-2xl md:text-3xl font-bold tracking-widest text-[#f3c623] acz-glow-strong mt-0.5 uppercase">
+                    <h1 id="meta-title" class="text-2xl sm:text-3xl md:text-4xl font-bold tracking-widest text-[#f3c623] acz-glow-strong mt-0.5 uppercase">
                         DONUT
                     </h1>
-                    <div id="meta-subtitle" class="text-xs sm:text-sm tracking-widest text-[#e0a92b] uppercase">
+                    <div id="meta-subtitle" class="text-sm sm:text-base md:text-lg tracking-widest text-[#e0a92b] uppercase">
                         BLACK EAGLES // TENEBRIS AQUILAS
                     </div>
-                    <div id="meta-extra-lines" class="mt-1 text-xs tracking-widest text-[#b87e14] space-y-0.5 uppercase">
+                    <div id="meta-extra-lines" class="mt-1 text-xs sm:text-sm tracking-widest text-[#b87e14] space-y-0.5 uppercase">
                         <!-- Dynamically populated (e.g., Status, Era, Production) -->
                     </div>
                 </div>
 
-                <!-- Faction / Squadron Emblem Badge (External PNG) -->
-                <div id="emblem-container" class="w-14 h-14 sm:w-16 sm:h-16 border border-[#733c0a] bg-[#160301]/80 p-1 rounded-sm flex items-center justify-center shadow-inner overflow-hidden">
-                    <img id="emblem-img" src="placeholder.png" alt="Emblem" class="w-full h-full object-contain" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='placeholder.png';}">
+                <!-- Faction / Squadron Emblem Badge (Clickable to Inspect) -->
+                <div id="emblem-container" onclick="openEmblemPopup()" title="Click to inspect emblem" class="pointer-events-auto cursor-pointer w-16 h-16 sm:w-20 sm:h-20 border border-[#733c0a] hover:border-[#f3c623] bg-[#160301]/85 p-1.5 rounded-sm flex items-center justify-center shadow-inner overflow-hidden transition-all duration-200 hover:scale-105 hover:shadow-[0_0_12px_rgba(243,198,35,0.45)] group">
+                    <img id="emblem-img" src="placeholder.png" alt="Emblem" class="w-full h-full object-contain transition-transform duration-200 group-hover:scale-105" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='placeholder.png';}">
+                </div>
+            </div>
+
+            <!-- Animated Emblem Inspection Pop-up (Scoped to this Left Aircraft Display Section) -->
+            <div id="emblem-popup" onclick="closeEmblemPopup()" class="absolute inset-0 z-30 bg-[#120201]/85 backdrop-blur-sm flex items-center justify-center p-6 opacity-0 pointer-events-none transition-opacity duration-200">
+                <div onclick="event.stopPropagation()" id="emblem-popup-card" class="acz-frame bg-[#1c0402]/95 border-[#f3c623] p-5 max-w-sm w-full flex flex-col items-center relative transform scale-75 transition-transform duration-200 shadow-[0_0_30px_rgba(0,0,0,0.9)]">
+                    <div class="w-full flex items-center justify-between border-b border-[#733c0a] pb-2 mb-4">
+                        <span class="text-xs sm:text-sm tracking-widest text-[#d99b16] uppercase">[EMBLEM INSPECTION]</span>
+                        <button onclick="closeEmblemPopup()" class="text-xs sm:text-sm tracking-widest text-[#f3c623] hover:text-[#ef4444] font-bold px-1.5 py-0.5 border border-transparent hover:border-[#ef4444] rounded-sm">[X] CLOSE</button>
+                    </div>
+                    <div class="w-48 h-48 sm:w-56 sm:h-56 p-3 bg-[#100201] border border-[#613108] flex items-center justify-center shadow-inner">
+                        <img id="emblem-popup-img" src="placeholder.png" alt="Expanded Emblem" class="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(243,198,35,0.25)]" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='placeholder.png';}">
+                    </div>
+                    <div id="emblem-popup-title" class="mt-4 text-base sm:text-lg font-bold tracking-widest text-[#f3c623] acz-glow uppercase text-center">
+                        DONUT
+                    </div>
+                    <div id="emblem-popup-subtitle" class="text-xs tracking-widest text-[#d99b16] uppercase text-center mt-0.5">
+                        BLACK EAGLES // TENEBRIS AQUILAS
+                    </div>
                 </div>
             </div>
 
             <!-- Center 3D Model Stand Viewport (Three.js Canvas) -->
             <div id="viewport-container" class="relative flex-1 w-full my-1 min-h-[200px] cursor-grab active:cursor-grabbing">
                 <canvas id="three-canvas" class="w-full h-full block"></canvas>
-
-                <!-- 3D Viewport Controls Overlay (Bottom-Right of 3D Stand) -->
-                <div class="absolute bottom-1 right-1 flex items-center gap-1 z-20">
-                    <button id="btn-rotate" onclick="toggleAutoRotate()" class="px-2 py-0.5 text-[10px] tracking-wider border border-[#8c4d10] bg-[#1c0402]/85 text-[#f3c623] hover:bg-[#521205] rounded-sm">
-                        ROTATE: ON
-                    </button>
-                    <button id="btn-wireframe" onclick="toggleWireframe()" class="px-2 py-0.5 text-[10px] tracking-wider border border-[#8c4d10] bg-[#1c0402]/85 text-[#d99b16] hover:bg-[#521205] rounded-sm">
-                        WIRE: OFF
-                    </button>
-                    <button onclick="resetCameraView()" class="px-2 py-0.5 text-[10px] tracking-wider border border-[#8c4d10] bg-[#1c0402]/85 text-[#d99b16] hover:bg-[#521205] rounded-sm">
-                        RESET CAM
-                    </button>
-                </div>
             </div>
 
-            <!-- Bottom Left Aircraft Name -->
-            <div class="relative z-10 flex flex-wrap items-end justify-between gap-2 pt-1 border-t border-[#613108]/70">
+            <!-- Bottom Overlay: Larger Aircraft Name on Left + Larger Control Buttons on Right, No Divider Line -->
+            <div class="relative z-20 flex flex-wrap items-end justify-between gap-2 pt-1 pointer-events-none">
                 <div>
-                    <div class="text-[11px] sm:text-xs tracking-widest text-[#c28519]">[AIRCRAFT NAME]</div>
-                    <div id="meta-aircraft-name" class="text-base sm:text-lg md:text-xl font-bold tracking-widest text-[#f3c623] acz-glow">
+                    <div class="text-sm sm:text-base tracking-widest text-[#c28519]">[AIRCRAFT NAME]</div>
+                    <div id="meta-aircraft-name" class="text-xl sm:text-2xl md:text-3xl font-bold tracking-widest text-[#f3c623] acz-glow uppercase">
                         Su-47DXi Super Berkut
                     </div>
+                </div>
+
+                <!-- 3D Viewport Controls (Larger Buttons, Wireframe Removed) -->
+                <div class="flex items-center gap-2 pointer-events-auto">
+                    <button id="btn-rotate" onclick="toggleAutoRotate()" class="px-3.5 py-1.5 text-xs sm:text-sm tracking-widest border border-[#8c4d10] bg-[#1c0402]/90 text-[#f3c623] hover:bg-[#521205] hover:border-[#f3c623] rounded-sm transition-colors">
+                        ROTATE: ON
+                    </button>
+                    <button onclick="resetCameraView()" class="px-3.5 py-1.5 text-xs sm:text-sm tracking-widest border border-[#8c4d10] bg-[#1c0402]/90 text-[#d99b16] hover:bg-[#521205] hover:text-[#f3c623] hover:border-[#f3c623] rounded-sm transition-colors">
+                        RESET CAM
+                    </button>
                 </div>
             </div>
         </section>
@@ -666,6 +722,7 @@
         const TOTAL_GRID_SLOTS = 20; // 5x4 grid like Ace Combat Zero
         let sfxEnabled = true;
         let bgmEnabled = true;
+        let bgmVolume = 0.60; // Default 60% volume
         let audioCtx = null;
 
         function playUISound(type = 'select') {
@@ -682,12 +739,13 @@
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
 
+                // SFX Volume boosted by 60% compared to previous levels
                 const now = audioCtx.currentTime;
                 if (type === 'select') {
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(1480, now);
                     osc.frequency.setValueAtTime(1960, now + 0.03);
-                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.setValueAtTime(0.128, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
                     osc.start(now);
                     osc.stop(now + 0.09);
@@ -695,14 +753,14 @@
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(980, now);
                     osc.frequency.setValueAtTime(1320, now + 0.045);
-                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.setValueAtTime(0.16, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
                     osc.start(now);
                     osc.stop(now + 0.14);
                 } else if (type === 'empty') {
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(220, now);
-                    gain.gain.setValueAtTime(0.04, now);
+                    gain.gain.setValueAtTime(0.064, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
                     osc.start(now);
                     osc.stop(now + 0.07);
@@ -726,7 +784,7 @@
 
             bgmEnabled = !bgmEnabled;
             if (bgmEnabled) {
-                bgm.volume = 0.45;
+                bgm.volume = bgmVolume;
                 bgm.play().catch(() => {});
                 btn.textContent = 'BGM: ON';
             } else {
@@ -736,14 +794,27 @@
             playUISound('select');
         }
 
-        // Starts BGM automatically or on first user interaction if browser blocks autoplay
+        function changeBGMVolume(val) {
+            const numericVal = Math.max(0, Math.min(100, Number(val)));
+            bgmVolume = numericVal / 100;
+            const label = document.getElementById('bgm-volume-label');
+            if (label) label.textContent = `${numericVal}%`;
+
+            const bgm = document.getElementById('bgm-player');
+            if (bgm) {
+                bgm.volume = bgmVolume;
+            }
+        }
+
+        // Starts BGM automatically at 60% volume or on first user interaction if browser blocks autoplay
         function initBGMAutoplay() {
             const bgm = document.getElementById('bgm-player');
             if (!bgm) return;
-            bgm.volume = 0.45;
+            bgm.volume = bgmVolume;
 
             const tryPlay = () => {
                 if (bgmEnabled && bgm.paused) {
+                    bgm.volume = bgmVolume;
                     bgm.play().catch(() => {});
                 }
             };
@@ -753,13 +824,37 @@
             window.addEventListener('keydown', tryPlay, { once: true });
         }
 
+        // Animated Emblem Pop-up Inspection Functions
+        function openEmblemPopup() {
+            const popup = document.getElementById('emblem-popup');
+            const card = document.getElementById('emblem-popup-card');
+            if (!popup || !card) return;
+
+            playUISound('select');
+            popup.classList.remove('opacity-0', 'pointer-events-none');
+            popup.classList.add('opacity-100', 'pointer-events-auto');
+            card.classList.remove('scale-75');
+            card.classList.add('scale-100');
+        }
+
+        function closeEmblemPopup() {
+            const popup = document.getElementById('emblem-popup');
+            const card = document.getElementById('emblem-popup-card');
+            if (!popup || !card) return;
+
+            playUISound('select');
+            popup.classList.remove('opacity-100', 'pointer-events-auto');
+            popup.classList.add('opacity-0', 'pointer-events-none');
+            card.classList.remove('scale-100');
+            card.classList.add('scale-75');
+        }
+
         /***************************************************************************
          * 3. THREE.JS 3D SCENE, STAND, AND EXTERNAL MODEL LOADER
          ***************************************************************************/
         let scene, camera, renderer, controls;
         let turntableGroup, standMeshGroup, aircraftMeshGroup;
         let autoRotate = true;
-        let wireframeMode = false;
 
         function initThreeJS() {
             const container = document.getElementById('viewport-container');
@@ -816,9 +911,9 @@
             standMeshGroup = buildDisplayStand();
             turntableGroup.add(standMeshGroup);
 
-            // Group to hold the active aircraft mounted on the stand
+            // Group to hold the active aircraft mounted directly onto the top of the stand strut
             aircraftMeshGroup = new THREE.Group();
-            aircraftMeshGroup.position.set(0, 2.15, -0.35);
+            aircraftMeshGroup.position.set(0, 1.88, -0.15);
             aircraftMeshGroup.rotation.set(0.22, 0, 0.08);
             turntableGroup.add(aircraftMeshGroup);
 
@@ -855,7 +950,7 @@
             plateMesh.position.set(0, -1.55, 0.5);
             group.add(plateMesh);
 
-            // Swept Diagonal Support Strut (Terminates cleanly at Y=1.95 so it never impales the fuselage)
+            // Swept Diagonal Support Strut (Aircraft sits directly on the top of this strut, no floating block)
             const strutShape = new THREE.Shape();
             strutShape.moveTo(-0.55, -1.55);
             strutShape.lineTo(0.65, -1.55);
@@ -877,13 +972,6 @@
             strutMesh.rotation.y = Math.PI / 2;
             strutMesh.position.set(0, 0.2, 0.25);
             group.add(strutMesh);
-
-            // Angled Cradle Mount Pad at the top of the strut
-            const padGeo = new THREE.BoxGeometry(0.55, 0.12, 1.35);
-            const padMesh = new THREE.Mesh(padGeo, baseTrimMat);
-            padMesh.position.set(0, 1.98, -0.35);
-            padMesh.rotation.set(0.22, 0, 0.08);
-            group.add(padMesh);
 
             return group;
         }
@@ -949,16 +1037,10 @@
             const scaledCenter = new THREE.Vector3();
             scaledBox.getCenter(scaledCenter);
 
-            // Center horizontally (X/Z), and place the bottom of the aircraft (scaledBox.min.y) right on top of the stand
+            // Center horizontally (X/Z), and seat the aircraft firmly onto the top of the stand strut
             object3D.position.x -= scaledCenter.x;
             object3D.position.z -= scaledCenter.z;
             object3D.position.y -= scaledBox.min.y;
-
-            object3D.traverse(node => {
-                if (node.isMesh && node.material) {
-                    node.material.wireframe = wireframeMode;
-                }
-            });
 
             const mountWrapper = new THREE.Group();
             mountWrapper.add(object3D);
@@ -1002,19 +1084,6 @@
             playUISound('select');
         }
 
-        function toggleWireframe() {
-            wireframeMode = !wireframeMode;
-            const btn = document.getElementById('btn-wireframe');
-            btn.textContent = wireframeMode ? 'WIRE: ON' : 'WIRE: OFF';
-            playUISound('select');
-
-            aircraftMeshGroup.traverse(node => {
-                if (node.isMesh && node.material) {
-                    node.material.wireframe = wireframeMode;
-                }
-            });
-        }
-
         function resetCameraView() {
             playUISound('select');
             camera.position.set(11.5, 6.2, 13.5);
@@ -1033,7 +1102,8 @@
         function animateThreeJS() {
             requestAnimationFrame(animateThreeJS);
             if (autoRotate && turntableGroup) {
-                turntableGroup.rotation.y += 0.0065;
+                // Slowed down by 40% (from 0.0065 to 0.0039)
+                turntableGroup.rotation.y += 0.0039;
             }
             if (controls) controls.update();
             if (renderer && scene && camera) {
@@ -1139,13 +1209,26 @@
                 .join('');
 
             // Update Emblem Image from ./images/emblem/... or fallback to placeholder.png
+            const emblemSrc = (entry.emblem && entry.emblem.trim() !== '')
+                ? entry.emblem.trim()
+                : DEFAULT_IMAGE_PLACEHOLDER;
+
             const emblemImg = document.getElementById('emblem-img');
             if (emblemImg) {
                 delete emblemImg.dataset.fallback;
-                emblemImg.src = (entry.emblem && entry.emblem.trim() !== '')
-                    ? entry.emblem.trim()
-                    : DEFAULT_IMAGE_PLACEHOLDER;
+                emblemImg.src = emblemSrc;
             }
+
+            // Sync Expanded Emblem Inspection Pop-up
+            const popupImg = document.getElementById('emblem-popup-img');
+            if (popupImg) {
+                delete popupImg.dataset.fallback;
+                popupImg.src = emblemSrc;
+            }
+            const popupTitle = document.getElementById('emblem-popup-title');
+            if (popupTitle) popupTitle.textContent = entry.title;
+            const popupSubtitle = document.getElementById('emblem-popup-subtitle');
+            if (popupSubtitle) popupSubtitle.textContent = entry.subtitle;
 
             document.getElementById('meta-aircraft-name').textContent = entry.aircraftName;
 

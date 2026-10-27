@@ -1,0 +1,36 @@
+{
+  "id": "ace-geckls",
+  "recordNo": "NO.005",
+  "headerTag": "[PILOT DATA]",
+  "title": "GECKO",
+  "subtitle": "[REDACTED] // [REDACTED]",
+  "extraLines": [
+    "AFFILIATION: DONUT MERCENARY LEGION [DML]",
+    "STATUS: LEGIONNAIRE"
+  ],
+  "aircraftName": "EF-2000",
+  "thumbnail": "./images/planes/geckls.png",
+  "emblem": "./images/emblem/gecko.png",
+  "modelUrl": "./models/geckls_ef2000.glb",
+  "tagline": "\"HIGHLY SECRETIVE.\"",
+  "palette": [
+    { "hex": "#64793f", "name": "DML JADE" },
+    { "hex": "#53644b", "name": "DML JADEITE" },
+    { "hex": "#504a46", "name": "DML BROWNISH GRAY" },
+    { "hex": "#b7b7b7", "name": "DML LOW-VIS GRAY" },
+    { "hex": "#1c1c1c", "name": "DML DIELECTRIC BLACK" }
+  ],
+  "specs": {
+    "REAL NAME": "[REDACTED]",
+    "AGE": "[REDACTED]",
+    "SEX": "FEMALE",
+    "NATIONALITY": "[REDACTED]",
+    "CALLSIGN": "CANVAS",
+    "JOINED DML": "[REDACTED]",
+    "RANK": "LEGIONNAIRE",
+    "PERSONAL VEHICLE": "..."
+  },
+  "lore": [
+    "[REDACTED]"
+  ]
+}

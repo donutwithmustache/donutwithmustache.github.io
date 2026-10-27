@@ -18,7 +18,7 @@
     { "hex": "#2f2f2f", "name": "DML DARK GRAY" },
     { "hex": "#4b4b4b", "name": "DDI LIGHT GRAY" },
     { "hex": "#b7b7b7", "name": "DDI FLAT GRAY" },
-    { "hex": "#1c1c1c", "name": "DML DIELEC. BLACK" },
+    { "hex": "#1c1c1c", "name": "DML DIELECTRIC BLACK" },
     { "hex": "#bbbf80", "name": "DDI UNPAINTED PRIMER" }
   ],
   "specs": {

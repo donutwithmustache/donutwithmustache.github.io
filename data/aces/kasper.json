@@ -1,0 +1,35 @@
+{
+  "id": "ace-kasper",
+  "recordNo": "NO.004",
+  "headerTag": "[PILOT DATA]",
+  "title": "KASPER",
+  "subtitle": "AZUR SQUADRON // 2ND TFS",
+  "extraLines": [
+    "AFFILIATION: DONUT MERCENARY LEGION [DML]",
+    "STATUS: LEGIONNAIRE"
+  ],
+  "aircraftName": "KFIR C.2",
+  "thumbnail": "./images/planes/kasper.png",
+  "emblem": "./images/emblem/azur.png",
+  "modelUrl": "./models/bravo_kfir.glb",
+  "tagline": "\"KNIGHT OF BLUE SKIES.\"",
+  "palette": [
+    { "hex": "#d1e2f5", "name": "DML AZUR" },
+    { "hex": "#2f2f2f", "name": "DML DARK GRAY" },
+    { "hex": "#1c1c1c", "name": "DML DIELECTRIC BLACK" }
+  ],
+  "specs": {
+    "REAL NAME": "[REDACTED]",
+    "AGE": "[REDACTED]",
+    "SEX": "FEMALE",
+    "NATIONALITY": "BELKAN",
+    "CALLSIGN": "KASPER",
+    "JOINED DML": "[REDACTED]",
+    "RANK": "LEGIONNAIRE",
+    "PERSONAL VEHICLE": ".."
+  },
+  "lore": [
+    "Wanted under investigation for war crimes and conspiracy, KASPER is a old friend of DONUT and a master of Belkan espionage.",
+    "Do not let her status fool you however, as he skill in the air is deadly in its own right. Enough so to where she can still put up good numbers despite preferring to fly a very outdated airframe."
+  ]
+}

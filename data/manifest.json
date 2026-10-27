@@ -2,7 +2,9 @@
   "aces": [
     "data/aces/canvas.json",
     "data/aces/nova.json",
-    "data/aces/clipper.json"
+    "data/aces/kasper.json",
+    "data/aces/clipper.json",
+    "data/aces/geckls.json"
   ],
   "aircraft": [
     "data/aircraft/k42.json"

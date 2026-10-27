@@ -17,7 +17,7 @@
     { "hex": "#2f2f2f", "name": "DML DARK GRAY" },
     { "hex": "#1c1c1c", "name": "DDI DARKER GRAY" },
     { "hex": "#cc0000", "name": "SUPERNOVA RED" },
-    { "hex": "#f3f3f3", "name": "DML DIELEC. WHITE" }
+    { "hex": "#f3f3f3", "name": "DML DIELECTRIC WHITE" }
 
   ],
   "specs": {

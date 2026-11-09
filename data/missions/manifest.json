@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "missions": [
+    "test_flight",
+    "new_mission",
+    "tutorial"
+  ],
+  "defaultMission": "test_flight"
+}

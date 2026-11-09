@@ -1,0 +1,1427 @@
+{
+  "map": {
+    "id": "test_flight",
+    "name": "Open Ocean & Archipelago",
+    "size": 30150,
+    "halfMapSize": 15075.0,
+    "returnLine": {
+      "enabled": false,
+      "side": "bottom",
+      "offset": 0.1
+    },
+    "oceanTheme": {
+      "gradTop": "#050e18",
+      "gradMid": "#061524",
+      "gradBottom": "#04101a"
+    },
+    "terrain": [
+      {
+        "id": "fortress_poly_atoll",
+        "type": "polygon",
+        "x": 50.8,
+        "y": -1579.9,
+        "radius": 680.0,
+        "points": [
+          [
+            -299.2,
+            -1829.9
+          ],
+          [
+            100.8,
+            -1929.9
+          ],
+          [
+            400.8,
+            -1779.9
+          ],
+          [
+            350.8,
+            -1379.9
+          ],
+          [
+            0.8,
+            -1249.9
+          ],
+          [
+            -269.2,
+            -1509.9
+          ]
+        ],
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_1",
+        "type": "island",
+        "x": -1103.8,
+        "y": -842.0,
+        "radius": 504.2,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_2",
+        "type": "island",
+        "x": 708.9,
+        "y": 1289.1,
+        "radius": 614.6,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_3",
+        "type": "island",
+        "x": 1744.0,
+        "y": -278.5,
+        "radius": 335.1,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_4",
+        "type": "island",
+        "x": 1518.7,
+        "y": -1551.2,
+        "radius": 368.7,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_5",
+        "type": "island",
+        "x": -1462.4,
+        "y": -307.4,
+        "radius": 475.8,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_6",
+        "type": "island",
+        "x": 596.8,
+        "y": -870.4,
+        "radius": 407.1,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_7",
+        "type": "island",
+        "x": 1084.7,
+        "y": -832.7,
+        "radius": 459.2,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_8",
+        "type": "island",
+        "x": -1682.0,
+        "y": 657.3,
+        "radius": 600.8,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_9",
+        "type": "island",
+        "x": -2282.5,
+        "y": -236.8,
+        "radius": 429.3,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_10",
+        "type": "island",
+        "x": -761.0,
+        "y": -1661.6,
+        "radius": 318.7,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_11",
+        "type": "island",
+        "x": -7252.1,
+        "y": -5720.8,
+        "radius": 751.7,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_12",
+        "type": "island",
+        "x": -4993.0,
+        "y": -4713.8,
+        "radius": 382.8,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_13",
+        "type": "island",
+        "x": -1606.0,
+        "y": 233.8,
+        "radius": 522.4,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_14",
+        "type": "island",
+        "x": -6315.7,
+        "y": -4291.0,
+        "radius": 655.0,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_15",
+        "type": "island",
+        "x": -5939.2,
+        "y": -4304.0,
+        "radius": 515.8,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_16",
+        "type": "island",
+        "x": -7676.6,
+        "y": -5568.2,
+        "radius": 362.4,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_17",
+        "type": "island",
+        "x": -7812.8,
+        "y": -3721.1,
+        "radius": 598.0,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_18",
+        "type": "island",
+        "x": -8000.9,
+        "y": -6129.9,
+        "radius": 384.3,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_19",
+        "type": "island",
+        "x": 7735.5,
+        "y": 6035.0,
+        "radius": 617.4,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_20",
+        "type": "island",
+        "x": 8373.2,
+        "y": 3545.8,
+        "radius": 454.8,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_21",
+        "type": "island",
+        "x": 5884.9,
+        "y": 5391.5,
+        "radius": 769.4,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_22",
+        "type": "island",
+        "x": 7963.0,
+        "y": 5303.2,
+        "radius": 607.4,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_23",
+        "type": "island",
+        "x": 5300.1,
+        "y": 5505.5,
+        "radius": 655.4,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_24",
+        "type": "island",
+        "x": 7725.3,
+        "y": 6029.8,
+        "radius": 437.3,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_25",
+        "type": "island",
+        "x": 8670.3,
+        "y": 3320.3,
+        "radius": 328.0,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_26",
+        "type": "island",
+        "x": 7679.1,
+        "y": 3188.2,
+        "radius": 413.6,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_27",
+        "type": "island",
+        "x": -9927.1,
+        "y": 1038.0,
+        "radius": 542.1,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_28",
+        "type": "island",
+        "x": -9867.5,
+        "y": -1586.4,
+        "radius": 562.7,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_29",
+        "type": "island",
+        "x": -10264.5,
+        "y": 412.9,
+        "radius": 745.4,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_30",
+        "type": "island",
+        "x": -11259.3,
+        "y": -593.1,
+        "radius": 616.2,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_31",
+        "type": "island",
+        "x": -11402.9,
+        "y": 714.1,
+        "radius": 735.9,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_32",
+        "type": "island",
+        "x": -11412.7,
+        "y": -1388.0,
+        "radius": 637.9,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_33",
+        "type": "island",
+        "x": -10114.6,
+        "y": 240.3,
+        "radius": 533.3,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_34",
+        "type": "island",
+        "x": -10643.7,
+        "y": 33.3,
+        "radius": 718.2,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_35",
+        "type": "island",
+        "x": -11314.9,
+        "y": -228.9,
+        "radius": 624.6,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_36",
+        "type": "island",
+        "x": -10680.4,
+        "y": 217.3,
+        "radius": 668.3,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_37",
+        "type": "island",
+        "x": -9627.2,
+        "y": -1125.5,
+        "radius": 499.0,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_38",
+        "type": "island",
+        "x": -10791.6,
+        "y": 1528.8,
+        "radius": 301.3,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_39",
+        "type": "island",
+        "x": -9833.8,
+        "y": 603.3,
+        "radius": 543.5,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_40",
+        "type": "island",
+        "x": -10026.6,
+        "y": 611.8,
+        "radius": 584.0,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_41",
+        "type": "island",
+        "x": -9356.8,
+        "y": -822.8,
+        "radius": 713.1,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_42",
+        "type": "island",
+        "x": -9745.8,
+        "y": 832.4,
+        "radius": 553.7,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_43",
+        "type": "island",
+        "x": -9156.7,
+        "y": 1046.2,
+        "radius": 656.8,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_44",
+        "type": "island",
+        "x": 3679.2,
+        "y": -1285.7,
+        "radius": 502.5,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_45",
+        "type": "island",
+        "x": 4561.4,
+        "y": -1566.9,
+        "radius": 528.8,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_46",
+        "type": "island",
+        "x": 5460.4,
+        "y": -361.8,
+        "radius": 673.8,
+        "color": "#162e24",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_47",
+        "type": "island",
+        "x": 3429.8,
+        "y": -2412.7,
+        "radius": 559.2,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      },
+      {
+        "id": "island_48",
+        "type": "island",
+        "x": 4926.5,
+        "y": -1719.8,
+        "radius": 378.6,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      }
+    ],
+    "weather": {
+      "cloudDensity": 1.0,
+      "waveCount": 1500,
+      "windHeading": -0.45,
+      "windSpeed": 10
+    }
+  },
+  "units": {
+    "playerSpawns": [
+      {
+        "id": "player_spawn_1",
+        "team": "friendly",
+        "x": 0,
+        "y": 0,
+        "heading": -0.785,
+        "speed": 335,
+        "altitude": 1.0,
+        "isPrimary": true,
+        "allowedTags": []
+      },
+      {
+        "id": "player_spawn_2",
+        "team": "friendly",
+        "x": 250,
+        "y": -250,
+        "heading": -0.785,
+        "speed": 335,
+        "altitude": 1.0,
+        "isPrimary": false,
+        "allowedTags": []
+      }
+    ],
+    "airUnits": [
+      {
+        "id": "mig21_1",
+        "name": "MiG-21bis Fishbed [ROOKIE]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "mig21",
+        "aiType": "rookie",
+        "isEnemy": true,
+        "x": -4334.1,
+        "y": -4222.9,
+        "heading": 0.4,
+        "speed": 210,
+        "baseSpeed": 210,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 30,
+        "patrolCenterX": -2200,
+        "patrolCenterY": -1600,
+        "patrolRadius": 1800,
+        "turnRate": 0.85,
+        "fireInterval": 7.5,
+        "fireCooldown": 4,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": -2200,
+          "centerY": -1600,
+          "radius": 1800
+        }
+      },
+      {
+        "id": "mig21_3",
+        "name": "MiG-21bis Fishbed [ROOKIE]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "mig21",
+        "aiType": "rookie",
+        "isEnemy": true,
+        "x": 8612.6,
+        "y": -1333.6,
+        "heading": 2.1,
+        "speed": 210,
+        "baseSpeed": 210,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 30,
+        "patrolCenterX": -1000,
+        "patrolCenterY": 2400,
+        "patrolRadius": 2000,
+        "turnRate": 0.85,
+        "fireInterval": 7.5,
+        "fireCooldown": 6,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": -1000,
+          "centerY": 2400,
+          "radius": 2000
+        }
+      },
+      {
+        "id": "mig21_form_1",
+        "name": "MiG-21bis [Lead]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "mig21",
+        "aiType": "dummy",
+        "isEnemy": true,
+        "formationId": "mig21_flight_topleft",
+        "formationOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "x": -10500,
+        "y": -10500,
+        "heading": 0.75,
+        "speed": 215,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 30,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": -10500,
+          "centerY": -10500,
+          "radius": 2000
+        }
+      },
+      {
+        "id": "mig21_form_2",
+        "name": "MiG-21bis [Wing 1]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "mig21",
+        "aiType": "dummy",
+        "isEnemy": true,
+        "formationId": "mig21_flight_topleft",
+        "formationOffset": {
+          "x": -110,
+          "y": -95
+        },
+        "x": -10610,
+        "y": -10595,
+        "heading": 0.75,
+        "speed": 215,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 30,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": -10610,
+          "centerY": -10595,
+          "radius": 2000
+        }
+      },
+      {
+        "id": "mig21_form_3",
+        "name": "MiG-21bis [Wing 2]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "mig21",
+        "aiType": "dummy",
+        "isEnemy": true,
+        "formationId": "mig21_flight_topleft",
+        "formationOffset": {
+          "x": 110,
+          "y": -95
+        },
+        "x": -10390,
+        "y": -10595,
+        "heading": 0.75,
+        "speed": 215,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 30,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": -10390,
+          "centerY": -10595,
+          "radius": 2000
+        }
+      },
+      {
+        "id": "mig21_form_4",
+        "name": "MiG-21bis [Wing 3]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "mig21",
+        "aiType": "dummy",
+        "isEnemy": true,
+        "formationId": "mig21_flight_topleft",
+        "formationOffset": {
+          "x": 220,
+          "y": -190
+        },
+        "x": -10280,
+        "y": -10690,
+        "heading": 0.75,
+        "speed": 215,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 30,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": -10280,
+          "centerY": -10690,
+          "radius": 2000
+        }
+      },
+      {
+        "id": "mig21_form_5",
+        "name": "MiG-21bis [Element 2 Lead]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "mig21",
+        "aiType": "dummy",
+        "isEnemy": true,
+        "formationId": "mig21_flight_topleft",
+        "formationOffset": {
+          "x": -150,
+          "y": -210
+        },
+        "x": -10650,
+        "y": -10710,
+        "heading": 0.75,
+        "speed": 215,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 30,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": -10650,
+          "centerY": -10710,
+          "radius": 2000
+        }
+      },
+      {
+        "id": "mig21_form_6",
+        "name": "MiG-21bis [Element 2 Wing]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "mig21",
+        "aiType": "dummy",
+        "isEnemy": true,
+        "formationId": "mig21_flight_topleft",
+        "formationOffset": {
+          "x": -260,
+          "y": -305
+        },
+        "x": -10760,
+        "y": -10805,
+        "heading": 0.75,
+        "speed": 215,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 30,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": -10760,
+          "centerY": -10805,
+          "radius": 2000
+        }
+      },
+      {
+        "id": "mig21_form_7",
+        "name": "MiG-21bis [Trail Lead]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "mig21",
+        "aiType": "dummy",
+        "isEnemy": true,
+        "formationId": "mig21_flight_topleft",
+        "formationOffset": {
+          "x": 0,
+          "y": -230
+        },
+        "x": -10500,
+        "y": -10730,
+        "heading": 0.75,
+        "speed": 215,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 30,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": -10500,
+          "centerY": -10730,
+          "radius": 2000
+        }
+      },
+      {
+        "id": "mig21_form_8",
+        "name": "MiG-21bis [Trail Slot]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "mig21",
+        "aiType": "dummy",
+        "isEnemy": true,
+        "formationId": "mig21_flight_topleft",
+        "formationOffset": {
+          "x": 110,
+          "y": -325
+        },
+        "x": -10390,
+        "y": -10825,
+        "heading": 0.75,
+        "speed": 215,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 30,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": -10390,
+          "centerY": -10825,
+          "radius": 2000
+        }
+      },
+      {
+        "id": "ace_su27",
+        "name": "Su-27 Flanker [VETERAN]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "su27",
+        "aiType": "veteran",
+        "isEnemy": true,
+        "x": 10698.6,
+        "y": 10171.0,
+        "heading": -2.35,
+        "speed": 280,
+        "baseSpeed": 280,
+        "cornerSpeed": 245,
+        "maxSpeed": 350,
+        "turnRate": 1.6,
+        "hp": 64,
+        "maxHp": 64,
+        "hitRadius": 40,
+        "territory": {
+          "minX": 5800,
+          "maxX": 14200,
+          "minY": 5800,
+          "maxY": 14200,
+          "centerX": 10000,
+          "centerY": 10000,
+          "radius": 4200
+        },
+        "tacticalState": "DOGFIGHT",
+        "tacticalTimer": 0,
+        "fireInterval": 4.8,
+        "fireCooldown": 2.5,
+        "railSide": 1,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": 10000,
+          "centerY": 10000,
+          "radius": 2000
+        }
+      },
+      {
+        "id": "ace_f22",
+        "name": "F-22A Raptor [ACE]",
+        "code": "TGT [AIR]",
+        "type": "air",
+        "model": "f22",
+        "aiType": "ace",
+        "isEnemy": true,
+        "x": -11186.6,
+        "y": 10027.3,
+        "heading": -0.78,
+        "speed": 310,
+        "baseSpeed": 310,
+        "cornerSpeed": 255,
+        "maxSpeed": 385,
+        "turnRate": 2.15,
+        "hp": 160,
+        "maxHp": 160,
+        "hitRadius": 40,
+        "equippedSpw": "qaam",
+        "hasPsm": true,
+        "hasTVC": true,
+        "territory": {
+          "minX": -15500,
+          "maxX": -6500,
+          "minY": 6500,
+          "maxY": 15500,
+          "centerX": -11000,
+          "centerY": 11000,
+          "radius": 4600
+        },
+        "tacticalState": "DOGFIGHT",
+        "tacticalTimer": 0,
+        "fireInterval": 3.2,
+        "fireCooldown": 1.5,
+        "spwCooldown": 4,
+        "flareCooldown": 12,
+        "railSide": 1,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "PATROL_AREA",
+          "centerX": -11000,
+          "centerY": 11000,
+          "radius": 2000
+        }
+      }
+    ],
+    "navalUnits": [
+      {
+        "id": "boat_1",
+        "name": "Missile Corvette",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "isEnemy": true,
+        "x": 750,
+        "y": 100,
+        "heading": 0.8,
+        "speed": 10,
+        "hp": 180,
+        "maxHp": 180,
+        "hitRadius": 42,
+        "patrolCenterX": 750,
+        "patrolCenterY": 100,
+        "patrolRadius": 380,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "FORMATION_ORBIT",
+          "centerX": 8500,
+          "centerY": -8500,
+          "radius": 2800
+        }
+      },
+      {
+        "id": "boat_2",
+        "name": "Patrol Gunboat",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "isEnemy": true,
+        "x": -700,
+        "y": 1400,
+        "heading": -2,
+        "speed": 9,
+        "hp": 130,
+        "maxHp": 130,
+        "hitRadius": 36,
+        "patrolCenterX": -700,
+        "patrolCenterY": 1400,
+        "patrolRadius": 420,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "FORMATION_ORBIT",
+          "centerX": 8500,
+          "centerY": -8500,
+          "radius": 2800
+        }
+      },
+      {
+        "id": "carrier_1",
+        "name": "Aircraft Carrier CVN [TARGET]",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "subType": "carrier",
+        "isEnemy": true,
+        "isCarrierFleet": true,
+        "x": 8500,
+        "y": -11300,
+        "heading": 0,
+        "speed": 18,
+        "hp": 450,
+        "maxHp": 450,
+        "hitRadius": 75,
+        "angleOffset": 0,
+        "radialOffset": 0,
+        "hasCIWS": true,
+        "ciwsChannels": 2,
+        "ciwsRange": 1100,
+        "ciwsInterval": 0.22,
+        "ciwsBurstChance": 0.14,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "FORMATION_ORBIT",
+          "centerX": 8500,
+          "centerY": -8500,
+          "radius": 2800
+        }
+      },
+      {
+        "id": "cruiser_1",
+        "name": "Aegis Missile Cruiser CG [TARGET]",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "subType": "cruiser",
+        "isEnemy": true,
+        "isCarrierFleet": true,
+        "x": 8700,
+        "y": -11240,
+        "heading": 0,
+        "speed": 18,
+        "hp": 260,
+        "maxHp": 260,
+        "hitRadius": 52,
+        "angleOffset": 0.08,
+        "radialOffset": 60,
+        "hasCIWS": true,
+        "ciwsChannels": 1,
+        "ciwsRange": 950,
+        "ciwsInterval": 0.28,
+        "ciwsBurstChance": 0.11,
+        "hasSAM": true,
+        "samRange": 3800,
+        "samInterval": 8.5,
+        "samCooldown": 3.5,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "FORMATION_ORBIT",
+          "centerX": 8500,
+          "centerY": -8500,
+          "radius": 2860
+        }
+      },
+      {
+        "id": "destroyer_1",
+        "name": "Guided Destroyer DDG-1 [TARGET]",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "subType": "destroyer",
+        "isEnemy": true,
+        "isCarrierFleet": true,
+        "x": 8600,
+        "y": -10960,
+        "heading": 0,
+        "speed": 18,
+        "hp": 190,
+        "maxHp": 190,
+        "hitRadius": 44,
+        "angleOffset": 0.04,
+        "radialOffset": 340,
+        "hasCIWS": true,
+        "ciwsChannels": 1,
+        "ciwsRange": 850,
+        "ciwsInterval": 0.32,
+        "ciwsBurstChance": 0.08,
+        "hasSAM": true,
+        "samRange": 3400,
+        "samInterval": 10,
+        "samCooldown": 5,
+        "hasFlak": true,
+        "flakRange": 2200,
+        "flakInterval": 2,
+        "flakCooldown": 1,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "FORMATION_ORBIT",
+          "centerX": 8500,
+          "centerY": -8500,
+          "radius": 3140
+        }
+      },
+      {
+        "id": "destroyer_2",
+        "name": "Guided Destroyer DDG-2 [TARGET]",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "subType": "destroyer",
+        "isEnemy": true,
+        "isCarrierFleet": true,
+        "x": 8600,
+        "y": -11640,
+        "heading": 0,
+        "speed": 18,
+        "hp": 190,
+        "maxHp": 190,
+        "hitRadius": 44,
+        "angleOffset": 0.04,
+        "radialOffset": -340,
+        "hasCIWS": true,
+        "ciwsChannels": 1,
+        "ciwsRange": 850,
+        "ciwsInterval": 0.32,
+        "ciwsBurstChance": 0.08,
+        "hasSAM": true,
+        "samRange": 3400,
+        "samInterval": 10,
+        "samCooldown": 7.5,
+        "hasFlak": true,
+        "flakRange": 2200,
+        "flakInterval": 2,
+        "flakCooldown": 2,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "FORMATION_ORBIT",
+          "centerX": 8500,
+          "centerY": -8500,
+          "radius": 2460
+        }
+      },
+      {
+        "id": "frigate_1",
+        "name": "Escort Frigate FFG-1 [TARGET]",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "subType": "frigate",
+        "isEnemy": true,
+        "isCarrierFleet": true,
+        "x": 8450,
+        "y": -10720,
+        "heading": 0,
+        "speed": 18,
+        "hp": 140,
+        "maxHp": 140,
+        "hitRadius": 38,
+        "angleOffset": -0.02,
+        "radialOffset": 580,
+        "hasFlak": true,
+        "flakRange": 2000,
+        "flakInterval": 1.6,
+        "flakCooldown": 0.8,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "FORMATION_ORBIT",
+          "centerX": 8500,
+          "centerY": -8500,
+          "radius": 3380
+        }
+      },
+      {
+        "id": "frigate_2",
+        "name": "Escort Frigate FFG-2 [TARGET]",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "subType": "frigate",
+        "isEnemy": true,
+        "isCarrierFleet": true,
+        "x": 8450,
+        "y": -11880,
+        "heading": 0,
+        "speed": 18,
+        "hp": 140,
+        "maxHp": 140,
+        "hitRadius": 38,
+        "angleOffset": -0.02,
+        "radialOffset": -580,
+        "hasFlak": true,
+        "flakRange": 2000,
+        "flakInterval": 1.6,
+        "flakCooldown": 1.4,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "FORMATION_ORBIT",
+          "centerX": 8500,
+          "centerY": -8500,
+          "radius": 2220
+        }
+      },
+      {
+        "id": "frigate_3",
+        "name": "Escort Frigate FFG-3 [TARGET]",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "subType": "frigate",
+        "isEnemy": true,
+        "isCarrierFleet": true,
+        "x": 8300,
+        "y": -11300,
+        "heading": 0,
+        "speed": 18,
+        "hp": 140,
+        "maxHp": 140,
+        "hitRadius": 38,
+        "angleOffset": -0.07,
+        "radialOffset": 0,
+        "hasFlak": true,
+        "flakRange": 2000,
+        "flakInterval": 1.6,
+        "flakCooldown": 2,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "FORMATION_ORBIT",
+          "centerX": 8500,
+          "centerY": -8500,
+          "radius": 2800
+        }
+      },
+      {
+        "id": "gunboat_trail_1",
+        "name": "Patrol Gunboat PB-1 [TARGET]",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "subType": "gunboat",
+        "isEnemy": true,
+        "isCarrierFleet": true,
+        "x": 8140,
+        "y": -11100,
+        "heading": 0,
+        "speed": 18,
+        "hp": 90,
+        "maxHp": 90,
+        "hitRadius": 30,
+        "angleOffset": -0.13,
+        "radialOffset": 200,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "FORMATION_ORBIT",
+          "centerX": 8500,
+          "centerY": -8500,
+          "radius": 3000
+        }
+      },
+      {
+        "id": "gunboat_trail_2",
+        "name": "Patrol Gunboat PB-2 [TARGET]",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "subType": "gunboat",
+        "isEnemy": true,
+        "isCarrierFleet": true,
+        "x": 8090,
+        "y": -11500,
+        "heading": 0,
+        "speed": 18,
+        "hp": 90,
+        "maxHp": 90,
+        "hitRadius": 30,
+        "angleOffset": -0.15,
+        "radialOffset": -200,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "FORMATION_ORBIT",
+          "centerX": 8500,
+          "centerY": -8500,
+          "radius": 2600
+        }
+      }
+    ],
+    "groundUnits": [
+      {
+        "id": "sam_arch_1",
+        "name": "SA-6 SAM Battery A",
+        "code": "TGT [SAM]",
+        "type": "ground",
+        "isEnemy": true,
+        "x": -11800,
+        "y": -900,
+        "heading": 0,
+        "speed": 0,
+        "hp": 64,
+        "maxHp": 64,
+        "hitRadius": 34,
+        "radarRange": 4200,
+        "fireInterval": 7.5,
+        "fireCooldown": 3,
+        "radarAngle": 0,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "DEFEND_POINT",
+          "targetX": -11800,
+          "targetY": -900
+        }
+      },
+      {
+        "id": "sam_arch_2",
+        "name": "SA-6 SAM Battery B",
+        "code": "TGT [SAM]",
+        "type": "ground",
+        "isEnemy": true,
+        "x": -10800,
+        "y": -400,
+        "heading": 0,
+        "speed": 0,
+        "hp": 64,
+        "maxHp": 64,
+        "hitRadius": 34,
+        "radarRange": 4200,
+        "fireInterval": 7.5,
+        "fireCooldown": 4.5,
+        "radarAngle": 0,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "DEFEND_POINT",
+          "targetX": -10800,
+          "targetY": -400
+        }
+      },
+      {
+        "id": "sam_arch_3",
+        "name": "SA-6 SAM Battery C",
+        "code": "TGT [SAM]",
+        "type": "ground",
+        "isEnemy": true,
+        "x": -11500,
+        "y": 700,
+        "heading": 0,
+        "speed": 0,
+        "hp": 64,
+        "maxHp": 64,
+        "hitRadius": 34,
+        "radarRange": 4200,
+        "fireInterval": 7.5,
+        "fireCooldown": 6,
+        "radarAngle": 0,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "DEFEND_POINT",
+          "targetX": -11500,
+          "targetY": 700
+        }
+      },
+      {
+        "id": "sam_arch_4",
+        "name": "SA-6 SAM Battery D",
+        "code": "TGT [SAM]",
+        "type": "ground",
+        "isEnemy": true,
+        "x": -10600,
+        "y": 1200,
+        "heading": 0,
+        "speed": 0,
+        "hp": 64,
+        "maxHp": 64,
+        "hitRadius": 34,
+        "radarRange": 4200,
+        "fireInterval": 7.5,
+        "fireCooldown": 7.5,
+        "radarAngle": 0,
+        "isDestroyed": false,
+        "respawnTimer": 0,
+        "team": "enemy",
+        "orders": {
+          "type": "DEFEND_POINT",
+          "targetX": -10600,
+          "targetY": 1200
+        }
+      }
+    ]
+  },
+  "dynamics": {
+    "meta": {
+      "id": "test_flight",
+      "title": "OPERATION: PROVING GROUND",
+      "codename": "TEST FLIGHT",
+      "briefing": "Tactical weapons evaluation and flight envelope calibration. Engage live targets across the combat theater."
+    },
+    "objectives": [
+      {
+        "id": "obj_eval",
+        "title": "Engage Hostile Units",
+        "description": "Engage hostile air, naval, and SAM installations in the combat zone.",
+        "type": "DESTROY_TARGETS",
+        "requiredCount": 5,
+        "isPrimary": true
+      }
+    ],
+    "winConditions": {
+      "allPrimaryComplete": true
+    },
+    "loseConditions": {
+      "playerDestroyed": false,
+      "timeLimit": 0
+    },
+    "triggers": [
+      {
+        "id": "trig_carrier_group",
+        "name": "Carrier Strike Group Perimeter",
+        "event": "PLAYER_PROXIMITY",
+        "targetId": "carrier_1",
+        "range": 4500,
+        "actions": [
+          {
+            "type": "DIALOGUE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767 AWACS",
+            "squadron": "OADF",
+            "duration": 4.5,
+            "text": "Warning: Approaching Carrier Strike Group defense perimeter."
+          }
+        ]
+      },
+      {
+        "id": "trig_dia_5",
+        "name": "Story Dialogue #5",
+        "event": "ON_START",
+        "time": 10.0,
+        "actions": [
+          {
+            "type": "RADIO_MESSAGE",
+            "text": "THIS IS THE TESTING RANGE. USE THIS TO PRACTICE AGAINST VARIOUS TARGETS."
+          }
+        ]
+      }
+    ]
+  }
+}

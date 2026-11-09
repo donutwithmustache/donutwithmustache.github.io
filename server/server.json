@@ -1,0 +1,54 @@
+const { WebSocketServer } = require('ws');
+const { createClient } = require('@supabase/supabase-js');
+
+const PORT = process.env.PORT || 8080;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const wss = new WebSocketServer({ port: PORT });
+
+console.log(`[Railway] Combat WebSocket Server running on port ${PORT}`);
+
+const rooms = new Map(); // roomId -> { players: Map() }
+
+wss.on('connection', async (ws, req) => {
+  // Extract Supabase token from query: ?token=...
+  const url = new URL(req.url, 'http://localhost');
+  const token = url.searchParams.get('token');
+
+  if (!token) {
+    ws.close(4001, 'Unauthorized: No token provided');
+    return;
+  }
+
+  // Authoritative JWT verification against Supabase
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) {
+    ws.close(4002, 'Unauthorized: Invalid Supabase token');
+    return;
+  }
+
+  // Fetch verified player profile
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  ws.player = {
+    id: user.id,
+    callsign: profile ? profile.callsign : 'Unknown',
+    plane: 'f15c',
+    x: 0,
+    y: 0,
+    heading: 0,
+    speed: 0,
+    hp: 100
+  };
+
+  console.log(`[Connect] Pilot Authenticated: ${ws.player.callsign} (${ws.player.id})`);
+
+  ws.on('message', (message) => {
+    // Process flight inputs, validate cooldowns, and broadcast snapshots
+  });
+
+  ws.on('close', () => {
+    console.log(`[Disconnect] Pilot ${ws.player.callsign} left theater.`);
+  });
+});

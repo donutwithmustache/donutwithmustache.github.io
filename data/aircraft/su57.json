@@ -1,0 +1,78 @@
+{
+  "id": "su57",
+  "name": "Su-57 Felon",
+  "shortName": "Su-57",
+  "role": "5th Gen Stealth Multirole",
+  "planeRole": "MULTIROLE",
+  "sprite": "./assets/planes/su57.png",
+  "tags": [
+    "STEALTH",
+    "SUPERMANEUVERABLE",
+    "PSM",
+    "SUPERCRUISE",
+    "MULTIROLE"
+  ],
+  "stats": {
+    "spd": 96,
+    "def": 70,
+    "air": 98,
+    "gnd": 65
+  },
+  "weapons": {
+    "gunAmmo": 700,
+    "maxGunAmmo": 700,
+    "gunRpm": 1800,
+    "gunDamage": 1.4,
+    "mslCount": 96,
+    "maxMslCount": 96,
+    "mslCooldown": 4.4,
+    "flareCount": 40,
+    "maxFlareCount": 40,
+    "flarePool": 3,
+    "flareCooldown": 19.0,
+    "specialWeapons": [
+      "qaam",
+      "4aam",
+      "mpbm"
+    ],
+    "equippedSpecialWeapon": "qaam",
+    "spwAmmo": {
+      "qaam": 28,
+      "4aam": 36,
+      "mpbm": 14
+    },
+    "ability": "ecmJammer",
+    "abilityCharges": 3,
+    "maxAbilityCharges": 3,
+    "abilityRecharge": 10.0
+  },
+  "physics": {
+    "mass": 18500,
+    "accelCruise": 76,
+    "accelAfterburner": 165,
+    "airbrakeDecel": 85,
+    "baseTurnRate": 2.9,
+    "turnResponse": 13.0,
+    "cornerSpeed": 285,
+    "normalMinSpeed": 152.8,
+    "forcedMinSpeed": 97.22,
+    "stallSpeed": 260,
+    "cruiseSpeed": 340,
+    "maxSpeed": 565.0,
+    "compressionFactor": 0.42,
+    "maxG": 12.5,
+    "grip": 3.2,
+    "highAlphaDrag": 70,
+    "inducedDragFactor": 9.5,
+    "driftTolerance": 0.98,
+    "hasThrustVectoring": true,
+    "engineCount": 2,
+    "nozzleSpacing": 26,
+    "wingspan": 94,
+    "wingtipChord": -22,
+    "length": 114,
+    "engineOffset": -50
+  },
+  "description": "Next-gen stealth fighter with 3D all-axis thrust vectoring. Retains full nose authority during stalls."
+}
+

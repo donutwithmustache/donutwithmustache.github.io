@@ -1,0 +1,77 @@
+{
+  "id": "f15c",
+  "name": "F-15C Eagle",
+  "shortName": "F-15C",
+  "role": "All-Weather Air Superiority",
+  "planeRole": "FIGHTER",
+  "sprite": "./assets/planes/f15c.png",
+  "tags": [
+    "AIR_SUPERIORITY",
+    "HIGH_SPEED",
+    "SUPERCRUISE",
+    "HEAVY_FIGHTER"
+  ],
+  "stats": {
+    "spd": 75,
+    "def": 75,
+    "air": 90,
+    "gnd": 40
+  },
+  "weapons": {
+    "gunAmmo": 940,
+    "maxGunAmmo": 940,
+    "gunRpm": 4000,
+    "gunDamage": 0.65,
+    "mslCount": 120,
+    "maxMslCount": 120,
+    "mslCooldown": 4.4,
+    "flareCount": 30,
+    "maxFlareCount": 30,
+    "flarePool": 2,
+    "flareCooldown": 20.0,
+    "specialWeapons": [
+      "4aam",
+      "saam",
+      "qaam"
+    ],
+    "equippedSpecialWeapon": "4aam",
+    "spwAmmo": {
+      "4aam": 36,
+      "saam": 20,
+      "qaam": 24
+    },
+    "ability": "afterburnerSurge",
+    "abilityCharges": 3,
+    "maxAbilityCharges": 3,
+    "abilityRecharge": 8.0
+  },
+  "physics": {
+    "mass": 20200,
+    "accelCruise": 62,
+    "accelAfterburner": 142,
+    "airbrakeDecel": 80,
+    "baseTurnRate": 2.1,
+    "turnResponse": 9.5,
+    "cornerSpeed": 290,
+    "normalMinSpeed": 152.8,
+    "forcedMinSpeed": 97.22,
+    "stallSpeed": 280,
+    "cruiseSpeed": 335,
+    "maxSpeed": 541.7,
+    "compressionFactor": 0.58,
+    "maxG": 11.5,
+    "grip": 3.0,
+    "highAlphaDrag": 70,
+    "inducedDragFactor": 10.0,
+    "driftTolerance": 0.70,
+    "hasThrustVectoring": false,
+    "engineCount": 2,
+    "nozzleSpacing": 20,
+    "wingspan": 78,
+    "wingtipChord": -16,
+    "length": 104,
+    "engineOffset": -46
+  },
+  "description": "The golden benchmark. Superb thrust-to-weight and energy retention. Equipped with 4AAM/SAAM/QAAM and 940 gun rounds."
+}
+

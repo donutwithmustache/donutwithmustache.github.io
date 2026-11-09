@@ -1,1347 +1,301 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASSAULT RECORDS // DDI TACTICAL ARCHIVE</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Share Tech Mono & Rajdhani for authentic ACZ Tactical HUD typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <!-- Three.js r128 + OrbitControls + GLTFLoader + OBJLoader for GitHub Pages modularity -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Legion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
 
-    <style>
-        :root {
-            --acz-bg-deep: #1a0402;
-            --acz-bg-crimson: #3d0a04;
-            --acz-bg-glow: #6e1608;
-            --acz-amber-bright: #f3c623;
-            --acz-amber-mid: #d99b16;
-            --acz-amber-dim: #8c580c;
-            --acz-border: #995412;
-            --acz-select-bg: rgba(217, 175, 35, 0.88);
-        }
+    body,
+    html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #050e18;
+      font-family: 'Share Tech Mono', 'Courier New', monospace, sans-serif;
+      color: #00ff66;
+    }
 
-        * {
-            box-sizing: border-box;
-            user-select: none;
-        }
+    #gameCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
 
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--acz-bg-deep);
-            background-image: 
-                radial-gradient(circle at 38% 35%, rgba(135, 25, 8, 0.65) 0%, rgba(55, 8, 3, 0.88) 55%, rgba(20, 3, 1, 0.98) 100%);
-            color: var(--acz-amber-bright);
-            font-family: 'Share Tech Mono', monospace;
-            overflow-x: hidden;
-        }
+    /* Pause Menu Overlay */
+    .pause-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(3, 10, 15, 0.78);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
 
-        /* CRT Scanline & Tactical Vignette Overlay */
-        .crt-overlay {
-            pointer-events: none;
-            position: fixed;
-            inset: 0;
-            z-index: 50;
-            background: 
-                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.28) 50%), 
-                radial-gradient(circle at center, transparent 65%, rgba(0, 0, 0, 0.65) 100%);
-            background-size: 100% 3px, 100% 100%;
-        }
+    .pause-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
 
-        /* Subtle Glowing Text Effect */
-        .acz-glow {
-            text-shadow: 0 0 6px rgba(243, 198, 35, 0.45), 0 0 2px rgba(255, 160, 0, 0.3);
-        }
+    .pause-panel {
+      width: 440px;
+      max-width: 90vw;
+      background: rgba(6, 20, 28, 0.94);
+      border: 1px solid rgba(0, 255, 102, 0.55);
+      box-shadow: 0 0 35px rgba(0, 255, 102, 0.2), inset 0 0 20px rgba(0, 255, 102, 0.08);
+      padding: 32px 36px;
+      position: relative;
+    }
 
-        .acz-glow-strong {
-            text-shadow: 0 0 10px rgba(243, 198, 35, 0.8), 0 0 3px rgba(255, 200, 50, 0.6);
-        }
+    .pause-panel::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      width: 16px;
+      height: 16px;
+      border-top: 3px solid #00ff66;
+      border-left: 3px solid #00ff66;
+    }
 
-        .acz-glow-red {
-            text-shadow: 0 0 8px rgba(239, 68, 68, 0.65), 0 0 2px rgba(185, 28, 28, 0.5);
-        }
+    .pause-panel::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      right: -1px;
+      width: 16px;
+      height: 16px;
+      border-bottom: 3px solid #00ff66;
+      border-right: 3px solid #00ff66;
+    }
 
-        /* Tactical Frame Borders */
-        .acz-frame {
-            border: 1px solid var(--acz-border);
-            background: rgba(28, 4, 2, 0.52);
-            box-shadow: inset 0 0 24px rgba(120, 20, 5, 0.35);
-        }
+    .pause-header {
+      margin-bottom: 26px;
+      border-bottom: 1px solid rgba(0, 255, 102, 0.25);
+      padding-bottom: 14px;
+    }
 
-        /* Grid Cell Corner Brackets (Authentic Ace Combat Zero Look) */
-        .grid-cell {
-            position: relative;
-            transition: all 0.14s ease;
-            cursor: pointer;
-            background: rgba(35, 5, 2, 0.32);
-            min-height: 54px;
-        }
+    .pause-tag {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: #00ffee;
+      opacity: 0.85;
+      margin-bottom: 4px;
+    }
 
-        .grid-cell::before,
-        .grid-cell::after,
-        .grid-cell-inner::before,
-        .grid-cell-inner::after {
-            content: '';
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            border-color: #9e4716;
-            border-style: solid;
-            pointer-events: none;
-            transition: border-color 0.15s ease, transform 0.15s ease;
-        }
+    .pause-title {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(0, 255, 102, 0.6);
+      margin-bottom: 4px;
+    }
 
-        /* Top-Left */
-        .grid-cell::before {
-            top: 3px;
-            left: 3px;
-            border-width: 1.5px 0 0 1.5px;
-        }
-        /* Top-Right */
-        .grid-cell::after {
-            top: 3px;
-            right: 3px;
-            border-width: 1.5px 1.5px 0 0;
-        }
-        /* Bottom-Left */
-        .grid-cell-inner::before {
-            bottom: 3px;
-            left: 3px;
-            border-width: 0 0 1.5px 1.5px;
-        }
-        /* Bottom-Right */
-        .grid-cell-inner::after {
-            bottom: 3px;
-            right: 3px;
-            border-width: 0 1.5px 1.5px 0;
-        }
+    .pause-subtitle {
+      font-size: 11px;
+      color: rgba(0, 255, 102, 0.7);
+      letter-spacing: 1.5px;
+    }
 
-        .grid-cell:hover:not(.selected) {
-            background: rgba(180, 95, 15, 0.22);
-        }
+    .pause-menu-items {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
 
-        .grid-cell:hover::before,
-        .grid-cell:hover::after,
-        .grid-cell:hover .grid-cell-inner::before,
-        .grid-cell:hover .grid-cell-inner::after {
-            border-color: var(--acz-amber-bright);
-        }
+    .pause-btn {
+      background: rgba(4, 28, 20, 0.6);
+      border: 1px solid rgba(0, 255, 102, 0.4);
+      color: #00ff66;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      padding: 13px 18px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-        /* Active Selected Cell - ACZ Golden Box with Directional Carets */
-        .grid-cell.selected {
-            background: linear-gradient(180deg, rgba(215, 178, 32, 0.92) 0%, rgba(185, 145, 18, 0.92) 100%);
-            box-shadow: 0 0 16px rgba(243, 198, 35, 0.6), inset 0 0 8px rgba(255, 255, 200, 0.5);
-            z-index: 10;
-        }
+    .pause-btn:hover {
+      background: rgba(0, 255, 102, 0.22);
+      border-color: #00ff66;
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(0, 255, 102, 0.35);
+      padding-left: 24px;
+    }
 
-        .grid-cell.selected::before,
-        .grid-cell.selected::after,
-        .grid-cell.selected .grid-cell-inner::before,
-        .grid-cell.selected .grid-cell-inner::after {
-            border-color: #fff3a1;
-            border-width: 2px;
-        }
+    .pause-btn.btn-exit {
+      color: #ffaa55;
+      border-color: rgba(255, 170, 85, 0.4);
+      background: rgba(30, 20, 10, 0.5);
+    }
 
-        /* Caret arrows around selected grid box */
-        .caret-arrow {
-            display: none;
-            position: absolute;
-            color: var(--acz-amber-bright);
-            font-size: 10px;
-            line-height: 1;
-            pointer-events: none;
-            filter: drop-shadow(0 0 4px rgba(243, 198, 35, 0.9));
-        }
+    .pause-btn.btn-exit:hover {
+      background: rgba(255, 100, 50, 0.22);
+      border-color: #ff6633;
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(255, 100, 50, 0.35);
+    }
 
-        .grid-cell.selected .caret-arrow {
-            display: block;
-        }
+    .pause-settings-box {
+      margin-top: 6px;
+      margin-bottom: 6px;
+      padding: 16px;
+      background: rgba(2, 14, 20, 0.7);
+      border: 1px solid rgba(0, 255, 102, 0.25);
+    }
 
-        /* Custom Scrollbar for Lore & Specs */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(30, 5, 2, 0.8);
-            border-left: 1px solid #5c2808;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #b87c14;
-            border: 1px solid #f3c623;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #f3c623;
-        }
+    .settings-title {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: #00ffee;
+      margin-bottom: 12px;
+      font-weight: bold;
+    }
 
-        /* Tab Buttons */
-        .acz-tab {
-            border: 1px solid #8c4d10;
-            background: rgba(45, 8, 3, 0.7);
-            color: #c28519;
-            transition: all 0.15s ease;
-        }
-        .acz-tab:hover {
-            color: #f3c623;
-            border-color: #d99b16;
-            background: rgba(95, 22, 6, 0.75);
-        }
-        .acz-tab.active {
-            background: linear-gradient(90deg, rgba(217, 155, 22, 0.95), rgba(185, 115, 12, 0.95));
-            color: #1a0402;
-            border-color: #ffe066;
-            font-weight: 700;
-            text-shadow: none;
-            box-shadow: 0 0 12px rgba(243, 198, 35, 0.5);
-        }
+    .setting-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-        /* Subtle background embers animation */
-        @keyframes floatEmber {
-            0% { transform: translateY(0px) translateX(0px); opacity: 0.2; }
-            50% { opacity: 0.75; }
-            100% { transform: translateY(-60px) translateX(25px); opacity: 0; }
-        }
-        .ember-dot {
-            position: absolute;
-            border-radius: 9999px;
-            background: radial-gradient(circle, #ffaa22 0%, #ff3300 70%, transparent 100%);
-            pointer-events: none;
-            animation: floatEmber linear infinite;
-        }
+    .setting-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
 
-        /* Tactical Range Slider for BGM Volume */
-        .acz-slider {
-            -webkit-appearance: none;
-            appearance: none;
-            background: #2b0703;
-            border: 1px solid #8c4d10;
-            height: 6px;
-            border-radius: 1px;
-            outline: none;
-        }
-        .acz-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 10px;
-            height: 16px;
-            background: #f3c623;
-            border: 1px solid #fff3a1;
-            cursor: pointer;
-            box-shadow: 0 0 6px rgba(243, 198, 35, 0.8);
-        }
-        .acz-slider::-moz-range-thumb {
-            width: 10px;
-            height: 16px;
-            background: #f3c623;
-            border: 1px solid #fff3a1;
-            cursor: pointer;
-            border-radius: 0;
-            box-shadow: 0 0 6px rgba(243, 198, 35, 0.8);
-        }
-    </style>
+    .slider-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .volume-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: rgba(0, 255, 102, 0.2);
+      outline: none;
+      border: 1px solid rgba(0, 255, 102, 0.4);
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 18px;
+      background: #00ff66;
+      border: 1px solid #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 8px #00ff66;
+    }
+
+    .volume-slider::-moz-range-thumb {
+      width: 14px;
+      height: 18px;
+      background: #00ff66;
+      border: 1px solid #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 8px #00ff66;
+    }
+
+    .volume-value {
+      font-size: 13px;
+      font-weight: bold;
+      color: #00ffee;
+      min-width: 44px;
+      text-align: right;
+    }
+
+    .pause-footer {
+      margin-top: 22px;
+      text-align: center;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: rgba(0, 255, 102, 0.55);
+    }
+  </style>
 </head>
-<body class="min-h-screen lg:h-screen lg:overflow-hidden flex flex-col justify-between p-2 sm:p-3 md:p-4 relative">
 
-    <!-- CRT Scanline Overlay -->
-    <div class="crt-overlay"></div>
+<body>
+  <canvas id="gameCanvas"></canvas>
 
-    <!-- Ambient Glowing Embers Container -->
-    <div id="embers-container" class="fixed inset-0 pointer-events-none overflow-hidden z-0"></div>
+  <!-- Tactical Pause Menu (ESC) -->
+  <div id="pause-menu" class="pause-overlay hidden">
+    <div class="pause-panel">
+      <div class="pause-header">
+        <div class="pause-tag">// SYSTEM PAUSED</div>
+        <h2 class="pause-title">TEST FLIGHT</h2>
+        <div class="pause-subtitle">TACTICAL SIMULATION SUSPENDED</div>
+      </div>
 
-    <!-- ================= TOP HEADER BAR (Elevated z-40 so dropdowns layer above main workspace) ================= -->
-    <header class="relative z-40 flex flex-wrap items-center justify-between gap-2 pb-1.5 mb-2 border-b border-[#995412]">
-        <!-- Breadcrumb Path (Authentic ACZ Top Left) -->
-        <div class="flex items-center space-x-2 text-xs sm:text-sm md:text-base tracking-widest acz-glow">
-            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-[#f3c623] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-            </svg>
-            <span class="text-[#d99b16]">ACE STYLE</span>
-            <span class="text-[#995412]">&gt;</span>
-            <span class="text-[#d99b16]">GALLERY</span>
-            <span class="text-[#995412]">&gt;</span>
-            <span class="text-[#f3c623] font-bold">ASSAULT RECORDS</span>
-            <span class="hidden xl:inline text-xs text-[#a86a14] ml-2">// DDI ARCHIVE TERMINAL</span>
+      <div class="pause-menu-items">
+        <button id="btn-pause-resume" class="pause-btn">
+          <span>RESUME MISSION</span>
+          <span>&gt;</span>
+        </button>
+        <button id="btn-pause-restart" class="pause-btn">
+          <span>RESTART TEST FLIGHT</span>
+          <span>&gt;</span>
+        </button>
+
+        <div class="pause-settings-box">
+          <div class="settings-title">// SYSTEM SETTINGS</div>
+          <div class="setting-row">
+            <div class="setting-label-row">
+              <label for="volume-slider">MASTER VOLUME</label>
+              <span id="volume-val" class="volume-value">70%</span>
+            </div>
+            <div class="slider-wrapper">
+              <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="70">
+            </div>
+          </div>
         </div>
 
-        <!-- Category Tabs & Utility Controls -->
-        <div class="flex items-center flex-wrap gap-1.5 sm:gap-2">
-            <!-- ACES Tab -->
-            <button id="tab-aces" onclick="switchCategory('aces')" class="acz-tab active px-3 sm:px-4 py-1 text-xs sm:text-sm tracking-widest uppercase rounded-sm">
-                [ ACES // PILOTS ]
-            </button>
-            <!-- AIRCRAFT Tab -->
-            <button id="tab-aircraft" onclick="switchCategory('aircraft')" class="acz-tab px-3 sm:px-4 py-1 text-xs sm:text-sm tracking-widest uppercase rounded-sm">
-                [ AIRCRAFT // DDI ]
-            </button>
+        <button id="btn-pause-exit" class="pause-btn btn-exit">
+          <span>EXIT MISSION</span>
+          <span>&gt;</span>
+        </button>
+      </div>
 
-            <div class="h-4 w-[1px] bg-[#733c0a] mx-1 hidden sm:block"></div>
-
-            <!-- Credits Modal Button -->
-            <button id="btn-credits" onclick="openCreditsModal()" class="acz-tab px-2.5 py-1 text-xs tracking-wider uppercase rounded-sm" title="View Archive Credits">
-                [ CREDITS ]
-            </button>
-
-            <!-- Audio Toggle -->
-            <button id="btn-audio" onclick="toggleAudio()" class="acz-tab px-2.5 py-1 text-xs tracking-wider uppercase rounded-sm" title="Toggle UI Sound Effects">
-                SFX: ON
-            </button>
-
-            <!-- BGM Toggle + Instant Hover Volume Slider (Starts at 20%, expanded hover hitbox & z-index) -->
-            <div class="relative group flex items-center">
-                <button id="btn-bgm" onclick="toggleBGM()" class="acz-tab px-2.5 py-1 text-xs tracking-wider uppercase rounded-sm" title="Toggle Background Music (Hover to adjust volume)">
-                    BGM: ON
-                </button>
-                <!-- Generous invisible hover bridge + padding around dropdown so cursor never loses focus on lower half -->
-                <div class="hidden group-hover:block hover:block absolute -right-2 top-full pt-1.5 pb-4 px-2 z-50">
-                    <div class="acz-frame bg-[#1a0402] px-3 py-2.5 flex items-center gap-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.95)] border border-[#f3c623]">
-                        <span class="text-[11px] tracking-widest text-[#d99b16] whitespace-nowrap font-bold">VOL</span>
-                        <input id="bgm-volume-slider" type="range" min="0" max="100" value="20" oninput="changeBGMVolume(this.value)" class="acz-slider w-24 py-2 cursor-pointer">
-                        <span id="bgm-volume-label" class="text-[11px] tracking-widest text-[#f3c623] font-bold w-8 text-right">20%</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Looping Background Music Element -->
-    <audio id="bgm-player" src="./audio/bgm.mp3" loop preload="auto"></audio>
-
-    <!-- Centered Credits Modal Overlay -->
-    <div id="credits-modal" onclick="closeCreditsModal()" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
-        <div id="credits-modal-card" onclick="event.stopPropagation()" class="acz-frame bg-[#180301]/95 border-[#f3c623] p-6 max-w-lg w-full flex flex-col relative transform scale-95 transition-transform duration-200 shadow-[0_0_40px_rgba(0,0,0,0.95)]">
-            <div class="w-full flex items-center justify-between border-b border-[#8c4d10] pb-2.5 mb-4">
-                <div class="flex items-center gap-2">
-                    <span class="inline-block w-2 h-2 bg-[#f3c623]"></span>
-                    <span class="text-sm sm:text-base font-bold tracking-widest text-[#f3c623] acz-glow uppercase">[DDI TERMINAL // CREDITS]</span>
-                </div>
-                <button onclick="closeCreditsModal()" class="text-xs sm:text-sm tracking-widest text-[#f3c623] hover:text-[#ef4444] font-bold px-2 py-0.5 border border-transparent hover:border-[#ef4444] rounded-sm transition-colors">[X] CLOSE</button>
-            </div>
-            <div class="text-xs sm:text-sm leading-relaxed tracking-wider text-[#f3c623] acz-glow space-y-3">
-                <p>CREATED ON A WHIM BY DONUTWITHMUSTACHE</p>
-                <p>Heavily inspired by Ace Combat: ZERO's assault records system. Built to be one of many ways participants can keep track of lore/data of the DML Project.</p>
-                <p class="text-[#d99b16]">
-                    UI &amp; ARCHIVE SYSTEM: DonutWithMustache<br>
-                    3D AIRCRAFT MODELS: LexTheMystic_RO<br>
-                    AIRCRAFT LIVERIES: LexTheMystic_RO &amp; DonutWithMustache<br>
-                    EMBLEMS &amp; ILLUSTRATIONS: DonutWithMustache<br>
-                    BGM &amp; SOUND DESIGN: DonutWithMustache
-                </p>
-                <p class="text-[11px] text-[#9e6312] pt-2 border-t border-[#592d07]">
-                    FUN FACT:<br>
-                    THE SONG PLAYING IS CALLED "HANGAR A-3", BY DONUTWITHMUSTACHE.
-                </p>
-            </div>
-        </div>
+      <div class="pause-footer">
+        [ESC] TOGGLE PAUSE // [1-4] SWITCH AIRCRAFT // [C] CYCLE SPW
+      </div>
     </div>
+  </div>
 
-    <!-- Local CORS / Missing Manifest Notice Banner (Hidden unless fetch fails) -->
-    <div id="cors-notice" class="hidden relative z-20 mb-2 px-3 py-1.5 border border-[#ef4444] bg-[#2a0502]/90 text-[11px] tracking-wider text-[#f3c623] flex items-center justify-between">
-        <div>
-            <span class="text-[#ef4444] font-bold">[ARCHIVE LOADER NOTICE]:</span> Could not fetch <code>./data/manifest.json</code> (if testing locally via <code>file://</code>, run <code>python -m http.server</code>). Using fallback records pointing to <code>./images/</code> &amp; <code>./models/nova_su33.glb</code>.
-        </div>
-        <button onclick="document.getElementById('cors-notice').classList.add('hidden')" class="text-[#ef4444] hover:text-[#f3c623] font-bold ml-3">[X]</button>
-    </div>
-
-    <!-- ================= MAIN UPPER WORKSPACE (3D STAND + SELECTION GRID) ================= -->
-    <main class="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2.5 min-h-0">
-
-        <!-- LEFT COLUMN: PILOT/AIRCRAFT HEADER + 3D MODEL STAND (7 Cols on Desktop for wider 3D stage) -->
-        <section class="lg:col-span-7 acz-frame p-4 flex flex-col justify-between relative overflow-hidden min-h-[340px] lg:min-h-0">
-            
-            <!-- Top Metadata Overlay (Matches ACZ Top-Left Readout with Larger Text) -->
-            <div class="relative z-10 flex justify-between items-start pointer-events-none">
-                <div>
-                    <div class="flex items-center gap-3 text-sm sm:text-base md:text-lg tracking-widest text-[#d99b16]">
-                        <span id="meta-header-tag">[PILOT DATA]</span>
-                        <span id="meta-record-no" class="text-[#f3c623] font-bold">NO.001</span>
-                    </div>
-                    <h1 id="meta-title" class="text-2xl sm:text-3xl md:text-4xl font-bold tracking-widest text-[#f3c623] acz-glow-strong mt-0.5 uppercase">
-                        DONUT
-                    </h1>
-                    <div id="meta-subtitle" class="text-sm sm:text-base md:text-lg tracking-widest text-[#e0a92b] uppercase">
-                        BLACK EAGLES // TENEBRIS AQUILAS
-                    </div>
-                    <div id="meta-extra-lines" class="mt-1 text-xs sm:text-sm tracking-widest text-[#b87e14] space-y-0.5 uppercase">
-                        <!-- Dynamically populated (e.g., Status, Era, Production) -->
-                    </div>
-                </div>
-
-                <!-- Faction / Squadron Emblem Badge (Clickable to Inspect) -->
-                <div id="emblem-container" onclick="openEmblemPopup()" title="Click to inspect emblem" class="pointer-events-auto cursor-pointer w-16 h-16 sm:w-20 sm:h-20 border border-[#733c0a] hover:border-[#f3c623] bg-[#160301]/85 p-1.5 rounded-sm flex items-center justify-center shadow-inner overflow-hidden transition-all duration-200 hover:scale-105 hover:shadow-[0_0_12px_rgba(243,198,35,0.45)] group">
-                    <img id="emblem-img" src="placeholder.png" alt="Emblem" class="w-full h-full object-contain transition-transform duration-200 group-hover:scale-105" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='placeholder.png';}">
-                </div>
-            </div>
-
-            <!-- Animated Emblem Inspection Pop-up (Scoped to this Left Aircraft Display Section) -->
-            <div id="emblem-popup" onclick="closeEmblemPopup()" class="absolute inset-0 z-30 bg-[#120201]/85 backdrop-blur-sm flex items-center justify-center p-6 opacity-0 pointer-events-none transition-opacity duration-200">
-                <div onclick="event.stopPropagation()" id="emblem-popup-card" class="acz-frame bg-[#1c0402]/95 border-[#f3c623] p-5 max-w-sm w-full flex flex-col items-center relative transform scale-75 transition-transform duration-200 shadow-[0_0_30px_rgba(0,0,0,0.9)]">
-                    <div class="w-full flex items-center justify-between border-b border-[#733c0a] pb-2 mb-4">
-                        <span class="text-xs sm:text-sm tracking-widest text-[#d99b16] uppercase">[EMBLEM INSPECTION]</span>
-                        <button onclick="closeEmblemPopup()" class="text-xs sm:text-sm tracking-widest text-[#f3c623] hover:text-[#ef4444] font-bold px-1.5 py-0.5 border border-transparent hover:border-[#ef4444] rounded-sm">[X] CLOSE</button>
-                    </div>
-                    <div class="w-48 h-48 sm:w-56 sm:h-56 p-3 bg-[#100201] border border-[#613108] flex items-center justify-center shadow-inner">
-                        <img id="emblem-popup-img" src="placeholder.png" alt="Expanded Emblem" class="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(243,198,35,0.25)]" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='placeholder.png';}">
-                    </div>
-                    <div id="emblem-popup-title" class="mt-4 text-base sm:text-lg font-bold tracking-widest text-[#f3c623] acz-glow uppercase text-center">
-                        DONUT
-                    </div>
-                    <div id="emblem-popup-subtitle" class="text-xs tracking-widest text-[#d99b16] uppercase text-center mt-0.5">
-                        BLACK EAGLES // TENEBRIS AQUILAS
-                    </div>
-                </div>
-            </div>
-
-            <!-- Center 3D Model Stand Viewport (Three.js Canvas) -->
-            <div id="viewport-container" class="relative flex-1 w-full my-1 min-h-[200px] cursor-grab active:cursor-grabbing">
-                <canvas id="three-canvas" class="w-full h-full block"></canvas>
-            </div>
-
-            <!-- Bottom Overlay: Larger Aircraft Name on Left + Larger Control Buttons on Right, No Divider Line -->
-            <div class="relative z-20 flex flex-wrap items-end justify-between gap-2 pt-1 pointer-events-none">
-                <div>
-                    <div class="text-sm sm:text-base tracking-widest text-[#c28519]">[AIRCRAFT NAME]</div>
-                    <div id="meta-aircraft-name" class="text-xl sm:text-2xl md:text-3xl font-bold tracking-widest text-[#f3c623] acz-glow uppercase">
-                        Su-47DXi Super Berkut
-                    </div>
-                </div>
-
-                <!-- 3D Viewport Controls (Larger Buttons, Wireframe Removed) -->
-                <div class="flex items-center gap-2 pointer-events-auto">
-                    <button id="btn-rotate" onclick="toggleAutoRotate()" class="px-3.5 py-1.5 text-xs sm:text-sm tracking-widest border border-[#8c4d10] bg-[#1c0402]/90 text-[#f3c623] hover:bg-[#521205] hover:border-[#f3c623] rounded-sm transition-colors">
-                        ROTATE: ON
-                    </button>
-                    <button onclick="resetCameraView()" class="px-3.5 py-1.5 text-xs sm:text-sm tracking-widest border border-[#8c4d10] bg-[#1c0402]/90 text-[#d99b16] hover:bg-[#521205] hover:text-[#f3c623] hover:border-[#f3c623] rounded-sm transition-colors">
-                        RESET CAM
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- RIGHT COLUMN: ASSAULT RECORDS TACTICAL GRID (5 Cols on Desktop for a more compact matrix) -->
-        <section class="lg:col-span-5 acz-frame p-3 flex flex-col justify-between min-h-[260px] lg:min-h-0">
-            <!--Grid Header Bar -->
-            <div class="flex items-center justify-between text-xs tracking-widest text-[#d99b16] pb-2 mb-1.5 border-b border-[#6e3809]">
-                <span id="grid-category-label">SECTOR // REGISTERED ACES MATRIX</span>
-                <span id="grid-counter">RECORDS: 02 / 20 SLOTS ACTIVE</span>
-            </div>
-
-            <!-- 5x4 Tactical Grid (Fills the Right Section) -->
-            <div class="flex-1 min-h-0 flex items-stretch justify-center p-1">
-                <div id="records-grid" class="w-full h-full grid grid-cols-5 grid-rows-4 gap-2">
-                    <!-- Populated via JS -->
-                </div>
-            </div>
-
-            <!-- Grid Footer / Keyboard Navigation Hint -->
-            <div class="flex items-center justify-between text-[10px] tracking-widest text-[#9e6312] pt-2 mt-1.5 border-t border-[#6e3809]">
-                <span>NAV: CLICK OR [ARROW KEYS]</span>
-                <span>3D: DRAG TO ORBIT // SCROLL ZOOM</span>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- ================= EXPANDED BOTTOM DESCRIPTION & SPECS PANEL ================= -->
-    <!-- Specifically designed with generous height and dual-pane layout so extensive lore and technical data breathe comfortably -->
-    <footer class="relative z-10 mt-2.5 acz-frame p-3 sm:p-4 lg:h-[34%] min-h-[230px] flex flex-col justify-between">
-        
-        <!-- Top Strip inside Bottom Panel -->
-        <div class="flex flex-wrap items-center justify-between gap-2 pb-2 mb-2 border-b border-[#85460e]">
-            <div class="flex items-center gap-2">
-                <span class="inline-block w-2 h-2 bg-[#f3c623] animate-pulse"></span>
-                <span id="bottom-panel-heading" class="text-xs sm:text-sm font-bold tracking-widest text-[#f3c623] uppercase acz-glow">
-                    ASSAULT RECORD &amp; TACTICAL DOSSIER // DONUT
-                </span>
-            </div>
-
-            <!-- Sub-view Switcher for Mobile or Focused Reading -->
-            <div class="flex items-center gap-2 text-xs tracking-widest">
-                <span id="bottom-tagline" class="text-[#d99b16] italic hidden md:inline">
-                    "ANYBODY CAN FLY A FIGHTER JET. BUT THOSE WHO SURVIVE ARE THE ONES FLYING WITH DDI."
-                </span>
-            </div>
-        </div>
-
-        <!-- Dual-Column Expanded Readout Area (Scrollable) -->
-        <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-y-auto pr-1">
-            
-            <!-- Left 7 Columns: Expanded Lore / Narrative Description -->
-            <div class="lg:col-span-7 flex flex-col justify-between space-y-2">
-                <div>
-                    <div class="text-xs tracking-widest text-[#c28519] mb-1 uppercase">[HISTORICAL ARCHIVE &amp; COMBAT RECORD]</div>
-                    <div id="lore-text" class="text-sm sm:text-base leading-relaxed tracking-wide text-[#f3c623] acz-glow space-y-2.5 font-normal">
-                        <!-- Multi-paragraph Lore injected via JS -->
-                    </div>
-                </div>
-
-                <!-- Color Palette Legend Table (Shows exact Hex & DML Paint Names) -->
-                <div class="pt-2 border-t border-[#592d07]/80">
-                    <div class="text-[11px] tracking-widest text-[#b87e14] mb-1.5 uppercase">[VERIFIED LIVERY / COATING SPECIFICATIONS]</div>
-                    <div id="palette-detail-list" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                        <!-- Injected via JS -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right 5 Columns: Technical Specifications & Performance Telemetry -->
-            <div class="lg:col-span-5 border-t lg:border-t-0 lg:border-l border-[#733c0a] pt-3 lg:pt-0 lg:pl-4 flex flex-col justify-start">
-                <div>
-                    <div class="text-xs tracking-widest text-[#c28519] mb-2 uppercase">[TECHNICAL SPECIFICATIONS &amp; TELEMETRY]</div>
-                    <div id="specs-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2 text-xs">
-                        <!-- Key/Value spec rows injected via JS -->
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </footer>
-
-    <!-- ================= APPLICATION LOGIC & THREE.JS ENGINE ================= -->
-    <script>
-        /***************************************************************************
-         * 1. MODULAR ARCHIVE DATABASE LOADER (./data/aces & ./data/planes)
-         * Fetches `./data/manifest.json` and loads individual JSON files from
-         * `./data/aces/` and `./data/planes/`. Falls back cleanly if tested without
-         * a local server.
-         ***************************************************************************/
-        const DEFAULT_IMAGE_PLACEHOLDER = "placeholder.png";
-        const DEFAULT_MODEL_URL = "./models/nova_su33.glb";
-
-        const FALLBACK_ARCHIVE_DATA = {
-            aces: [
-                {
-                    id: "ace-donut",
-                    recordNo: "NO.001",
-                    headerTag: "[PILOT DATA]",
-                    title: "DONUT",
-                    subtitle: "BLACK EAGLES // TENEBRIS AQUILAS",
-                    extraLines: [
-                        "STATUS: COMMANDER / PRIME ACE",
-                        "AFFILIATION: DML / DONUT DEFENSE INDUSTRIES"
-                    ],
-                    aircraftName: "Su-47DXi Super Berkut",
-                    thumbnail: "./images/planes/donut.png",
-                    emblem: "./images/emblem/black-eagles.png",
-                    modelUrl: "./models/nova_su33.glb",
-                    tagline: "\"TENEBRIS AQUILAS — FROM THE SHADOWS, WE STRIKE.\"",
-                    palette: [
-                        { hex: "#4b4b4b", name: "DML LIGHT GRAY" },
-                        { hex: "#2f2f2f", name: "DML DARK GRAY" },
-                        { hex: "#1c1c1c", name: "DML DIELEC. BLACK" },
-                        { hex: "#ae3332", name: "DML ACCENT RED" }
-                    ],
-                    specs: {
-                        "CALLSIGN": "DONUT",
-                        "SQUADRON": "Black Eagles",
-                        "AIRFRAME": "Su-47DXi Super Berkut",
-                        "WING CONFIG": "Forward-Swept + Canards",
-                        "PROPULSION": "2x 2D Thrust-Vectoring Rectangular Nozzles",
-                        "LIVERY PATTERN": "Dark Urban Splinter w/ Red Circuit Telemetry",
-                        "WING MARKING": "Black Eagles Winged Shield (Left Wing)",
-                        "COMBAT RATING": "S-CLASS MERCENARY ACE"
-                    },
-                    lore: [
-                        "Commander and prime flight lead of the elite 'Black Eagles' mercenary squadron (Motto: Tenebris Aquilas). Known throughout the mercenary air forces for pushing experimental forward-swept wing airframes far beyond standard structural G-limits.",
-                        "DONUT's personal Su-47DXi Super Berkut is heavily modified from the baseline airframe, incorporating twin rectangular 2D thrust-vectoring exhaust nozzles, upgraded dorsal avionics spine, and a distinctive three-tone dark gray splinter camouflage.",
-                        "High-contrast DML Accent Red (#ae3332) circuit-like panel lines trace the fuselage spine, engine nacelles, and forward-swept leading edges, paired with an asymmetric canopy frame tint and the Black Eagles emblem emblazoned on the port outer wing."
-                    ]
-                },
-                {
-                    id: "ace-clipper",
-                    recordNo: "NO.002",
-                    headerTag: "[PILOT DATA]",
-                    title: "CLIPPER",
-                    subtitle: "JADEITE SQUADRON // 8th TFS",
-                    extraLines: [
-                        "STATUS: ACTIVE STRIKE ACE",
-                        "TAILCODE: 032 // 8TH TACTICAL FIGHTER SQ."
-                    ],
-                    aircraftName: "F/A-18CLi",
-                    thumbnail: "./images/planes/clipper.png",
-                    emblem: "./images/emblem/jadeite.png",
-                    modelUrl: "./models/nova_su33.glb",
-                    tagline: "\"SILENT WINGS IN THE NIGHT — 8TH TFS JADEITE.\"",
-                    palette: [
-                        { hex: "#64793f", name: "DML JADE" },
-                        { hex: "#53644b", name: "DML JADEITE" },
-                        { hex: "#504a46", name: "DML BROWNISH GRAY" },
-                        { hex: "#b7b7b7", name: "DML LOW VIS MARKING" },
-                        { hex: "#1c1c1c", name: "DML DIELEC. BLACK" }
-                    ],
-                    specs: {
-                        "CALLSIGN": "CLIPPER",
-                        "SQUADRON": "Jadeite Squadron (8th TFS)",
-                        "AIRFRAME": "F/A-18CLi",
-                        "MODIFICATION": "Upgraded Multirole Interceptor Variant",
-                        "BORT / FLAP NO.": "032 (Low-Vis Stencil)",
-                        "LIVERY PATTERN": "Polygonal Woodland Jade Splinter",
-                        "SQUADRON CREST": "Night Owl on Bomb w/ 3 Gold Stars",
-                        "SPECIALTY": "All-Weather Low-Altitude Interdiction"
-                    },
-                    lore: [
-                        "Veteran multirole fighter ace of the 8th Tactical Fighter Squadron, better known as 'Jadeite Squadron'. CLIPPER earned widespread recognition for pinpoint low-level strike operations and high-angle-of-attack dogfighting.",
-                        "Flying the customized F/A-18CLi bearing low-visibility flap stencil '032', CLIPPER's aircraft is coated in a distinctive three-tone polygonal woodland splinter camouflage comprised of DML Jade (#64793f), DML Jadeite (#53644b), and DML Brownish Gray (#504a46).",
-                        "The aircraft carries the 8th TFS Jadeite emblem—a night owl perched atop an aerial bomb beneath three gold stars—reflecting the squadron's heritage in precision night-strike missions."
-                    ]
-                }
-            ],
-            aircraft: [
-                {
-                    id: "ddi-k42",
-                    recordNo: "DDI-042",
-                    headerTag: "[AIRCRAFT DATA]",
-                    title: "K-42 FENYR",
-                    subtitle: "THE STEALTH AGE // FLAGSHIP DOMINANCE FIGHTER",
-                    extraLines: [
-                        "FIRST FLIGHT: AUGUST 14TH, 2029",
-                        "AMOUNT PRODUCED: 36 - 48* (CLASSIFIED)"
-                    ],
-                    aircraftName: "K-42 Fenyr",
-                    thumbnail: "./images/planes/k42.png",
-                    emblem: "./images/emblem/ddi.png",
-                    modelUrl: "./models/nova_su33.glb",
-                    tagline: "\"400+ KILL RATIO. ZERO COMBAT LOSSES IN 14 YEARS OF SERVICE.\"",
-                    palette: [
-                        { hex: "#1c1d21", name: "FENYR OBSIDIAN RAM" },
-                        { hex: "#2d3036", name: "STEALTH PANEL GRAY" },
-                        { hex: "#a62c2b", name: "DDI FLAGSHIP CRIMSON" },
-                        { hex: "#d99b16", name: "OLYMPUS EXHAUST GOLD" }
-                    ],
-                    specs: {
-                        "UNIT COST": "₡ 2,000,000 (⇄ 1,420,000)",
-                        "POWERPLANT": "3x DDi Olympian DAL-51X",
-                        "MAX SPEED": "4,568 Kph (2,838 Mph / Mach 3.7)",
-                        "RANGE / CEILING": "4,230 Km // 23,000m (75,460 ft)",
-                        "DIMENSIONS": "L: 22.0m | W: 16.2m | H: 6.05m",
-                        "WEIGHTS": "Empty: 15,930 Kg | Max: 39,500 Kg",
-                        "CLIMB / LOADING": "435 m/s // 327.6 Kg/m²",
-                        "AIRFRAME G-LIMIT": "±12G STS, ±22G INS",
-                        "THRUST / WEIGHT": "2.41 (Min) / 1.76 (Opt) / 1.13 (Max)"
-                    },
-                    lore: [
-                        "DDI's legendary flagship design which needs no introduction. Across the past 14 years since entering service, the K-42 Fenyr has obtained an unmatched kill-death ratio of 400+, without a single example ever being lost in combat.",
-                        "Powered by three massive DDi Olympian DAL-51X engines housed in a wide blended delta-canard airframe, the Fenyr achieves blistering Mach 3.7 dash speeds (4,568 Kph) and a 435 m/s rate of climb while sustaining up to ±22G with its inertial negation/structural system.",
-                        "More of a vanity piece than a true export fighter, the Fenyr is simply too costly (₡ 2,000,000) for the average mercenary to purchase, or for a nation to operate efficiently in sizable numbers, tying the Fenyr's exclusivity to the DML's highest-ranking pilots only. Even over a decade after its introduction, many aspects of this aircraft remain highly classified and shrouded in mystery, including the exact number built."
-                    ]
-                },
-                {
-                    id: "ddi-k37",
-                    recordNo: "DDI-037",
-                    headerTag: "[AIRCRAFT DATA]",
-                    title: "K-37 SCORPION",
-                    subtitle: "THE EARLY AGE // 4+ GEN LIGHT EXPORT FIGHTER",
-                    extraLines: [
-                        "FIRST FLIGHT: MAY 18TH, 2027",
-                        "AMOUNT PRODUCED: 576 UNITS"
-                    ],
-                    aircraftName: "K-37 Scorpion",
-                    thumbnail: "./images/planes/k37.png",
-                    emblem: "./images/emblem/ddi.png",
-                    modelUrl: "./models/nova_su33.glb",
-                    tagline: "\"BE IT LAND, SEA, OR AIR — SIMPLE, ADAPTABLE, POWERFUL.\"",
-                    palette: [
-                        { hex: "#dcdcdc", name: "EXPORT WHITE-GRAY" },
-                        { hex: "#b02626", name: "SCORPION STRIPE RED" },
-                        { hex: "#23477a", name: "DORSAL SHROUD BLUE" },
-                        { hex: "#222222", name: "RADOME & TRIM BLACK" }
-                    ],
-                    specs: {
-                        "UNIT COST": "₡ 30,000 (⇄ 21,500) [Flat Price]",
-                        "FIRST FLIGHT": "May 18th, 2027",
-                        "PRODUCED": "576 Airframes",
-                        "GENERATION": "Advanced 4+ Gen Super-Maneuverable",
-                        "ROLE": "All-Weather Multirole Light Export",
-                        "CONFIG": "Single-Engine Canard-Swept Wing",
-                        "ORDNANCE": "Universal Hardpoint Bus (6+2 Pylons)",
-                        "MANUFACTURER": "Donut Defense Industries (DDI)"
-                    },
-                    lore: [
-                        "The K-37 Scorpion is an advanced, 4+ generation, super-maneuverable, multirole all-weather light export aircraft developed by Donut Defense Industries during 'The Early Age'.",
-                        "Advertised famously using its flat '30,000 Credit' price tag that never changed during its production life, and engineered to be 'compatible with virtually every weapon ever mounted to an aircraft' alongside lenient production licenses offered to smaller nations.",
-                        "Its low acquisition cost combined with high adaptability and weapon compatibility resulted in one of the longest and most successful production and sales runs of any aircraft of its time (576 units built). The K-37 Scorpion is the cheapest and surest way to not only ensure mission success, but to guarantee the survival of the pilot."
-                    ]
-                }
-            ]
-        };
-
-        let ARCHIVE_DATA = { aces: [], aircraft: [] };
-
-        // Normalizes a single JSON entry so missing fields default to placeholder.png and ./models/nova_su33.glb
-        function normalizeRecordEntry(raw, category) {
-            const thumb = raw.thumbnail && raw.thumbnail.trim() !== ""
-                ? raw.thumbnail.trim()
-                : DEFAULT_IMAGE_PLACEHOLDER;
-            const emblem = raw.emblem && raw.emblem.trim() !== ""
-                ? raw.emblem.trim()
-                : DEFAULT_IMAGE_PLACEHOLDER;
-            const modelUrl = raw.modelUrl && raw.modelUrl.trim() !== ""
-                ? raw.modelUrl.trim()
-                : DEFAULT_MODEL_URL;
-
-            return {
-                id: raw.id || `record-${Math.random().toString(36).slice(2, 7)}`,
-                recordNo: raw.recordNo || "NO.000",
-                headerTag: raw.headerTag || (category === 'aces' ? "[PILOT DATA]" : "[AIRCRAFT DATA]"),
-                title: raw.title || raw.name || "UNKNOWN",
-                subtitle: raw.subtitle || "",
-                extraLines: Array.isArray(raw.extraLines) ? raw.extraLines : [],
-                aircraftName: raw.aircraftName || raw.title || "UNKNOWN AIRFRAME",
-                thumbnail: thumb,
-                emblem: emblem,
-                modelUrl: modelUrl,
-                tagline: raw.tagline || "",
-                palette: Array.isArray(raw.palette) ? raw.palette : (Array.isArray(raw.colors) ? raw.colors : []),
-                specs: raw.specs || {},
-                lore: Array.isArray(raw.lore) ? raw.lore : (raw.lore ? [String(raw.lore)] : [])
-            };
-        }
-
-        // Loads ./data/manifest.json and fetches all JSON entries from ./data/aces and ./data/planes
-        async function loadArchiveData() {
-            try {
-                const manifestRes = await fetch('./data/manifest.json');
-                if (!manifestRes.ok) throw new Error('Manifest not found');
-                const manifest = await manifestRes.json();
-
-                const aceFiles = Array.isArray(manifest.aces) ? manifest.aces : [];
-                const planeFiles = Array.isArray(manifest.planes)
-                    ? manifest.planes
-                    : (Array.isArray(manifest.aircraft) ? manifest.aircraft : []);
-
-                const resolvePath = (folder, fileOrPath) => {
-                    if (fileOrPath.startsWith('./') || fileOrPath.startsWith('/') || fileOrPath.startsWith('data/')) {
-                        return fileOrPath;
-                    }
-                    return `./data/${folder}/${fileOrPath}`;
-                };
-
-                const [loadedAces, loadedPlanes] = await Promise.all([
-                    Promise.all(aceFiles.map(f => fetch(resolvePath('aces', f)).then(r => r.json()))),
-                    Promise.all(planeFiles.map(f => fetch(resolvePath('planes', f)).then(r => r.json())))
-                ]);
-
-                ARCHIVE_DATA.aces = loadedAces.map(item => normalizeRecordEntry(item, 'aces'));
-                ARCHIVE_DATA.aircraft = loadedPlanes.map(item => normalizeRecordEntry(item, 'aircraft'));
-            } catch (err) {
-                console.warn("Using fallback archive data because ./data/manifest.json could not be fetched:", err);
-                document.getElementById('cors-notice').classList.remove('hidden');
-                ARCHIVE_DATA.aces = FALLBACK_ARCHIVE_DATA.aces.map(item => normalizeRecordEntry(item, 'aces'));
-                ARCHIVE_DATA.aircraft = FALLBACK_ARCHIVE_DATA.aircraft.map(item => normalizeRecordEntry(item, 'aircraft'));
-            }
-
-            renderGrid();
-            selectEntry(0, false);
-        }
-
-        /***************************************************************************
-         * 2. APPLICATION STATE, WEB AUDIO SFX, & LOOPING BGM (.MP3)
-         ***************************************************************************/
-        let currentCategory = 'aces';
-        let selectedIndex = 0;
-        const TOTAL_GRID_SLOTS = 20; // 5x4 grid like Ace Combat Zero
-        let sfxEnabled = true;
-        let bgmEnabled = true;
-        let bgmVolume = 0.20; // Default 20% volume
-        let audioCtx = null;
-
-        function playUISound(type = 'select') {
-            if (!sfxEnabled) return;
-            try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                // SFX Volume boosted by 60% compared to previous levels
-                const now = audioCtx.currentTime;
-                if (type === 'select') {
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(1480, now);
-                    osc.frequency.setValueAtTime(1960, now + 0.03);
-                    gain.gain.setValueAtTime(0.128, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-                    osc.start(now);
-                    osc.stop(now + 0.09);
-                } else if (type === 'tab') {
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(980, now);
-                    osc.frequency.setValueAtTime(1320, now + 0.045);
-                    gain.gain.setValueAtTime(0.16, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-                    osc.start(now);
-                    osc.stop(now + 0.14);
-                } else if (type === 'empty') {
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(220, now);
-                    gain.gain.setValueAtTime(0.064, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
-                    osc.start(now);
-                    osc.stop(now + 0.07);
-                }
-            } catch (e) {
-                // Ignore audio errors if blocked by browser autoplay policy
-            }
-        }
-
-        function toggleAudio() {
-            sfxEnabled = !sfxEnabled;
-            const btn = document.getElementById('btn-audio');
-            btn.textContent = sfxEnabled ? 'SFX: ON' : 'SFX: OFF';
-            if (sfxEnabled) playUISound('select');
-        }
-
-        function toggleBGM() {
-            const bgm = document.getElementById('bgm-player');
-            const btn = document.getElementById('btn-bgm');
-            if (!bgm) return;
-
-            bgmEnabled = !bgmEnabled;
-            if (bgmEnabled) {
-                bgm.volume = bgmVolume;
-                bgm.play().catch(() => {});
-                btn.textContent = 'BGM: ON';
-            } else {
-                bgm.pause();
-                btn.textContent = 'BGM: OFF';
-            }
-            playUISound('select');
-        }
-
-        function changeBGMVolume(val) {
-            const numericVal = Math.max(0, Math.min(100, Number(val)));
-            bgmVolume = numericVal / 100;
-            const label = document.getElementById('bgm-volume-label');
-            if (label) label.textContent = `${numericVal}%`;
-
-            const bgm = document.getElementById('bgm-player');
-            if (bgm) {
-                bgm.volume = bgmVolume;
-            }
-        }
-
-        // Starts BGM automatically at 20% volume or on first user interaction if browser blocks autoplay
-        function initBGMAutoplay() {
-            const bgm = document.getElementById('bgm-player');
-            if (!bgm) return;
-            bgm.volume = bgmVolume;
-
-            const tryPlay = () => {
-                if (bgmEnabled && bgm.paused) {
-                    bgm.volume = bgmVolume;
-                    bgm.play().catch(() => {});
-                }
-            };
-
-            tryPlay();
-            window.addEventListener('pointerdown', tryPlay, { once: true });
-            window.addEventListener('keydown', tryPlay, { once: true });
-        }
-
-        // Animated Emblem Pop-up Inspection Functions
-        function openEmblemPopup() {
-            const popup = document.getElementById('emblem-popup');
-            const card = document.getElementById('emblem-popup-card');
-            if (!popup || !card) return;
-
-            playUISound('select');
-            popup.classList.remove('opacity-0', 'pointer-events-none');
-            popup.classList.add('opacity-100', 'pointer-events-auto');
-            card.classList.remove('scale-75');
-            card.classList.add('scale-100');
-        }
-
-        function closeEmblemPopup() {
-            const popup = document.getElementById('emblem-popup');
-            const card = document.getElementById('emblem-popup-card');
-            if (!popup || !card) return;
-
-            playUISound('select');
-            popup.classList.remove('opacity-100', 'pointer-events-auto');
-            popup.classList.add('opacity-0', 'pointer-events-none');
-            card.classList.remove('scale-100');
-            card.classList.add('scale-75');
-        }
-
-        // Centered Credits Modal Functions
-        function openCreditsModal() {
-            const modal = document.getElementById('credits-modal');
-            const card = document.getElementById('credits-modal-card');
-            if (!modal || !card) return;
-
-            playUISound('select');
-            modal.classList.remove('opacity-0', 'pointer-events-none');
-            modal.classList.add('opacity-100', 'pointer-events-auto');
-            card.classList.remove('scale-95');
-            card.classList.add('scale-100');
-        }
-
-        function closeCreditsModal() {
-            const modal = document.getElementById('credits-modal');
-            const card = document.getElementById('credits-modal-card');
-            if (!modal || !card) return;
-
-            playUISound('select');
-            modal.classList.remove('opacity-100', 'pointer-events-auto');
-            modal.classList.add('opacity-0', 'pointer-events-none');
-            card.classList.remove('scale-100');
-            card.classList.add('scale-95');
-        }
-
-        /***************************************************************************
-         * 3. THREE.JS 3D SCENE, STAND, AND EXTERNAL MODEL LOADER
-         ***************************************************************************/
-        let scene, camera, renderer, controls;
-        let turntableGroup, standMeshGroup, aircraftMeshGroup;
-        let autoRotate = true;
-
-        function initThreeJS() {
-            const container = document.getElementById('viewport-container');
-            const canvas = document.getElementById('three-canvas');
-
-            scene = new THREE.Scene();
-
-            camera = new THREE.PerspectiveCamera(
-                40,
-                container.clientWidth / container.clientHeight,
-                0.1,
-                1000
-            );
-            camera.position.set(11.5, 6.2, 13.5);
-
-            renderer = new THREE.WebGLRenderer({
-                canvas: canvas,
-                antialias: true,
-                alpha: true
-            });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.shadowMap.enabled = true;
-
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.06;
-            controls.target.set(0, 1.2, 0);
-            controls.minDistance = 5;
-            controls.maxDistance = 28;
-            controls.maxPolarAngle = Math.PI / 2 + 0.15;
-
-            // Lighting tailored for metallic fighter aircraft & dark display stand
-            const ambientLight = new THREE.AmbientLight(0xffd2a6, 0.72);
-            scene.add(ambientLight);
-
-            const keyLight = new THREE.DirectionalLight(0xfff0dd, 2.35);
-            keyLight.position.set(12, 20, 14);
-            scene.add(keyLight);
-
-            const rimLight = new THREE.DirectionalLight(0xff5511, 0.9);
-            rimLight.position.set(-14, 6, -12);
-            scene.add(rimLight);
-
-            const underLight = new THREE.PointLight(0xd98216, 0.65, 25);
-            underLight.position.set(0, -3, 2);
-            scene.add(underLight);
-
-            // Root Turntable Group (Rotates Stand + Aircraft together like ACZ)
-            turntableGroup = new THREE.Group();
-            scene.add(turntableGroup);
-
-            // Build the Iconic Ace Combat Zero Black Display Stand
-            standMeshGroup = buildDisplayStand();
-            turntableGroup.add(standMeshGroup);
-
-            // Group to hold the active aircraft mounted directly onto the top of the stand strut
-            aircraftMeshGroup = new THREE.Group();
-            aircraftMeshGroup.position.set(0, 1.88, -0.15);
-            aircraftMeshGroup.rotation.set(0.22, 0, 0.08);
-            turntableGroup.add(aircraftMeshGroup);
-
-            window.addEventListener('resize', onWindowResize);
-            animateThreeJS();
-        }
-
-        // Builds the sleek black angled model stand seen in the Ace Combat Zero screenshot
-        function buildDisplayStand() {
-            const group = new THREE.Group();
-
-            const standMat = new THREE.MeshStandardMaterial({
-                color: 0x121316,
-                roughness: 0.35,
-                metalness: 0.65
-            });
-            const baseTrimMat = new THREE.MeshStandardMaterial({
-                color: 0x262930,
-                roughness: 0.4,
-                metalness: 0.8
-            });
-
-            // Beveled Trapezoid Base
-            const baseGeo = new THREE.CylinderGeometry(2.3, 2.9, 0.42, 4);
-            baseGeo.rotateY(Math.PI / 4);
-            const baseMesh = new THREE.Mesh(baseGeo, standMat);
-            baseMesh.scale.set(1.35, 1, 0.9);
-            baseMesh.position.set(0, -1.8, 0.5);
-            group.add(baseMesh);
-
-            // Base Top Plate
-            const plateGeo = new THREE.BoxGeometry(3.4, 0.12, 2.2);
-            const plateMesh = new THREE.Mesh(plateGeo, baseTrimMat);
-            plateMesh.position.set(0, -1.55, 0.5);
-            group.add(plateMesh);
-
-            // Swept Diagonal Support Strut (Aircraft sits directly on the top of this strut, no floating block)
-            const strutShape = new THREE.Shape();
-            strutShape.moveTo(-0.55, -1.55);
-            strutShape.lineTo(0.65, -1.55);
-            strutShape.lineTo(-0.15, 1.95);
-            strutShape.lineTo(-0.65, 1.95);
-            strutShape.closePath();
-
-            const extrudeSettings = {
-                depth: 0.22,
-                bevelEnabled: true,
-                bevelSegments: 2,
-                steps: 1,
-                bevelSize: 0.03,
-                bevelThickness: 0.03
-            };
-            const strutGeo = new THREE.ExtrudeGeometry(strutShape, extrudeSettings);
-            strutGeo.center();
-            const strutMesh = new THREE.Mesh(strutGeo, standMat);
-            strutMesh.rotation.y = Math.PI / 2;
-            strutMesh.position.set(0, 0.2, 0.25);
-            group.add(strutMesh);
-
-            return group;
-        }
-
-        // Loads a 3D model URL (.glb/.gltf/.obj) onto the stand; falls back to DEFAULT_MODEL_URL if needed
-        function loadModelByUrl(url, isFallbackAttempt = false) {
-            const targetUrl = (url && url.trim() !== '') ? url.trim() : DEFAULT_MODEL_URL;
-            const isObj = targetUrl.toLowerCase().endsWith('.obj');
-
-            const onError = () => {
-                if (!isFallbackAttempt && targetUrl !== DEFAULT_MODEL_URL) {
-                    loadModelByUrl(DEFAULT_MODEL_URL, true);
-                }
-            };
-
-            if (isObj) {
-                const loader = new THREE.OBJLoader();
-                loader.load(targetUrl, obj => {
-                    normalizeAndMountCustomMesh(obj);
-                }, undefined, onError);
-            } else {
-                const loader = new THREE.GLTFLoader();
-                loader.load(targetUrl, gltf => {
-                    normalizeAndMountCustomMesh(gltf.scene);
-                }, undefined, onError);
-            }
-        }
-
-        // Clears current aircraft on stand and loads `entry.modelUrl` (or defaults to `./models/nova_su33.glb`)
-        function update3DAircraftOnStand(entry) {
-            if (!aircraftMeshGroup) return;
-
-            while (aircraftMeshGroup.children.length > 0) {
-                aircraftMeshGroup.remove(aircraftMeshGroup.children[0]);
-            }
-
-            const modelUrl = (entry && entry.modelUrl && entry.modelUrl.trim() !== '')
-                ? entry.modelUrl.trim()
-                : DEFAULT_MODEL_URL;
-
-            loadModelByUrl(modelUrl, false);
-            turntableGroup.rotation.y = -0.55;
-        }
-
-        // Auto-scales and rests any external .GLB/.OBJ cleanly on top of the display stand cradle
-        function normalizeAndMountCustomMesh(object3D) {
-            while (aircraftMeshGroup.children.length > 0) {
-                aircraftMeshGroup.remove(aircraftMeshGroup.children[0]);
-            }
-
-            object3D.updateMatrixWorld(true);
-            const box = new THREE.Box3().setFromObject(object3D);
-            const size = new THREE.Vector3();
-            box.getSize(size);
-
-            const maxDim = Math.max(size.x, size.y, size.z) || 1;
-            const targetScale = 7.5 / maxDim;
-            object3D.scale.setScalar(targetScale);
-
-            // Recompute bounding box after scaling so min.y is accurate
-            object3D.updateMatrixWorld(true);
-            const scaledBox = new THREE.Box3().setFromObject(object3D);
-            const scaledCenter = new THREE.Vector3();
-            scaledBox.getCenter(scaledCenter);
-
-            // Center horizontally (X/Z), and seat the aircraft firmly onto the top of the stand strut
-            object3D.position.x -= scaledCenter.x;
-            object3D.position.z -= scaledCenter.z;
-            object3D.position.y -= scaledBox.min.y;
-
-            const mountWrapper = new THREE.Group();
-            mountWrapper.add(object3D);
-            aircraftMeshGroup.add(mountWrapper);
-        }
-
-        function toggleAutoRotate() {
-            autoRotate = !autoRotate;
-            const btn = document.getElementById('btn-rotate');
-            btn.textContent = autoRotate ? 'ROTATE: ON' : 'ROTATE: OFF';
-            playUISound('select');
-        }
-
-        function resetCameraView() {
-            playUISound('select');
-            camera.position.set(11.5, 6.2, 13.5);
-            controls.target.set(0, 1.2, 0);
-            controls.update();
-        }
-
-        function onWindowResize() {
-            const container = document.getElementById('viewport-container');
-            if (!container || !renderer || !camera) return;
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
-        }
-
-        function animateThreeJS() {
-            requestAnimationFrame(animateThreeJS);
-            if (autoRotate && turntableGroup) {
-                // Slowed down by 40% (from 0.0065 to 0.0039)
-                turntableGroup.rotation.y += 0.0039;
-            }
-            if (controls) controls.update();
-            if (renderer && scene && camera) {
-                renderer.render(scene, camera);
-            }
-        }
-
-        /***************************************************************************
-         * 4. UI RENDERING & STATE SYNCHRONIZATION
-         ***************************************************************************/
-        function switchCategory(cat) {
-            if (currentCategory === cat) return;
-            playUISound('tab');
-            currentCategory = cat;
-            selectedIndex = 0;
-
-            document.getElementById('tab-aces').classList.toggle('active', cat === 'aces');
-            document.getElementById('tab-aircraft').classList.toggle('active', cat === 'aircraft');
-
-            renderGrid();
-            selectEntry(0, false);
-        }
-
-        function renderGrid() {
-            const list = ARCHIVE_DATA[currentCategory] || [];
-            const gridEl = document.getElementById('records-grid');
-            gridEl.innerHTML = '';
-
-            document.getElementById('grid-category-label').textContent =
-                currentCategory === 'aces'
-                    ? 'SECTOR // ASSAULT RECORDS — REGISTERED ACES'
-                    : 'SECTOR // DDI ARCHIVE — TACTICAL AIRCRAFT';
-
-            const countStr = String(list.length).padStart(2, '0');
-            document.getElementById('grid-counter').textContent =
-                `RECORDS: ${countStr} / ${TOTAL_GRID_SLOTS} SLOTS ACTIVE`;
-
-            for (let i = 0; i < TOTAL_GRID_SLOTS; i++) {
-                const entry = list[i];
-                const isSelected = i === selectedIndex && entry;
-
-                const cell = document.createElement('div');
-                cell.className = `grid-cell flex items-center justify-center p-1 ${isSelected ? 'selected' : ''}`;
-
-                const inner = document.createElement('div');
-                inner.className = 'grid-cell-inner w-full h-full flex flex-col items-center justify-center relative';
-
-                inner.innerHTML = `
-                    <span class="caret-arrow -top-3 left-1/2 -translate-x-1/2">▲</span>
-                    <span class="caret-arrow -bottom-3 left-1/2 -translate-x-1/2">▼</span>
-                    <span class="caret-arrow -left-3 top-1/2 -translate-y-1/2">◀</span>
-                    <span class="caret-arrow -right-3 top-1/2 -translate-y-1/2">▶</span>
-                `;
-
-                if (entry) {
-                    const thumbSrc = (entry.thumbnail && entry.thumbnail.trim() !== '')
-                        ? entry.thumbnail.trim()
-                        : DEFAULT_IMAGE_PLACEHOLDER;
-
-                    const iconWrapper = document.createElement('div');
-                    iconWrapper.className = 'w-full h-full flex flex-col items-center justify-center overflow-hidden';
-                    iconWrapper.innerHTML = `
-                        <img src="${thumbSrc}" alt="${entry.title}" class="w-4/5 h-3/4 object-contain pointer-events-none drop-shadow" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='${DEFAULT_IMAGE_PLACEHOLDER}';}">
-                        <span class="text-[9px] tracking-wider font-bold mt-0.5 truncate max-w-full ${isSelected ? 'text-[#1a0402]' : 'text-[#f3c623]'}">
-                            ${entry.title}
-                        </span>
-                    `;
-                    inner.appendChild(iconWrapper);
-                    cell.onclick = () => selectEntry(i, true);
-                } else {
-                    const emptyLabel = document.createElement('span');
-                    emptyLabel.className = 'text-[10px] tracking-widest text-[#5e2d08] opacity-60 hover:opacity-100';
-                    emptyLabel.textContent = '---';
-                    inner.appendChild(emptyLabel);
-                    cell.onclick = () => playUISound('empty');
-                }
-
-                cell.appendChild(inner);
-                gridEl.appendChild(cell);
-            }
-        }
-
-        function selectEntry(index, playSound = true) {
-            const list = ARCHIVE_DATA[currentCategory] || [];
-            if (!list[index]) return;
-
-            if (playSound) playUISound('select');
-            selectedIndex = index;
-            const entry = list[index];
-
-            // Re-render grid selection state
-            renderGrid();
-
-            // 1. Update Left Panel Header Metadata
-            document.getElementById('meta-header-tag').textContent = entry.headerTag || '[PILOT DATA]';
-            document.getElementById('meta-record-no').textContent = entry.recordNo || 'NO.001';
-            document.getElementById('meta-title').textContent = entry.title;
-            document.getElementById('meta-subtitle').textContent = entry.subtitle;
-
-            const extraContainer = document.getElementById('meta-extra-lines');
-            extraContainer.innerHTML = (entry.extraLines || [])
-                .map(line => `<div>${line}</div>`)
-                .join('');
-
-            // Update Emblem Image from ./images/emblem/... or fallback to placeholder.png
-            const emblemSrc = (entry.emblem && entry.emblem.trim() !== '')
-                ? entry.emblem.trim()
-                : DEFAULT_IMAGE_PLACEHOLDER;
-
-            const emblemImg = document.getElementById('emblem-img');
-            if (emblemImg) {
-                delete emblemImg.dataset.fallback;
-                emblemImg.src = emblemSrc;
-            }
-
-            // Sync Expanded Emblem Inspection Pop-up
-            const popupImg = document.getElementById('emblem-popup-img');
-            if (popupImg) {
-                delete popupImg.dataset.fallback;
-                popupImg.src = emblemSrc;
-            }
-            const popupTitle = document.getElementById('emblem-popup-title');
-            if (popupTitle) popupTitle.textContent = entry.title;
-            const popupSubtitle = document.getElementById('emblem-popup-subtitle');
-            if (popupSubtitle) popupSubtitle.textContent = entry.subtitle;
-
-            document.getElementById('meta-aircraft-name').textContent = entry.aircraftName;
-
-            // 2. Update Expanded Bottom Description & Lore Panel
-            document.getElementById('bottom-panel-heading').textContent =
-                `ASSAULT RECORD & TACTICAL DOSSIER // ${entry.title} (${entry.aircraftName})`;
-            document.getElementById('bottom-tagline').textContent = entry.tagline || '';
-
-            const loreEl = document.getElementById('lore-text');
-            loreEl.innerHTML = (entry.lore || [])
-                .map(p => `<p>${p}</p>`)
-                .join('');
-
-            // Detailed Livery Coating Swatches in Bottom Panel
-            const paletteDetailEl = document.getElementById('palette-detail-list');
-            paletteDetailEl.innerHTML = (entry.palette || [])
-                .map(s => `
-                    <div class="flex items-center gap-2 p-1 bg-[#160301]/80 border border-[#613108] rounded-sm">
-                        <span class="w-5 h-5 shrink-0 border border-[#f3c623]/40" style="background-color: ${s.hex}"></span>
-                        <div class="leading-tight truncate">
-                            <div class="text-[10px] text-[#f3c623] font-bold truncate">${s.name}</div>
-                            <div class="text-[10px] text-[#b87e14]">${s.hex}</div>
-                        </div>
-                    </div>
-                `).join('');
-
-            // 3. Update Technical Specifications Table (Highlights [REDACTED] in red)
-            const specsGrid = document.getElementById('specs-grid');
-            const specsObj = entry.specs || {};
-            specsGrid.innerHTML = Object.entries(specsObj)
-                .map(([key, val]) => {
-                    const strVal = String(val);
-                    const isFullyRedacted = strVal.trim().toUpperCase() === '[REDACTED]';
-                    const formattedVal = strVal.replace(
-                        /\[REDACTED\]/gi,
-                        '<span class="text-[#ef4444] acz-glow-red">[REDACTED]</span>'
-                    );
-                    const valueColorClass = isFullyRedacted
-                        ? 'text-[#ef4444] acz-glow-red'
-                        : 'text-[#f3c623]';
-
-                    return `
-                        <div class="border-b border-[#4a2306] pb-1 flex flex-col justify-between">
-                            <span class="text-[10px] text-[#b87e14] tracking-wider">${key}</span>
-                            <span class="text-xs ${valueColorClass} font-bold">${formattedVal}</span>
-                        </div>
-                    `;
-                }).join('');
-
-            // 4. Update 3D Model on the Stand
-            update3DAircraftOnStand(entry);
-        }
-
-        // Keyboard Arrow Navigation for the Grid
-        window.addEventListener('keydown', e => {
-            const list = ARCHIVE_DATA[currentCategory] || [];
-            if (list.length === 0) return;
-
-            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-                const next = (selectedIndex + 1) % list.length;
-                selectEntry(next, true);
-            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-                const prev = (selectedIndex - 1 + list.length) % list.length;
-                selectEntry(prev, true);
-            }
-        });
-
-        // Generates subtle floating orange/red background embers like Ace Combat Zero's menu background
-        function initAmbientEmbers() {
-            const container = document.getElementById('embers-container');
-            for (let i = 0; i < 18; i++) {
-                const dot = document.createElement('div');
-                dot.className = 'ember-dot';
-                const size = Math.random() * 6 + 3;
-                dot.style.width = `${size}px`;
-                dot.style.height = `${size}px`;
-                dot.style.left = `${Math.random() * 100}%`;
-                dot.style.top = `${Math.random() * 100}%`;
-                dot.style.animationDuration = `${Math.random() * 6 + 5}s`;
-                dot.style.animationDelay = `${Math.random() * 5}s`;
-                container.appendChild(dot);
-            }
-        }
-
-        // Initialize Everything on Window Load
-        window.onload = function () {
-            initAmbientEmbers();
-            initBGMAutoplay();
-            initThreeJS();
-            loadArchiveData();
-        };
-    </script>
+  <script type="module" src="./js/game.js"></script>
 </body>
+
 </html>

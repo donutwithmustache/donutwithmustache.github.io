@@ -1,0 +1,77 @@
+{
+  "id": "su27",
+  "name": "Su-27 Flanker",
+  "shortName": "Su-27",
+  "role": "Air Superiority Fighter",
+  "planeRole": "FIGHTER",
+  "sprite": "./assets/planes/su27.png",
+  "tags": [
+    "AIR_SUPERIORITY",
+    "SUPERMANEUVERABLE",
+    "PSM",
+    "HEAVY_FIGHTER"
+  ],
+  "stats": {
+    "spd": 92,
+    "def": 65,
+    "air": 95,
+    "gnd": 50
+  },
+  "weapons": {
+    "gunAmmo": 600,
+    "maxGunAmmo": 600,
+    "gunRpm": 1500,
+    "gunDamage": 1.6,
+    "mslCount": 84,
+    "maxMslCount": 84,
+    "mslCooldown": 4.4,
+    "flareCount": 36,
+    "maxFlareCount": 36,
+    "flarePool": 2,
+    "flareCooldown": 22.5,
+    "specialWeapons": [
+      "qaam",
+      "4aam",
+      "hpaa"
+    ],
+    "equippedSpecialWeapon": "qaam",
+    "spwAmmo": {
+      "qaam": 24,
+      "4aam": 32,
+      "hpaa": 18
+    },
+    "ability": "highGBreak",
+    "abilityCharges": 3,
+    "maxAbilityCharges": 3,
+    "abilityRecharge": 10.0
+  },
+  "physics": {
+    "mass": 16500,
+    "accelCruise": 70,
+    "accelAfterburner": 155,
+    "airbrakeDecel": 95,
+    "baseTurnRate": 2.7,
+    "turnResponse": 12.0,
+    "cornerSpeed": 275,
+    "normalMinSpeed": 152.8,
+    "forcedMinSpeed": 97.22,
+    "stallSpeed": 275,
+    "cruiseSpeed": 320,
+    "maxSpeed": 520,
+    "compressionFactor": 0.48,
+    "maxG": 12.0,
+    "grip": 3.2,
+    "highAlphaDrag": 75,
+    "inducedDragFactor": 12.0,
+    "driftTolerance": 0.95,
+    "hasThrustVectoring": false,
+    "engineCount": 2,
+    "nozzleSpacing": 22,
+    "wingspan": 88,
+    "wingtipChord": -19,
+    "length": 110,
+    "engineOffset": -48
+  },
+  "description": "Supreme maneuverability with thrust-vectoring agility. Equipped with QAAM/4AAM/HPAA and 36 flares."
+}
+

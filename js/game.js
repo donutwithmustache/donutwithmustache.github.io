@@ -1,6 +1,6 @@
 // Main Flight Stage Controller & Game Loop
 
-import { AIRCRAFT_DATA, SPECIAL_WEAPONS, ABILITIES } from './aircraft.js';
+import { AIRCRAFT_DATA, SPECIAL_WEAPONS, ABILITIES, getTargetStealth } from './aircraft.js';
 import { FlightPhysics } from './physics.js';
 import { ParticleSystem } from './particles.js';
 import { SoundEngine } from './audio.js';
@@ -122,8 +122,8 @@ class FlightGame {
       ? w.spwAmmo[equippedSpwId]
       : (spwDef.defaultAmmo || 24);
 
-    const abilityId = w.ability || 'highGBreak';
-    const abilityDef = ABILITIES[abilityId] || ABILITIES.highGBreak;
+    const abilityId = w.ability || 'emergencyAfterburner';
+    const abilityDef = ABILITIES[abilityId] || ABILITIES.emergencyAfterburner;
 
     // Special weapon pool size according to weapon type (e.g. 4 for 4AAM, 2 for QAAM/UGB, 1 for MPBM)
     const spwPoolSize = spwDef.pool || ({
@@ -185,10 +185,22 @@ class FlightGame {
       abilityId: abilityId,
       abilityCode: abilityDef.code,
       abilityName: abilityDef.name,
-      abilityCharges: w.abilityCharges || abilityDef.charges || 3,
-      maxAbilityCharges: w.maxAbilityCharges || abilityDef.charges || 3,
-      abilityRecharge: w.abilityRecharge || abilityDef.rechargeTime || 10.0,
-      abilityMaxRecharge: w.abilityRecharge || abilityDef.rechargeTime || 10.0
+      abilityCharges: w.abilityCharges || abilityDef.charges || 1,
+      maxAbilityCharges: w.maxAbilityCharges || abilityDef.charges || 1,
+      abilityRecharge: 0,
+      abilityMaxRecharge: w.abilityRecharge || abilityDef.cooldown || abilityDef.rechargeTime || 10.0
+    };
+
+    this.abilityState = {
+      active: false,
+      id: abilityId,
+      phase: 0,
+      timer: 0,
+      duration: abilityDef.duration || 0,
+      lockedTrajectory: 0,
+      flareTimer: 0,
+      cobraPitchScale: 1.0,
+      cooldownMax: w.abilityRecharge || abilityDef.cooldown || abilityDef.rechargeTime || 10.0
     };
   }
 
@@ -916,74 +928,259 @@ class FlightGame {
 
   triggerAbility() {
     if (this.crashHandled || this.physics.isCrashed || this.playerDying) return;
+    if (this.abilityState && this.abilityState.active) {
+      this.triggerWeaponCooldown('abl');
+      return;
+    }
     if (this.weapons.abilityCharges <= 0) {
       this.triggerWeaponCooldown('abl');
       return;
     }
+
+    const abilityId = this.weapons.abilityId || 'emergencyAfterburner';
+
+    // 1. AoA Limiter: "Only activatable below 400kph"
+    if (abilityId === 'aoaLimiter') {
+      const currentDispKph = (this.flightState && this.flightState.displayedKph !== undefined)
+        ? this.flightState.displayedKph
+        : Math.max(100, Math.round(this.physics.speed * 3.6 - 250));
+
+      if (currentDispKph >= 400) {
+        this.triggerWeaponCooldown('abl');
+        if (this.missionManager && this.missionManager.postRadioMessage) {
+          this.missionManager.postRadioMessage('AOA LIMITER REFUSED // SPEED EXCEEDS 400 KPH', 2.5);
+        }
+        return;
+      }
+    }
+
     this.weapons.abilityCharges -= 1;
 
-    const abilityId = this.weapons.abilityId || 'highGBreak';
     switch (abilityId) {
-      case 'highGBreak': {
-        // Tactical high-G pitch break with defensive flare burst
-        this.particles.spawnFlares(
+      case 'aoaLimiter': {
+        const lockedTraj = (this.flightState && this.flightState.flightPathAngle !== undefined)
+          ? this.flightState.flightPathAngle
+          : this.physics.heading;
+        this.abilityState = {
+          active: true,
+          id: 'aoaLimiter',
+          phase: 1,
+          timer: 0,
+          duration: 1.5,
+          lockedTrajectory: lockedTraj,
+          cooldownMax: 5.0
+        };
+        if (this.missionManager && this.missionManager.postRadioMessage) {
+          this.missionManager.postRadioMessage('<< AOA LIMITER ENGAGED // TRAJECTORY LOCKED >>', 2.0);
+        }
+        break;
+      }
+
+      case 'emDispenser': {
+        this.abilityState = {
+          active: true,
+          id: 'emDispenser',
+          timer: 0,
+          duration: 2.0,
+          flareTimer: 0,
+          cooldownMax: 35.0
+        };
+        this.particles.spawnDispenserFlare(
           this.physics.x,
           this.physics.y,
           this.physics.heading,
           this.physics.vx,
           this.physics.vy
         );
-        this.physics.speed = Math.min(this.aircraftConfig.physics.maxSpeed, this.physics.speed + 60);
         this.audio.playFlareSound();
+        if (this.missionManager && this.missionManager.postRadioMessage) {
+          this.missionManager.postRadioMessage('<< EM DISPENSER ACTIVE // RAPID FLARE STRING >>', 2.0);
+        }
         break;
       }
-      case 'afterburnerSurge': {
-        // Instant chemical overdrive forward acceleration surge
-        this.physics.speed = Math.min(this.aircraftConfig.physics.maxSpeed, this.physics.speed + 130);
+
+      case 'sensorFusion': {
+        this.abilityState = {
+          active: true,
+          id: 'sensorFusion',
+          timer: 0,
+          duration: 5.0,
+          cooldownMax: 20.0
+        };
+        this.audio.playSwitchSound();
+        if (this.missionManager && this.missionManager.postRadioMessage) {
+          this.missionManager.postRadioMessage('<< SENSOR FUSION ACTIVE // RADAR SENSITIVITY +150% >>', 2.5);
+        }
+        break;
+      }
+
+      case 'cobraManeuver': {
+        const p = this.aircraftConfig.physics;
+        const targetDispKph = (p.stallSpeed || 175) + 15;
+        const targetPhysSpeed = (targetDispKph + 250) / 3.6;
+        this.abilityState = {
+          active: true,
+          id: 'cobraManeuver',
+          timer: 0,
+          duration: 1.6,
+          targetSpeed: targetPhysSpeed,
+          cobraPitchScale: 1.0,
+          cooldownMax: 25.0
+        };
+        this.particles.spawnCobraVapor(this.physics.x, this.physics.y, this.physics.heading, p);
+        this.audio.playFlareSound();
+        if (this.missionManager && this.missionManager.postRadioMessage) {
+          this.missionManager.postRadioMessage('<< COBRA MANEUVER // HIGH-ALPHA AERODYNAMIC DECEL >>', 2.0);
+        }
+        break;
+      }
+
+      case 'emergencyAfterburner': {
+        this.abilityState = {
+          active: true,
+          id: 'emergencyAfterburner',
+          timer: 0,
+          duration: 4.0,
+          cooldownMax: 45.0
+        };
         this.particles.spawnSonicBoom(this.physics.x, this.physics.y, this.physics.heading);
         this.audio.playSonicBoom();
-        break;
-      }
-      case 'ecmJammer': {
-        // Electronic warfare countermeasure pulse
-        for (let i = 0; i < 3; i++) {
-          this.particles.spawnFlares(
-            this.physics.x + (Math.random() - 0.5) * 40,
-            this.physics.y + (Math.random() - 0.5) * 40,
-            this.physics.heading + (Math.random() - 0.5) * 0.5,
-            this.physics.vx * 0.8,
-            this.physics.vy * 0.8
-          );
+        if (this.missionManager && this.missionManager.postRadioMessage) {
+          this.missionManager.postRadioMessage('<< EMERGENCY STAGE AFTERBURNER // 160% OVERDRIVE THRUST >>', 2.5);
         }
-        this.audio.playFlareSound();
         break;
       }
-      case 'flareRing': {
-        // 360 degree radial flare pattern
-        const flareAngles = 8;
-        for (let i = 0; i < flareAngles; i++) {
-          const angle = (i / flareAngles) * Math.PI * 2;
-          this.particles.spawnFlares(
-            this.physics.x,
-            this.physics.y,
-            angle,
-            Math.cos(angle) * 80,
-            Math.sin(angle) * 80
-          );
-        }
-        this.audio.playFlareSound();
-        break;
-      }
+
       default: {
-        this.particles.spawnFlares(
-          this.physics.x,
-          this.physics.y,
-          this.physics.heading,
-          this.physics.vx,
-          this.physics.vy
-        );
-        this.audio.playFlareSound();
+        this.abilityState = {
+          active: true,
+          id: abilityId,
+          timer: 0,
+          duration: 2.0,
+          cooldownMax: 10.0
+        };
         break;
+      }
+    }
+  }
+
+  endAbility() {
+    if (!this.abilityState) return;
+    const cooldown = this.abilityState.cooldownMax || 10.0;
+    this.abilityState.active = false;
+    this.abilityState.cobraPitchScale = 1.0;
+    this.weapons.abilityRecharge = cooldown;
+  }
+
+  updateAbility(dt) {
+    if (!this.abilityState) {
+      this.abilityState = { active: false, id: null, timer: 0, duration: 0, cooldownMax: 0 };
+    }
+
+    if (this.abilityState.active) {
+      const state = this.abilityState;
+      state.timer += dt;
+
+      switch (state.id) {
+        case 'aoaLimiter': {
+          const currentDispKph = (this.flightState && this.flightState.displayedKph !== undefined)
+            ? this.flightState.displayedKph
+            : Math.max(100, Math.round(this.physics.speed * 3.6 - 250));
+
+          // Dropping below 130kph (deep stall) cancels the ability
+          if (currentDispKph < 130) {
+            if (this.missionManager && this.missionManager.postRadioMessage) {
+              this.missionManager.postRadioMessage('<< AOA LIMITER CANCELLED // DEEP STALL (< 130 KPH) >>', 2.0);
+            }
+            this.endAbility();
+            break;
+          }
+
+          if (state.phase === 1) {
+            if (state.timer >= state.duration) {
+              // Transition to Phase 2: keeps pointing at mouse for another 1 second
+              state.phase = 2;
+              state.timer = 0;
+              state.duration = 1.0;
+            }
+          } else if (state.phase === 2) {
+            if (state.timer >= state.duration) {
+              this.endAbility();
+            }
+          }
+          break;
+        }
+
+        case 'emDispenser': {
+          state.flareTimer = (state.flareTimer || 0) + dt;
+          if (state.flareTimer >= 0.08) {
+            state.flareTimer = 0;
+            this.particles.spawnDispenserFlare(
+              this.physics.x,
+              this.physics.y,
+              this.physics.heading,
+              this.physics.vx,
+              this.physics.vy
+            );
+          }
+          if (state.timer >= state.duration) {
+            this.endAbility();
+          }
+          break;
+        }
+
+        case 'sensorFusion': {
+          if (state.timer >= state.duration) {
+            this.endAbility();
+          }
+          break;
+        }
+
+        case 'cobraManeuver': {
+          const prog = Math.min(1.0, state.timer / state.duration);
+          // Rapid deceleration to just above stall speed:
+          if (this.physics.speed > state.targetSpeed) {
+            const decelStep = (this.physics.speed - state.targetSpeed) * Math.min(1.0, 5.0 * dt);
+            this.physics.speed = Math.max(state.targetSpeed, this.physics.speed - decelStep);
+            this.physics.vx = Math.cos(this.physics.heading) * this.physics.speed;
+            this.physics.vy = Math.sin(this.physics.heading) * this.physics.speed;
+          }
+
+          // Pitch scale illusion: longitudinal axis compresses down to ~0.36 at peak of cobra
+          state.cobraPitchScale = 1.0 - Math.sin(prog * Math.PI) * 0.64;
+
+          // Thick wing vapour cloud
+          this.particles.spawnCobraVapor(this.physics.x, this.physics.y, this.physics.heading, this.aircraftConfig.physics);
+
+          if (state.timer >= state.duration) {
+            this.endAbility();
+          }
+          break;
+        }
+
+        case 'emergencyAfterburner': {
+          if (state.timer >= state.duration) {
+            this.endAbility();
+          }
+          break;
+        }
+
+        default: {
+          if (state.timer >= state.duration) {
+            this.endAbility();
+          }
+          break;
+        }
+      }
+    }
+
+    // Cooldown countdown only runs when NOT active
+    if (!this.abilityState.active && this.weapons.abilityCharges < this.weapons.maxAbilityCharges) {
+      if (this.weapons.abilityRecharge > 0) {
+        this.weapons.abilityRecharge = Math.max(0, this.weapons.abilityRecharge - dt);
+        if (this.weapons.abilityRecharge <= 0) {
+          this.weapons.abilityCharges = Math.min(this.weapons.maxAbilityCharges, this.weapons.abilityCharges + 1);
+        }
       }
     }
   }
@@ -1057,6 +1254,10 @@ class FlightGame {
     this.weapons.hp = this.weapons.maxHp || 100;
     this.weapons.damageShakeTimer = 0;
     this.weapons.damageFlashTimer = 0;
+    if (this.abilityState) {
+      this.abilityState.active = false;
+      this.abilityState.cobraPitchScale = 1.0;
+    }
     this.physics.reset(x, y, heading, speed);
     this.altitude = 1.0;
     this.boundaryTimer = 0;
@@ -1265,14 +1466,8 @@ class FlightGame {
       }
     }
 
-    // Ability charge cooldown
-    if (this.weapons.abilityCharges < this.weapons.maxAbilityCharges) {
-      this.weapons.abilityRecharge -= dt;
-      if (this.weapons.abilityRecharge <= 0) {
-        this.weapons.abilityCharges += 1;
-        this.weapons.abilityRecharge = 10.0;
-      }
-    }
+    // Update tactical ability and recharge timer
+    this.updateAbility(dt);
 
     // Update indicator warning flash timers
     if (this.weapons.flashStates) {
@@ -1393,8 +1588,11 @@ class FlightGame {
         }
       }
     } else {
-      flightState = this.physics.update(dt, this.input);
+      flightState = this.physics.update(dt, this.input, this.abilityState);
       this.flightState = flightState;
+    }
+    if (this.flightState) {
+      this.flightState.stealth = (this.aircraftConfig && this.aircraftConfig.stats && this.aircraftConfig.stats.stealth !== undefined) ? this.aircraftConfig.stats.stealth : 0;
     }
 
     // Boundary proximity & Out-of-Bounds Detection
@@ -1610,53 +1808,89 @@ class FlightGame {
         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
-        const inSeekerCone = Math.abs(angleDiff) <= this.targeting.lockCone && dist <= this.targeting.lockRange;
+        const tgtStealth = getTargetStealth(tgt);
 
-        if (inSeekerCone) {
-          this.targeting.lockTimer += dt;
-          if (this.targeting.lockTimer >= this.targeting.lockTimeRequired) {
-            if (this.targeting.lockState !== 'LOCKED') {
-              this.targeting.lockState = 'LOCKED';
-              this.audio.playLockTone();
-            }
+        // Screen visibility check: is target visible on screen?
+        const screenCenterX = this.width * 0.5;
+        const screenCenterY = this.height * 0.5;
+        const tgtScreenX = (tgt.x - this.camera.x) * this.camera.zoom + screenCenterX;
+        const tgtScreenY = (tgt.y - this.camera.y) * this.camera.zoom + screenCenterY;
+        const margin = 35;
+        const isTgtOnScreen = (
+          tgtScreenX >= -margin &&
+          tgtScreenX <= this.width + margin &&
+          tgtScreenY >= -margin &&
+          tgtScreenY <= this.height + margin
+        );
 
-            // Multi-Lock Target Acquisition for 4AAM / Multi-Lock weapons (only when Special Weapon is armed)
-            const spwId = this.weapons.equippedSpwId;
-            const spwDef = SPECIAL_WEAPONS[spwId];
-            if (this.weapons.selectedWeapon === 'spw' && spwDef && (spwDef.isMultiLock || spwId === '4aam') && tgt.type === 'air') {
-              const maxLocks = spwDef.maxLocks || 4;
-              const candidates = this.targetManager.targets.filter(other => 
-                other.type === 'air' && 
-                !other.isDestroyed && 
-                !other.isFalling &&
-                other.id !== tgt.id
-              );
-              // Sort by proximity to primary target
-              candidates.sort((a, b) => {
-                const da = Math.hypot(a.x - tgt.x, a.y - tgt.y);
-                const db = Math.hypot(b.x - tgt.x, b.y - tgt.y);
-                return da - db;
-              });
-              // Close vicinity filter: within 4500 units of designated target and within radar envelope
-              const closeVicinity = candidates.filter(c => {
-                const dToTgt = Math.hypot(c.x - tgt.x, c.y - tgt.y);
-                const dToPlayer = Math.hypot(c.x - flightState.x, c.y - flightState.y);
-                return dToTgt <= 4500 && dToPlayer <= this.targeting.lockRange * 1.25;
-              });
-              this.targeting.multiLockedTargets = [tgt, ...closeVicinity.slice(0, maxLocks - 1)];
+        // Planes with stealth 3 and 4 have slightly reduced lock-on range (e.g. 0.80x for lvl 3, 0.70x for lvl 4)
+        let effectiveLockRange = this.targeting.lockRange;
+        if (tgtStealth === 3) effectiveLockRange *= 0.80;
+        else if (tgtStealth >= 4) effectiveLockRange *= 0.70;
+
+        // Planes with stealth of 3 and 4 must be on screen to be locked; even when targeted, lock is lost otherwise
+        if (tgtStealth >= 3 && !isTgtOnScreen) {
+          this.targeting.lockState = 'NONE';
+          this.targeting.lockTimer = 0;
+          this.targeting.multiLockedTargets = [];
+        } else {
+          const inSeekerCone = Math.abs(angleDiff) <= this.targeting.lockCone && dist <= effectiveLockRange;
+
+          if (inSeekerCone) {
+            this.targeting.lockTimer += dt;
+            if (this.targeting.lockTimer >= this.targeting.lockTimeRequired) {
+              if (this.targeting.lockState !== 'LOCKED') {
+                this.targeting.lockState = 'LOCKED';
+                this.audio.playLockTone();
+              }
+
+              // Multi-Lock Target Acquisition for 4AAM / Multi-Lock weapons (only when Special Weapon is armed)
+              const spwId = this.weapons.equippedSpwId;
+              const spwDef = SPECIAL_WEAPONS[spwId];
+              if (this.weapons.selectedWeapon === 'spw' && spwDef && (spwDef.isMultiLock || spwId === '4aam') && tgt.type === 'air') {
+                const maxLocks = spwDef.maxLocks || 4;
+                const candidates = this.targetManager.targets.filter(other => 
+                  other.type === 'air' && 
+                  !other.isDestroyed && 
+                  !other.isFalling &&
+                  other.id !== tgt.id
+                );
+                // Sort by proximity to primary target
+                candidates.sort((a, b) => {
+                  const da = Math.hypot(a.x - tgt.x, a.y - tgt.y);
+                  const db = Math.hypot(b.x - tgt.x, b.y - tgt.y);
+                  return da - db;
+                });
+                // Close vicinity filter: within 4500 units of designated target, within radar envelope, and respecting stealth
+                const closeVicinity = candidates.filter(c => {
+                  const dToTgt = Math.hypot(c.x - tgt.x, c.y - tgt.y);
+                  const dToPlayer = Math.hypot(c.x - flightState.x, c.y - flightState.y);
+                  const cStealth = getTargetStealth(c);
+                  let cLockRange = this.targeting.lockRange;
+                  if (cStealth >= 3) {
+                    const cScreenX = (c.x - this.camera.x) * this.camera.zoom + screenCenterX;
+                    const cScreenY = (c.y - this.camera.y) * this.camera.zoom + screenCenterY;
+                    const cOnScreen = cScreenX >= -margin && cScreenX <= this.width + margin && cScreenY >= -margin && cScreenY <= this.height + margin;
+                    if (!cOnScreen) return false;
+                    cLockRange *= (cStealth >= 4 ? 0.70 : 0.80);
+                  }
+                  return dToTgt <= 4500 && dToPlayer <= cLockRange * 1.25;
+                });
+                this.targeting.multiLockedTargets = [tgt, ...closeVicinity.slice(0, maxLocks - 1)];
+              } else {
+                this.targeting.multiLockedTargets = [tgt];
+              }
             } else {
+              this.targeting.lockState = 'TRACKING';
               this.targeting.multiLockedTargets = [tgt];
             }
           } else {
-            this.targeting.lockState = 'TRACKING';
-            this.targeting.multiLockedTargets = [tgt];
-          }
-        } else {
-          // Off boresight seeker cone: lock decays
-          this.targeting.lockTimer = Math.max(0, this.targeting.lockTimer - dt * 2.0);
-          if (this.targeting.lockTimer < this.targeting.lockTimeRequired) {
-            this.targeting.lockState = this.targeting.lockTimer > 0 ? 'TRACKING' : 'NONE';
-            this.targeting.multiLockedTargets = [];
+            // Off boresight seeker cone: lock decays
+            this.targeting.lockTimer = Math.max(0, this.targeting.lockTimer - dt * 2.0);
+            if (this.targeting.lockTimer < this.targeting.lockTimeRequired) {
+              this.targeting.lockState = this.targeting.lockTimer > 0 ? 'TRACKING' : 'NONE';
+              this.targeting.multiLockedTargets = [];
+            }
           }
         }
       }
@@ -1671,8 +1905,9 @@ class FlightGame {
     for (const m of this.particles.missiles) {
       // Must be an active enemy missile targeting the player (not bombs, not targets other than player)
       if (m.isEnemy && m.targetsPlayer && !m.isBomb) {
-        if (this.playerDying || this.crashHandled || flightState.isCrashed || this.physics.isCrashed || m.lostLock || !m.isGuided || m.decoyed) {
-          // If player is destroyed, or missile lost lock / evaded / flared, stop tracking and stop alerting
+        const isPlayerCobra = !!(this.abilityState && this.abilityState.active && this.abilityState.id === 'cobraManeuver');
+        if (this.playerDying || this.crashHandled || flightState.isCrashed || this.physics.isCrashed || m.lostLock || !m.isGuided || m.decoyed || isPlayerCobra) {
+          // If player is destroyed, or missile lost lock / evaded / flared / cobra immunity, stop tracking and stop alerting
           m.isGuided = false;
           m.turnRate = 0;
           m.lostLock = true;
@@ -1818,7 +2053,7 @@ class FlightGame {
           // Area splash damage to all targets within blast radius
           const blastR = m.blastRadius || (m.isMPBM ? 380 : (m.isUGB ? 140 : 280));
           for (const tgt of this.targetManager.targets) {
-            if (tgt.isDestroyed || tgt.isFalling) continue;
+            if (tgt.isDestroyed || tgt.isFalling || tgt.isCobraActive) continue;
             // UGBs and surface bombs only damage surface (ground/naval) targets, not airborne planes. MPBM damages all target types.
             if ((m.isBomb || m.isUGB) && !m.isMPBM && tgt.type === 'air') continue;
             const dist = Math.hypot(tgt.x - m.x, tgt.y - m.y);
@@ -1837,7 +2072,7 @@ class FlightGame {
       } else {
         // Direct kinetic / proximity hit for missiles
         for (const tgt of this.targetManager.targets) {
-          if (tgt.isDestroyed || tgt.isFalling) continue;
+          if (tgt.isDestroyed || tgt.isFalling || tgt.isCobraActive) continue;
           const hitDist = tgt.hitRadius + 22;
           const dist = Math.hypot(m.x - tgt.x, m.y - tgt.y);
           if (dist <= hitDist) {
@@ -1909,7 +2144,10 @@ class FlightGame {
           this.audio.playCrashSound();
         }
 
-        this.applyPlayerDamage(m.damage || 32, m.ownerId ? 'DOGFIGHT_KILL' : 'SAM_KILL');
+        const isPlayerCobra = !!(this.abilityState && this.abilityState.active && this.abilityState.id === 'cobraManeuver');
+        if (!isPlayerCobra) {
+          this.applyPlayerDamage(m.damage || 32, m.ownerId ? 'DOGFIGHT_KILL' : 'SAM_KILL');
+        }
       }
     }
 
@@ -2008,7 +2246,8 @@ class FlightGame {
       this.boundaryState,
       this.targeting,
       this.targetManager,
-      this.missionManager
+      this.missionManager,
+      this.abilityState
     );
   }
 
@@ -2034,7 +2273,11 @@ class FlightGame {
 
     ctx.save();
     ctx.translate(flightState.x + shadowOffsetX, flightState.y + shadowOffsetY);
-    ctx.rotate(flightState.heading + Math.PI * 0.75);
+    ctx.rotate(flightState.heading);
+    if (this.abilityState && this.abilityState.active && this.abilityState.id === 'cobraManeuver') {
+      ctx.scale(this.abilityState.cobraPitchScale || 1.0, 1.0);
+    }
+    ctx.rotate(Math.PI * 0.75);
 
     if (sprite && sprite.complete && sprite.naturalWidth > 0) {
       ctx.save();
@@ -2069,9 +2312,11 @@ class FlightGame {
 
     ctx.save();
     ctx.translate(flightState.x, flightState.y);
-
-    // Rotate to match aircraft heading (sprite nose faces -135 deg)
-    ctx.rotate(flightState.heading + Math.PI * 0.75);
+    ctx.rotate(flightState.heading);
+    if (this.abilityState && this.abilityState.active && this.abilityState.id === 'cobraManeuver') {
+      ctx.scale(this.abilityState.cobraPitchScale || 1.0, 1.0);
+    }
+    ctx.rotate(Math.PI * 0.75);
 
     if (sprite && sprite.complete && sprite.naturalWidth > 0) {
       ctx.drawImage(sprite, -size * 0.5, -size * 0.5, size, size);

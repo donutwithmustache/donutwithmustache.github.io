@@ -486,25 +486,87 @@ export class ParticleSystem {
   }
 
   // Flares
-  spawnFlares(x, y, heading, planeVx, planeVy) {
+  spawnFlares(x, y, heading, planeVx, planeVy, options = {}) {
     const cosH = Math.cos(heading);
     const sinH = Math.sin(heading);
     const perpX = -sinH;
     const perpY = cosH;
+    const lifeBonus = options.lifeBonus || 0;
 
     // Burst 4-6 flare pellets backwards and outward
-    const counts = [-1, 1, -1.8, 1.8];
+    const counts = options.counts || [-1, 1, -1.8, 1.8];
     for (const side of counts) {
       const ejectAngle = heading + Math.PI + side * 0.45 + (Math.random() - 0.5) * 0.3;
-      const ejectSpeed = 120 + Math.random() * 60;
+      const ejectSpeed = (options.ejectSpeed !== undefined ? options.ejectSpeed : 120) + Math.random() * 60;
       this.flares.push({
         x: x - cosH * 30 + perpX * (side * 8),
         y: y - sinH * 30 + perpY * (side * 8),
         vx: Math.cos(ejectAngle) * ejectSpeed + planeVx * 0.6,
         vy: Math.sin(ejectAngle) * ejectSpeed + planeVy * 0.6,
-        life: 1.8 + Math.random() * 0.8,
-        maxLife: 2.4,
+        life: 1.8 + Math.random() * 0.8 + lifeBonus,
+        maxLife: 2.4 + lifeBonus,
         fizzleTimer: 0
+      });
+    }
+  }
+
+  // Continuous rapid-fire flare string for Electromechanical Dispenser (lasts 1s longer)
+  spawnDispenserFlare(x, y, heading, planeVx, planeVy) {
+    const cosH = Math.cos(heading);
+    const sinH = Math.sin(heading);
+    const perpX = -sinH;
+    const perpY = cosH;
+
+    // Eject alternating sides behind plane
+    const side = (Math.random() < 0.5 ? -1 : 1) * (0.8 + Math.random() * 0.8);
+    const ejectAngle = heading + Math.PI + side * 0.35 + (Math.random() - 0.5) * 0.25;
+    const ejectSpeed = 100 + Math.random() * 50;
+
+    // Standard flares have life 1.8 + Math.random() * 0.8 (max 2.4).
+    // Dispenser flares stay 1 second longer in the air:
+    const lifeBonus = 1.0;
+    this.flares.push({
+      x: x - cosH * 28 + perpX * (side * 6),
+      y: y - sinH * 28 + perpY * (side * 6),
+      vx: Math.cos(ejectAngle) * ejectSpeed + planeVx * 0.55,
+      vy: Math.sin(ejectAngle) * ejectSpeed + planeVy * 0.55,
+      life: 1.8 + Math.random() * 0.8 + lifeBonus,
+      maxLife: 2.4 + lifeBonus,
+      fizzleTimer: 0
+    });
+  }
+
+  // Thick wing vapour cloud during Cobra Maneuver
+  spawnCobraVapor(x, y, heading, pConfig = {}) {
+    const cosH = Math.cos(heading);
+    const sinH = Math.sin(heading);
+    const perpX = -sinH;
+    const perpY = cosH;
+    const wingSpan = (pConfig && pConfig.wingSpan) ? pConfig.wingSpan : 50;
+    const length = (pConfig && pConfig.length) ? pConfig.length : 70;
+
+    // Spawn 5-8 condensation puffs distributed over wings and fuselage
+    const count = 6;
+    for (let i = 0; i < count; i++) {
+      const lateral = (Math.random() - 0.5) * wingSpan * 0.95;
+      const longitudinal = (Math.random() - 0.5) * length * 0.6;
+      const px = x + cosH * longitudinal + perpX * lateral;
+      const py = y + sinH * longitudinal + perpY * lateral;
+
+      const driftAngle = heading + Math.PI + (Math.random() - 0.5) * 0.6;
+      const driftSpeed = 20 + Math.random() * 30;
+
+      this.particles.push({
+        x: px,
+        y: py,
+        vx: Math.cos(driftAngle) * driftSpeed,
+        vy: Math.sin(driftAngle) * driftSpeed,
+        life: 0.50 + Math.random() * 0.40,
+        maxLife: 0.90,
+        size: 16 + Math.random() * 18,
+        baseAlpha: 0.60 + Math.random() * 0.30,
+        color: 'rgba(235, 245, 255, 0.70)',
+        type: 'smoke'
       });
     }
   }
@@ -688,8 +750,15 @@ export class ParticleSystem {
 
       // Dynamic target tracking for guided missiles
       if (m.target && !m.target.isDestroyed && !m.target.isFalling) {
-        m.targetX = m.target.x;
-        m.targetY = m.target.y;
+        if (m.target.isCobraActive) {
+          // Cobra maneuver makes aircraft immune to missiles and breaks locks
+          m.isGuided = false;
+          m.turnRate = 0;
+          m.lostLock = true;
+        } else {
+          m.targetX = m.target.x;
+          m.targetY = m.target.y;
+        }
       } else if (m.target && (m.target.isDestroyed || m.target.isFalling)) {
         m.isGuided = false;
         m.turnRate = 0;

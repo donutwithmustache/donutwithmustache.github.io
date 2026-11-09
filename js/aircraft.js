@@ -102,37 +102,55 @@ export const SPECIAL_WEAPONS = {
 // ABILITIES DICTIONARY TABLE
 // ------------------------------------------
 export const ABILITIES = {
-  highGBreak: {
-    id: 'highGBreak',
-    name: 'High-G Break',
-    code: 'BRK',
-    charges: 3,
-    rechargeTime: 10.0,
-    description: 'Tactical high-G pitch break with defensive flare burst to shake missile locks.'
+  aoaLimiter: {
+    id: 'aoaLimiter',
+    name: 'AoA Limiter',
+    code: 'AOA',
+    duration: 1.5,
+    cooldown: 5.0,
+    charges: 1,
+    rechargeTime: 5.0,
+    description: 'Bypasses angle-of-attack limits below 400 kph, locking flight trajectory for up to 1.5s while allowing nose to point anywhere, followed by 1s mouse pointing. Cancels below 130 kph. 5s cooldown starts after ability ends.'
   },
-  afterburnerSurge: {
-    id: 'afterburnerSurge',
-    name: 'Afterburner Overdrive',
-    code: 'OVD',
-    charges: 3,
-    rechargeTime: 8.0,
-    description: 'Injects chemical oxidizer into the afterburners for instant maximum forward speed surge.'
+  emDispenser: {
+    id: 'emDispenser',
+    name: 'Electromechanical Dispenser',
+    code: 'EMD',
+    duration: 2.0,
+    cooldown: 35.0,
+    charges: 1,
+    rechargeTime: 35.0,
+    description: 'Rapid-fires an intense continuous string of flares behind the plane for 2 seconds. Flares linger in the air 1 second longer. 35s cooldown starts after ability ends.'
   },
-  ecmJammer: {
-    id: 'ecmJammer',
-    name: 'ECM Jammer Suite',
-    code: 'ECM',
-    charges: 2,
-    rechargeTime: 12.0,
-    description: 'Emits a powerful wideband electronic warfare pulse that scrambles enemy missile locks.'
+  sensorFusion: {
+    id: 'sensorFusion',
+    name: 'Sensor Fusion',
+    code: 'SNS',
+    duration: 5.0,
+    cooldown: 20.0,
+    charges: 1,
+    rechargeTime: 20.0,
+    description: 'Integrates radar and optical sensor arrays, making planes with stealth 1, 2, and 3 visible from 150% further distance for 5 seconds. 20s cooldown starts after ability ends.'
   },
-  flareRing: {
-    id: 'flareRing',
-    name: '360° Flare Ring',
-    code: 'FLR+',
-    charges: 3,
-    rechargeTime: 12.0,
-    description: 'Discharges an omnidirectional radial ring of hot countermeasure flares.'
+  cobraManeuver: {
+    id: 'cobraManeuver',
+    name: 'Cobra Maneuver',
+    code: 'CBR',
+    duration: 1.8,
+    cooldown: 25.0,
+    charges: 1,
+    rechargeTime: 25.0,
+    description: 'Pitches airframe vertically into a Pugachev Cobra, rapidly shedding speed to just above stall speed while generating thick wing vapor. 25s cooldown starts after ability ends.'
+  },
+  emergencyAfterburner: {
+    id: 'emergencyAfterburner',
+    name: 'Emergency Stage Afterburner',
+    code: 'E-AB',
+    duration: 4.0,
+    cooldown: 45.0,
+    charges: 1,
+    rechargeTime: 45.0,
+    description: 'Injects emergency stage fuel boosting acceleration to 160% and top speed to 110% for 4 seconds before returning to normal. 45s cooldown starts after ability ends.'
   }
 };
 
@@ -184,6 +202,9 @@ export const AIRCRAFT_DATA = {
     shortName: 'Su-27',
     role: 'Air Superiority Fighter',
     planeRole: 'FIGHTER',
+    tier: 5,
+    partSlots: 4,
+    cost: 220000,
     sprite: './assets/planes/su27.png',
     tags: ['AIR_SUPERIORITY', 'SUPERMANEUVERABLE', 'PSM', 'HEAVY_FIGHTER'],
     
@@ -192,7 +213,8 @@ export const AIRCRAFT_DATA = {
       spd: 92, // Maneuverability
       def: 65,
       air: 95,
-      gnd: 50
+      gnd: 50,
+      stealth: 0
     },
 
     // Weapons Loadout (Unique to Su-27)
@@ -219,10 +241,10 @@ export const AIRCRAFT_DATA = {
       },
 
       // Aircraft tactical ability
-      ability: 'highGBreak',
-      abilityCharges: 3,
-      maxAbilityCharges: 3,
-      abilityRecharge: 10.0
+      ability: 'cobraManeuver',
+      abilityCharges: 1,
+      maxAbilityCharges: 1,
+      abilityRecharge: 25.0
     },
 
     // Aerodynamics & Physical Parameters
@@ -262,6 +284,9 @@ export const AIRCRAFT_DATA = {
     shortName: 'F-15C',
     role: 'All-Weather Air Superiority',
     planeRole: 'FIGHTER',
+    tier: 4,
+    partSlots: 3,
+    cost: 180000,
     sprite: './assets/planes/f15c.png',
     tags: ['AIR_SUPERIORITY', 'HIGH_SPEED', 'SUPERCRUISE', 'HEAVY_FIGHTER'],
     
@@ -270,7 +295,8 @@ export const AIRCRAFT_DATA = {
       spd: 75, // Maneuverability
       def: 75,
       air: 90,
-      gnd: 40
+      gnd: 40,
+      stealth: 0
     },
 
     // Weapons Loadout (Unique to F-15C Eagle benchmark)
@@ -297,10 +323,10 @@ export const AIRCRAFT_DATA = {
       },
 
       // Aircraft tactical ability
-      ability: 'afterburnerSurge',
-      abilityCharges: 3,
-      maxAbilityCharges: 3,
-      abilityRecharge: 8.0
+      ability: 'emergencyAfterburner',
+      abilityCharges: 1,
+      maxAbilityCharges: 1,
+      abilityRecharge: 45.0
     },
 
     // Aerodynamics & Physical Parameters
@@ -340,6 +366,9 @@ export const AIRCRAFT_DATA = {
     shortName: 'F-111F',
     role: 'Heavy Strike Bomber / Interdictor',
     planeRole: 'STRIKE',
+    tier: 2,
+    partSlots: 2,
+    cost: 75000,
     sprite: './assets/planes/f111f.png',
     tags: ['STRIKE', 'VARIABLE_GEOMETRY', 'TERRAIN_FOLLOWING', 'SUPERCRUISE'],
     
@@ -348,7 +377,8 @@ export const AIRCRAFT_DATA = {
       spd: 45, // Maneuverability
       def: 90,
       air: 35,
-      gnd: 98
+      gnd: 98,
+      stealth: 0
     },
 
     // Weapons Loadout (Unique to F-111F Strike Interdictor)
@@ -375,10 +405,10 @@ export const AIRCRAFT_DATA = {
       },
 
       // Aircraft tactical ability
-      ability: 'ecmJammer',
-      abilityCharges: 2,
-      maxAbilityCharges: 2,
-      abilityRecharge: 12.0
+      ability: 'emDispenser',
+      abilityCharges: 1,
+      maxAbilityCharges: 1,
+      abilityRecharge: 35.0
     },
 
     // Aerodynamics & Physical Parameters
@@ -418,6 +448,9 @@ export const AIRCRAFT_DATA = {
     shortName: 'Su-57',
     role: '5th Gen Stealth Multirole',
     planeRole: 'MULTIROLE',
+    tier: 9,
+    partSlots: 5,
+    cost: 850000,
     sprite: './assets/planes/su57.png',
     tags: ['STEALTH', 'SUPERMANEUVERABLE', 'PSM', 'SUPERCRUISE', 'MULTIROLE'],
 
@@ -426,7 +459,8 @@ export const AIRCRAFT_DATA = {
       spd: 96, // 3D Thrust-vectoring maneuverability
       def: 70,
       air: 98,
-      gnd: 65
+      gnd: 65,
+      stealth: 3
     },
 
     // Weapons Loadout
@@ -453,10 +487,10 @@ export const AIRCRAFT_DATA = {
       },
 
       // Aircraft tactical ability
-      ability: 'ecmJammer',
-      abilityCharges: 3,
-      maxAbilityCharges: 3,
-      abilityRecharge: 10.0
+      ability: 'aoaLimiter',
+      abilityCharges: 1,
+      maxAbilityCharges: 1,
+      abilityRecharge: 5.0
     },
 
     // Aerodynamics & Physical Parameters
@@ -539,9 +573,12 @@ export function registerAircraft(data) {
     shortName: data.shortName || data.name || data.id.toUpperCase(),
     role: data.role || 'Multirole Fighter',
     planeRole: data.planeRole || 'MULTIROLE',
+    tier: data.tier !== undefined ? Math.max(0, Math.min(10, Math.round(Number(data.tier) || 0))) : 0,
+    partSlots: data.partSlots !== undefined ? Math.max(0, Math.round(Number(data.partSlots) || 0)) : 3,
+    cost: data.cost !== undefined ? Math.max(0, Math.round(Number(data.cost) || 0)) : 0,
     sprite: data.sprite || `./assets/planes/${data.id}.png`,
     tags: Array.isArray(data.tags) ? data.tags.map(t => t.toUpperCase()) : [],
-    stats: Object.assign({ spd: 75, def: 70, air: 75, gnd: 70 }, data.stats),
+    stats: Object.assign({ spd: 75, def: 70, air: 75, gnd: 70, stealth: 0 }, data.stats),
     weapons: Object.assign({
       gunAmmo: 800,
       maxGunAmmo: 800,
@@ -557,10 +594,10 @@ export function registerAircraft(data) {
       specialWeapons: ['qaam', '4aam', 'ugb'],
       equippedSpecialWeapon: 'qaam',
       spwAmmo: { qaam: 24, '4aam': 32, ugb: 40 },
-      ability: 'highGBreak',
-      abilityCharges: 3,
-      maxAbilityCharges: 3,
-      abilityRecharge: 10.0
+      ability: 'emergencyAfterburner',
+      abilityCharges: 1,
+      maxAbilityCharges: 1,
+      abilityRecharge: 45.0
     }, data.weapons),
     physics: Object.assign({
       mass: 18000,
@@ -621,4 +658,42 @@ export async function loadAircraftFromData() {
     console.log('[AircraftLoader] Using built-in AIRCRAFT_DATA registry.');
   }
   return AIRCRAFT_DATA;
+}
+
+// Helper: Resolve aircraft stealth rating (0: None | 1: 1/4th Map | 2: 1/8th Map | 3: Visual Only | 4: Radar Ghost)
+export function getTargetStealth(tgt) {
+  if (!tgt) return 0;
+  if (tgt.stealth !== undefined) return Math.max(0, Math.min(4, Math.round(Number(tgt.stealth) || 0)));
+  if (tgt.stats && tgt.stats.stealth !== undefined) {
+    return Math.max(0, Math.min(4, Math.round(Number(tgt.stats.stealth) || 0)));
+  }
+  if (tgt.aircraftConfig && tgt.aircraftConfig.stats && tgt.aircraftConfig.stats.stealth !== undefined) {
+    return Math.max(0, Math.min(4, Math.round(Number(tgt.aircraftConfig.stats.stealth) || 0)));
+  }
+  const modelId = tgt.aircraft || tgt.model || tgt.planeId || tgt.id;
+  if (modelId && AIRCRAFT_DATA[modelId] && AIRCRAFT_DATA[modelId].stats && AIRCRAFT_DATA[modelId].stats.stealth !== undefined) {
+    return Math.max(0, Math.min(4, Math.round(Number(AIRCRAFT_DATA[modelId].stats.stealth) || 0)));
+  }
+  return 0;
+}
+
+// Helper: Resolve aircraft tier (0: Starter ... 10: Top Tier)
+export function getAircraftTier(aircraftOrId) {
+  const plane = typeof aircraftOrId === 'string' ? AIRCRAFT_DATA[aircraftOrId] : aircraftOrId;
+  if (!plane) return 0;
+  return plane.tier !== undefined ? Math.max(0, Math.min(10, Math.round(Number(plane.tier) || 0))) : 0;
+}
+
+// Helper: Resolve aircraft upgrade part slots count (e.g. 0 to 5+)
+export function getAircraftPartSlots(aircraftOrId) {
+  const plane = typeof aircraftOrId === 'string' ? AIRCRAFT_DATA[aircraftOrId] : aircraftOrId;
+  if (!plane) return 0;
+  return plane.partSlots !== undefined ? Math.max(0, Math.round(Number(plane.partSlots) || 0)) : 0;
+}
+
+// Helper: Resolve aircraft shop purchase cost (credits)
+export function getAircraftCost(aircraftOrId) {
+  const plane = typeof aircraftOrId === 'string' ? AIRCRAFT_DATA[aircraftOrId] : aircraftOrId;
+  if (!plane) return 0;
+  return plane.cost !== undefined ? Math.max(0, Math.round(Number(plane.cost) || 0)) : 0;
 }

@@ -4,6 +4,9 @@
   "shortName": "Su-57",
   "role": "5th Gen Stealth Multirole",
   "planeRole": "MULTIROLE",
+  "tier": 9,
+  "partSlots": 5,
+  "cost": 850000,
   "sprite": "./assets/planes/su57.png",
   "tags": [
     "STEALTH",
@@ -16,7 +19,8 @@
     "spd": 96,
     "def": 70,
     "air": 98,
-    "gnd": 65
+    "gnd": 65,
+    "stealth": 3
   },
   "weapons": {
     "gunAmmo": 700,
@@ -41,10 +45,10 @@
       "4aam": 36,
       "mpbm": 14
     },
-    "ability": "ecmJammer",
-    "abilityCharges": 3,
-    "maxAbilityCharges": 3,
-    "abilityRecharge": 10.0
+    "ability": "aoaLimiter",
+    "abilityCharges": 1,
+    "maxAbilityCharges": 1,
+    "abilityRecharge": 5.0
   },
   "physics": {
     "mass": 18500,

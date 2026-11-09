@@ -1,5 +1,7 @@
 // Ace Combat Authentic Tactical Flight HUD with Styled Minimal Instrument Console & Circular Radar
 
+import { getTargetStealth } from './aircraft.js';
+
 export class FlightHUD {
   constructor() {
     this.hudColor = '#00ff66';
@@ -13,9 +15,14 @@ export class FlightHUD {
     this.sweepAngle = 0;
   }
 
-  draw(ctx, flightState, aircraftConfig, input, camera, canvasWidth, canvasHeight, weapons, world, particles, boundaryState = null, targeting = null, targetManager = null, missionManager = null) {
+  draw(ctx, flightState, aircraftConfig, input, camera, canvasWidth, canvasHeight, weapons, world, particles, boundaryState = null, targeting = null, targetManager = null, missionManager = null, abilityState = null) {
     ctx.save();
 
+    this.camera = camera;
+    this.canvasWidth = canvasWidth;
+    this.canvasHeight = canvasHeight;
+
+    const sensorFusionActive = !!(abilityState && abilityState.active && abilityState.id === 'sensorFusion');
     const centerX = canvasWidth * 0.5;
     const centerY = canvasHeight * 0.5;
 
@@ -42,7 +49,7 @@ export class FlightHUD {
     }
 
     // 2. Tactical World Targets & Seeker Lock Reticles
-    this.drawTacticalTargets(ctx, targets, targeting, camera, canvasWidth, canvasHeight, flightState.x, flightState.y, flightState.heading, weapons, input);
+    this.drawTacticalTargets(ctx, targets, targeting, camera, canvasWidth, canvasHeight, flightState.x, flightState.y, flightState.heading, weapons, input, sensorFusionActive);
 
     // 3. Tactical Center Warnings: HIGH-G, DRIFT, STALL, AO BOUNDARY, MISSILE INBOUND
     this.drawTacticalWarnings(ctx, centerX, centerY - 150, flightState, aircraftConfig, boundaryState, targeting, missionManager);
@@ -93,7 +100,7 @@ export class FlightHUD {
     // 7. Bottom-Left: 75% Scale Flight Telemetry & Weapons HUD Console (Perfect Ergonomic Scale)
     const consoleX = 35;
     const consoleY = canvasHeight - 225;
-    this.drawCustomFlightConsole(ctx, consoleX, consoleY, flightState, aircraftConfig, weapons, boundaryState);
+    this.drawCustomFlightConsole(ctx, consoleX, consoleY, flightState, aircraftConfig, weapons, boundaryState, abilityState);
 
     // 8. Bottom-Right: 75% Scale Authentic Ace Combat Square Radar / Minimap (Expanded on [HOLD Z])
     const isExpanded = !!(input && input.z);
@@ -101,7 +108,7 @@ export class FlightHUD {
     const radarX = canvasWidth - radarHalfSize - 35;
     const radarY = canvasHeight - 42 - radarHalfSize;
     const returnLine = missionManager && missionManager.getReturnLine ? missionManager.getReturnLine() : null;
-    this.drawRadarMinimap(ctx, radarX, radarY, radarHalfSize, flightState, world, particles, isExpanded, boundaryState, targets, targeting, returnLine);
+    this.drawRadarMinimap(ctx, radarX, radarY, radarHalfSize, flightState, world, particles, isExpanded, boundaryState, targets, targeting, returnLine, camera, canvasWidth, canvasHeight, sensorFusionActive);
 
     // 9. Singleplayer Mission Dialogue Transmission (Top-Right Animated Portrait & Speech Bubble)
     if (missionManager && missionManager.activeDialogue) {
@@ -597,7 +604,7 @@ export class FlightHUD {
   }
 
   // Tactical Practice Targets & Seeker Lock Reticle System
-  drawTacticalTargets(ctx, targets, targeting, camera, canvasWidth, canvasHeight, playerX, playerY, playerHeading, weapons = null, input = null) {
+  drawTacticalTargets(ctx, targets, targeting, camera, canvasWidth, canvasHeight, playerX, playerY, playerHeading, weapons = null, input = null, sensorFusionActive = false) {
     if (!targets) return;
     const centerX = canvasWidth * 0.5;
     const centerY = canvasHeight * 0.5;
@@ -772,6 +779,14 @@ export class FlightHUD {
 
         ctx.restore();
       } else {
+        const stealth = getTargetStealth(tgt);
+        // Untargeted stealth planes (or planes beyond radar range) do not display off-screen HUD chevrons
+        if (!isDesignated) {
+          if ((!sensorFusionActive && stealth >= 3) || !this.isTargetVisibleOnRadar(tgt, { x: playerX, y: playerY }, null, camera, canvasWidth, canvasHeight, sensorFusionActive)) {
+            continue;
+          }
+        }
+
         // Off-screen indicator chevron pointing towards target
         const angleToTgt = Math.atan2(screenY - centerY, screenX - centerX);
         const edgeDistX = centerX - 45;
@@ -813,29 +828,48 @@ export class FlightHUD {
     const roleTag = aircraftConfig.planeRole ? ` [${aircraftConfig.planeRole}]` : '';
     ctx.fillText(`${aircraftConfig.role.toUpperCase()}${roleTag}`, x, y + 14);
 
-    const stats = aircraftConfig.stats;
+    const stats = aircraftConfig.stats || {};
+    const stealthVal = stats.stealth !== undefined ? stats.stealth : 0;
     const statItems = [
       { label: 'SPD (MANEUVER)', val: stats.spd, active: true },
       { label: 'DEF (ARMOR)', val: stats.def, active: false },
       { label: 'AIR (AIR-AIR)', val: stats.air, active: false },
-      { label: 'GND (STRIKE)', val: stats.gnd, active: false }
+      { label: 'GND (STRIKE)', val: stats.gnd, active: false },
+      { label: 'STL (STEALTH)', val: stealthVal, isStealth: true }
     ];
 
     let startY = y + 32;
     for (const s of statItems) {
       ctx.font = s.active ? 'bold 10px monospace' : '9px monospace';
-      ctx.fillStyle = s.active ? '#ffff44' : 'rgba(0, 255, 102, 0.7)';
+      ctx.fillStyle = s.active ? '#ffff44' : s.isStealth ? '#00e5ff' : 'rgba(0, 255, 102, 0.7)';
       ctx.fillText(s.label, x, startY);
 
       const barW = 85;
-      const fillW = (s.val / 100) * barW;
-      ctx.strokeStyle = s.active ? '#ffff44' : 'rgba(0, 255, 102, 0.35)';
-      ctx.strokeRect(x + 115, startY - 8, barW, 7);
+      if (s.isStealth) {
+        // Draw 4 stealth rating blocks
+        const blockW = (barW - 9) / 4;
+        for (let b = 0; b < 4; b++) {
+          const bx = x + 115 + b * (blockW + 3);
+          const isFilled = b < s.val;
+          ctx.strokeStyle = s.val > 0 ? '#00e5ff' : 'rgba(0, 255, 102, 0.35)';
+          ctx.strokeRect(bx, startY - 8, blockW, 7);
+          if (isFilled) {
+            ctx.fillStyle = '#00e5ff';
+            ctx.fillRect(bx, startY - 8, blockW, 7);
+          }
+        }
+        ctx.fillStyle = s.val > 0 ? '#00e5ff' : 'rgba(0, 255, 102, 0.5)';
+        ctx.fillText(`LVL ${s.val}`, x + 208, startY);
+      } else {
+        const fillW = (s.val / 100) * barW;
+        ctx.strokeStyle = s.active ? '#ffff44' : 'rgba(0, 255, 102, 0.35)';
+        ctx.strokeRect(x + 115, startY - 8, barW, 7);
 
-      ctx.fillStyle = s.active ? '#ffff44' : 'rgba(0, 255, 102, 0.5)';
-      ctx.fillRect(x + 115, startY - 8, fillW, 7);
+        ctx.fillStyle = s.active ? '#ffff44' : 'rgba(0, 255, 102, 0.5)';
+        ctx.fillRect(x + 115, startY - 8, fillW, 7);
 
-      ctx.fillText(`${s.val}`, x + 208, startY);
+        ctx.fillText(`${s.val}`, x + 208, startY);
+      }
       startY += 15;
     }
 
@@ -969,7 +1003,7 @@ export class FlightHUD {
   // ==========================================
   // CUSTOM BOTTOM-LEFT FLIGHT & WEAPONS UI (USER REFERENCE MATCH - 75% SCALE)
   // ==========================================
-  drawCustomFlightConsole(ctx, x, y, flightState, aircraftConfig, weapons, boundaryState = null) {
+  drawCustomFlightConsole(ctx, x, y, flightState, aircraftConfig, weapons, boundaryState = null, abilityState = null) {
     ctx.save();
 
     // Speed calculation from flightState:
@@ -1325,29 +1359,41 @@ export class FlightHUD {
       flrColors.barsGlow
     );
 
-    // Column 5: ABL ("RDY" / cooldown) [A] - Green
+    // Column 5: ABL ("RDY" / cooldown / active duration) [A]
     const col5X = col4X + colSpacing;
+    const isAbilityActive = !!(abilityState && abilityState.active);
     const ablColors = getColColors('abl', false);
-    ctx.fillStyle = ablColors.title;
+    ctx.fillStyle = isAbilityActive ? '#00ffee' : ablColors.title;
     ctx.font = 'bold 20px monospace';
-    ctx.shadowColor = ablColors.glow;
+    ctx.shadowColor = isAbilityActive ? '#00e5ff' : ablColors.glow;
     ctx.shadowBlur = ablColors.shadowBlur;
-    ctx.fillText('ABL', col5X, ammoY);
+    ctx.fillText(weapons.abilityCode || 'ABL', col5X, ammoY);
 
     ctx.font = '9px monospace';
-    ctx.fillStyle = ablColors.sub;
+    ctx.fillStyle = isAbilityActive ? '#00ffee' : ablColors.sub;
     ctx.fillText('[A]', col5X + 46, ammoY - 2);
 
     ctx.font = 'bold 36px monospace';
-    ctx.fillStyle = ablColors.text;
-    ctx.shadowColor = ablColors.glow;
+    ctx.fillStyle = isAbilityActive ? '#00ffee' : ablColors.text;
+    ctx.shadowColor = isAbilityActive ? '#00e5ff' : ablColors.glow;
     ctx.shadowBlur = ablColors.shadowBlur;
-    if (weapons.abilityCharges > 0) {
+
+    if (isAbilityActive) {
+      ctx.font = 'bold 22px monospace';
+      if (abilityState.id === 'aoaLimiter') {
+        const rem = Math.max(0, (abilityState.duration || 1.5) - (abilityState.timer || 0));
+        ctx.fillText(abilityState.phase === 1 ? `AOA ${rem.toFixed(1)}s` : `ALN ${rem.toFixed(1)}s`, col5X, ammoY + 38);
+      } else {
+        const rem = Math.max(0, (abilityState.duration || 0) - (abilityState.timer || 0));
+        ctx.fillText(`${rem.toFixed(1)}s`, col5X, ammoY + 38);
+      }
+    } else if (weapons.abilityCharges > 0) {
       ctx.fillText('RDY', col5X, ammoY + 40);
     } else {
       ctx.font = 'bold 24px monospace';
       ctx.fillStyle = (ablColors.title !== this.limeGreen) ? ablColors.text : this.amberColor;
-      ctx.fillText(`${weapons.abilityRecharge.toFixed(0)}s`, col5X, ammoY + 38);
+      const rech = Math.max(0, weapons.abilityRecharge || 0);
+      ctx.fillText(`${rech.toFixed(0)}s`, col5X, ammoY + 38);
     }
 
     ctx.restore();
@@ -1356,7 +1402,57 @@ export class FlightHUD {
   // ==========================================
   // ACE COMBAT TRUE SQUARE RADAR / MINIMAP (EXPANDED TO FULL AO ON [HOLD Z])
   // ==========================================
-  drawRadarMinimap(ctx, cx, cy, halfSize, flightState, world, particles, isExpanded = false, boundaryState = null, targets = null, targeting = null, returnLine = null) {
+  // Stealth Minimap Radar Visibility Check (Stealth 0: Everywhere | Stealth 1: <= 1/4 map | Stealth 2: <= 1/8 map | Stealth 3: Visual/on-screen | Stealth 4: Never)
+  // Sensor Fusion multiplies detection distance by 2.5x (+150%) for Stealth 1, 2, and 3
+  isTargetVisibleOnRadar(tgt, flightState, world, camera, canvasWidth, canvasHeight, sensorFusionActive = false) {
+    if (!tgt) return false;
+    // Ground and naval targets do not have plane stealth unless explicitly specified
+    if (tgt.type && tgt.type !== 'air') {
+      return tgt.stealth !== undefined ? Number(tgt.stealth) < 4 : true;
+    }
+    const stealth = getTargetStealth(tgt);
+    if (stealth <= 0) return true;
+    if (stealth >= 4) return false; // Stealth 4 never appears on radar minimap
+
+    const mapHalf = (world && world.halfMapSize) ? world.halfMapSize : 15075;
+    const mapSize = (world && world.mapSize) ? world.mapSize : (mapHalf * 2);
+    const dist = Math.hypot(tgt.x - flightState.x, tgt.y - flightState.y);
+
+    const mult = sensorFusionActive ? 2.5 : 1.0;
+
+    if (stealth === 1) {
+      return dist <= mapSize * 0.25 * mult;
+    }
+    if (stealth === 2) {
+      return dist <= mapSize * 0.125 * mult;
+    }
+    if (stealth === 3) {
+      if (sensorFusionActive) {
+        const cam = camera || this.camera;
+        const cw = canvasWidth || this.canvasWidth || 1920;
+        const ch = canvasHeight || this.canvasHeight || 1080;
+        const zoom = (cam && cam.zoom) ? cam.zoom : 0.68;
+        const visualRadius = (Math.hypot(cw, ch) * 0.5) / zoom;
+        return (dist <= visualRadius * 2.5) || this.isTargetOnScreen(tgt, cam, cw, ch);
+      }
+      const cam = camera || this.camera;
+      const cw = canvasWidth || this.canvasWidth;
+      const ch = canvasHeight || this.canvasHeight;
+      return this.isTargetOnScreen(tgt, cam, cw, ch);
+    }
+    return true;
+  }
+
+  isTargetOnScreen(tgt, camera, canvasWidth, canvasHeight, margin = 35) {
+    if (!tgt || !camera || !canvasWidth || !canvasHeight) return false;
+    const cx = canvasWidth * 0.5;
+    const cy = canvasHeight * 0.5;
+    const sx = (tgt.x - camera.x) * camera.zoom + cx;
+    const sy = (tgt.y - camera.y) * camera.zoom + cy;
+    return sx >= -margin && sx <= canvasWidth + margin && sy >= -margin && sy <= canvasHeight + margin;
+  }
+
+  drawRadarMinimap(ctx, cx, cy, halfSize, flightState, world, particles, isExpanded = false, boundaryState = null, targets = null, targeting = null, returnLine = null, camera = null, canvasWidth = 0, canvasHeight = 0, sensorFusionActive = false) {
     const size = halfSize * 2;
     const left = cx - halfSize;
     const top = cy - halfSize;
@@ -1526,6 +1622,9 @@ export class FlightHUD {
       if (targets) {
         for (const tgt of targets) {
           if (tgt.isDestroyed || tgt.isFalling) continue;
+          if (!this.isTargetVisibleOnRadar(tgt, flightState, world, camera, canvasWidth, canvasHeight, sensorFusionActive)) {
+            continue;
+          }
           const tx = cx + tgt.x * scale;
           const ty = cy + tgt.y * scale;
           ctx.save();
@@ -1722,6 +1821,9 @@ export class FlightHUD {
       if (targets) {
         for (const tgt of targets) {
           if (tgt.isDestroyed || tgt.isFalling) continue;
+          if (!this.isTargetVisibleOnRadar(tgt, flightState, world, camera, canvasWidth, canvasHeight, sensorFusionActive)) {
+            continue;
+          }
           const tdx = (tgt.x - flightState.x) * scale;
           const tdy = (tgt.y - flightState.y) * scale;
           if (Math.abs(tdx) < halfSize && Math.abs(tdy) < halfSize) {

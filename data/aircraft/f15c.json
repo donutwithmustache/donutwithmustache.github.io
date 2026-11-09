@@ -4,6 +4,9 @@
   "shortName": "F-15C",
   "role": "All-Weather Air Superiority",
   "planeRole": "FIGHTER",
+  "tier": 4,
+  "partSlots": 3,
+  "cost": 180000,
   "sprite": "./assets/planes/f15c.png",
   "tags": [
     "AIR_SUPERIORITY",
@@ -15,7 +18,8 @@
     "spd": 75,
     "def": 75,
     "air": 90,
-    "gnd": 40
+    "gnd": 40,
+    "stealth": 0
   },
   "weapons": {
     "gunAmmo": 940,
@@ -40,10 +44,10 @@
       "saam": 20,
       "qaam": 24
     },
-    "ability": "afterburnerSurge",
-    "abilityCharges": 3,
-    "maxAbilityCharges": 3,
-    "abilityRecharge": 8.0
+    "ability": "emergencyAfterburner",
+    "abilityCharges": 1,
+    "maxAbilityCharges": 1,
+    "abilityRecharge": 45.0
   },
   "physics": {
     "mass": 20200,

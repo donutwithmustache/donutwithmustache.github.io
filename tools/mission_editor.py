@@ -22,7 +22,7 @@ MANIFEST_FILE = os.path.join(MISSIONS_DIR, "manifest.json")
 PLANES_DIR = os.path.join(BASE_DIR, "assets", "planes")
 PORTRAITS_DIR = os.path.join(BASE_DIR, "assets", "portraits")
 
-AI_LEVELS = ["dummy", "drone", "rookie", "veteran", "elite", "ace", "strike"]
+AI_LEVELS = ["dummy", "drone", "rookie", "veteran", "elite", "ace", "boss", "strike"]
 AIRCRAFT_MODELS = ["su27", "f15c", "f111f", "su57", "f22", "mig21"]
 SHIP_TYPES = ["carrier", "cruiser", "destroyer", "frigate", "gunboat"]
 GROUND_TYPES = ["sam", "flak", "radar"]

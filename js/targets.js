@@ -10,6 +10,7 @@ export const STANDARD_MSL_DAMAGE = 32;
 // - Strike: 2.5 MSL hits (80 HP)
 // - Elite: 3 MSL hits (96 HP)
 // - Ace: 5 MSL hits (160 HP)
+// - Boss: 6 MSL hits (192 HP)
 export const AI_HEALTH_BY_LEVEL = {
   drone: Math.round(1.0 * STANDARD_MSL_DAMAGE),   // 32 HP (1 MSL hit)
   dummy: Math.round(1.5 * STANDARD_MSL_DAMAGE),   // 48 HP (1.5 MSL hits)
@@ -17,8 +18,15 @@ export const AI_HEALTH_BY_LEVEL = {
   veteran: Math.round(2.0 * STANDARD_MSL_DAMAGE), // 64 HP (2 MSL hits)
   strike: Math.round(2.5 * STANDARD_MSL_DAMAGE),  // 80 HP (2.5 MSL hits)
   elite: Math.round(3.0 * STANDARD_MSL_DAMAGE),   // 96 HP (3 MSL hits)
-  ace: Math.round(5.0 * STANDARD_MSL_DAMAGE)      // 160 HP (5 MSL hits)
+  ace: Math.round(5.0 * STANDARD_MSL_DAMAGE),     // 160 HP (5 MSL hits)
+  boss: Math.round(6.0 * STANDARD_MSL_DAMAGE)     // 192 HP (6 MSL hits)
 };
+
+export function wrapAngle(angle) {
+  while (angle > Math.PI) angle -= Math.PI * 2;
+  while (angle < -Math.PI) angle += Math.PI * 2;
+  return angle;
+}
 
 export function getAIPlaneHealth(aiType = 'rookie') {
   const key = (aiType || 'rookie').toLowerCase();
@@ -404,6 +412,7 @@ export class TargetManager {
         hp: 160,
         maxHp: 160,
         hitRadius: 40,
+        stealth: 4,
         equippedSpw: 'qaam',
         hasPsm: true,
         hasTVC: true,
@@ -422,6 +431,51 @@ export class TargetManager {
         fireCooldown: 1.5,
         spwCooldown: 4.0,
         flareCooldown: 12.0,
+        railSide: 1,
+        isDestroyed: false,
+        respawnTimer: 0
+      },
+
+      // 7B. Enemy Su-57 Felon [BOSS] (Far Bottom-Right Combat Sector) - Takes 6 MSL hits (192 HP)
+      {
+        id: 'boss_su57',
+        name: 'Su-57 Felon [BOSS]',
+        code: 'TGT [AIR]',
+        type: 'air',
+        model: 'su27',
+        aiType: 'boss',
+        isEnemy: true,
+        x: 12000,
+        y: 12000,
+        heading: -2.35,
+        speed: 320,
+        baseSpeed: 320,
+        cornerSpeed: 260,
+        maxSpeed: 410,
+        turnRate: 2.35,
+        hp: 192,
+        maxHp: 192,
+        hitRadius: 42,
+        stealth: 3,
+        equippedSpw: 'qaam',
+        hasPsm: true,
+        hasTVC: true,
+        ability: 'cobraManeuver',
+        territory: {
+          minX: 7000,
+          maxX: 17000,
+          minY: 7000,
+          maxY: 17000,
+          centerX: 12000,
+          centerY: 12000,
+          radius: 5200
+        },
+        tacticalState: 'DOGFIGHT',
+        tacticalTimer: 0,
+        fireInterval: 2.5,
+        fireCooldown: 1.0,
+        spwCooldown: 3.5,
+        flareCooldown: 8.0,
         railSide: 1,
         isDestroyed: false,
         respawnTimer: 0
@@ -1013,9 +1067,17 @@ export class TargetManager {
         // SAM Site radar dish rotation
         tgt.radarAngle = (tgt.radarAngle || 0) + 1.8 * dt;
 
-        // Engagement check against player
+        // Engagement check against player (reduced by player's stealth rating)
         const distToPlayer = Math.hypot(playerX - tgt.x, playerY - tgt.y);
-        if (distToPlayer <= (tgt.radarRange || tgt.range || 3400)) {
+        let maxRadarRange = tgt.radarRange || tgt.range || 3400;
+        if (flightState && flightState.stealth !== undefined && flightState.stealth > 0) {
+          const pStealth = flightState.stealth;
+          if (pStealth === 1) maxRadarRange *= 0.85;
+          else if (pStealth === 2) maxRadarRange *= 0.70;
+          else if (pStealth === 3) maxRadarRange *= 0.50;
+          else if (pStealth >= 4) maxRadarRange *= 0.35;
+        }
+        if (distToPlayer <= maxRadarRange) {
           tgt.fireCooldown -= dt;
           if (tgt.fireCooldown <= 0) {
             tgt.fireCooldown = tgt.fireInterval;
@@ -1365,6 +1427,33 @@ export class TargetManager {
         break;
       }
 
+      case 'boss': {
+        // 8. BOSS AI: Supreme apex adversary.
+        // - Takes 6 MSL hits to kill (192 HP)
+        // - Fires up to two MSL at once, uses SP weapons frequently
+        // - Dodges and flares almost all incoming MSLs (prioritises Cobra before flares, only uses flares if cobra is on cooldown)
+        // - Only fires gun with guaranteed shot on player
+        // - Can PSM if airframe allows it
+        // - Special Kulbit maneuver if tailed for > 3.0s: 360 deg turn holding trajectory, fires MSL backwards at 180 deg mark
+        this.runDogfightAI(tgt, dt, playerX, playerY, particles, audio, flightState, {
+          level: 'boss',
+          maxTurnRate: tgt.turnRate || 2.35,
+          cornerSpeed: tgt.cornerSpeed || 255,
+          maxSpeed: tgt.maxSpeed || 410,
+          fireInterval: tgt.fireInterval || 2.5,
+          salvoSize: 2,
+          useFlares: true,
+          flareCooldownTime: 8.0,
+          allowSPW: true,
+          spwCooldownTime: 4.5,
+          allowPSM: true,
+          allowCobra: true,
+          allowKulbit: true,
+          threat
+        });
+        break;
+      }
+
       default: {
         tgt.heading += 0.35 * dt;
         tgt.x += Math.cos(tgt.heading) * tgt.speed * dt;
@@ -1377,8 +1466,74 @@ export class TargetManager {
     this.emitJetExhaust(tgt, particles);
   }
 
-  // Advanced Energy Dogfight Engine (powers Veteran, Elite, and Ace AI)
+  // Advanced Energy Dogfight Engine (powers Veteran, Elite, Ace, and Boss AI)
   runDogfightAI(tgt, dt, playerX, playerY, particles, audio, flightState, opts) {
+    if (tgt.kulbitCooldown > 0) tgt.kulbitCooldown = Math.max(0, tgt.kulbitCooldown - dt);
+    if (tgt.cobraCooldown > 0) tgt.cobraCooldown = Math.max(0, tgt.cobraCooldown - dt);
+
+    // A. Active Kulbit Loop execution (Boss special maneuver)
+    if (tgt.isKulbitActive) {
+      tgt.kulbitTimer = (tgt.kulbitTimer || 0) + dt;
+      const dur = tgt.kulbitDuration || 2.0;
+      const prog = Math.min(1.0, tgt.kulbitTimer / dur);
+
+      // Advance 360 degree rotation
+      const spinDir = tgt.kulbitSpinDir || 1;
+      tgt.heading = wrapAngle(tgt.kulbitStartHeading + prog * Math.PI * 2 * spinDir);
+
+      // Direction of flight remains locked along entry trajectory
+      const flightAng = tgt.kulbitFlightAngle !== undefined ? tgt.kulbitFlightAngle : tgt.kulbitStartHeading;
+      tgt.x += Math.cos(flightAng) * tgt.speed * dt;
+      tgt.y += Math.sin(flightAng) * tgt.speed * dt;
+
+      // Airframe pitch scale illusion (peak compression at 90 deg and 270 deg)
+      tgt.cobraPitchScale = 1.0 - Math.abs(Math.sin(prog * Math.PI)) * 0.58;
+
+      if (particles && particles.spawnCobraVapor && Math.random() < 0.6) {
+        particles.spawnCobraVapor(tgt.x, tgt.y, tgt.heading, { wingSpan: 50, length: 70 });
+      }
+
+      // Fire MSL backwards at player at the 180 degree mark (prog >= 0.50)
+      if (prog >= 0.50 && !tgt.kulbitFired) {
+        tgt.kulbitFired = true;
+        this.launchFighterMissile(tgt, playerX, playerY, particles, audio, true);
+        if (audio && audio.playMissileSound) {
+          audio.playMissileSound();
+        }
+      }
+
+      if (prog >= 1.0) {
+        tgt.heading = tgt.kulbitStartHeading;
+        tgt.isKulbitActive = false;
+        tgt.cobraPitchScale = 1.0;
+        tgt.kulbitCooldown = 14.0;
+        tgt.tailedTimer = 0;
+      }
+      return;
+    }
+
+    // B. Active Cobra Maneuver execution
+    if (tgt.isCobraActive) {
+      tgt.cobraTimer = (tgt.cobraTimer || 0) - dt;
+      const dur = 1.6;
+      const prog = Math.min(1.0, 1.0 - (tgt.cobraTimer / dur));
+      tgt.cobraPitchScale = 1.0 - Math.sin(prog * Math.PI) * 0.64;
+      tgt.speed = Math.max(140, tgt.speed - 120 * dt);
+
+      if (particles && particles.spawnCobraVapor && Math.random() < 0.7) {
+        particles.spawnCobraVapor(tgt.x, tgt.y, tgt.heading, { wingSpan: 50, length: 70 });
+      }
+
+      tgt.x += Math.cos(tgt.heading) * tgt.speed * dt;
+      tgt.y += Math.sin(tgt.heading) * tgt.speed * dt;
+
+      if (tgt.cobraTimer <= 0) {
+        tgt.isCobraActive = false;
+        tgt.cobraPitchScale = 1.0;
+      }
+      return;
+    }
+
     const t = tgt.territory;
     const playerInTerritory = t ? (
       playerX >= t.minX && playerX <= t.maxX &&
@@ -1430,12 +1585,45 @@ export class TargetManager {
       const dyP = playerY - tgt.y;
       const distP = Math.hypot(dxP, dyP);
       const bearingToPlayer = Math.atan2(dyP, dxP);
-      let diffToPlayer = bearingToPlayer - tgt.heading;
-      while (diffToPlayer > Math.PI) diffToPlayer -= Math.PI * 2;
-      while (diffToPlayer < -Math.PI) diffToPlayer += Math.PI * 2;
+      let diffToPlayer = wrapAngle(bearingToPlayer - tgt.heading);
+
+      // Special Kulbit ability: if player sits on Boss tail for > 3 seconds
+      if (opts.level === 'boss' && opts.allowKulbit) {
+        const angleBehindBoss = wrapAngle(tgt.heading + Math.PI);
+        const rearDiff = Math.abs(wrapAngle(bearingToPlayer - angleBehindBoss));
+
+        let playerTailing = false;
+        if (distP < 3200 && rearDiff < 0.75) {
+          const pHeading = flightState ? flightState.heading : 0;
+          const toBoss = Math.atan2(tgt.y - playerY, tgt.x - playerX);
+          const pFacingDiff = Math.abs(wrapAngle(toBoss - pHeading));
+          if (pFacingDiff < 0.85) {
+            playerTailing = true;
+          }
+        }
+
+        if (playerTailing) {
+          tgt.tailedTimer = (tgt.tailedTimer || 0) + dt;
+          if (tgt.tailedTimer >= 3.0 && (tgt.kulbitCooldown || 0) <= 0 && !tgt.isKulbitActive) {
+            tgt.isKulbitActive = true;
+            tgt.kulbitTimer = 0;
+            tgt.kulbitDuration = 1.9;
+            tgt.kulbitStartHeading = tgt.heading;
+            tgt.kulbitFlightAngle = tgt.heading;
+            tgt.kulbitFired = false;
+            const relAng = wrapAngle(bearingToPlayer - tgt.heading);
+            tgt.kulbitSpinDir = relAng >= 0 ? 1 : -1;
+            tgt.tailedTimer = 0;
+            return;
+          }
+        } else {
+          tgt.tailedTimer = Math.max(0, (tgt.tailedTimer || 0) - dt * 1.5);
+        }
+      }
 
       // Check incoming missile threat evasion
-      const underThreat = opts.threat && opts.threat.dist < 2400;
+      const isBoss = opts.level === 'boss';
+      const underThreat = opts.threat && opts.threat.dist < (isBoss ? 2800 : 2400);
 
       if (underThreat) {
         // High-G Beam / Break Turn: turn perpendicular to missile vector to force gimbal drop or overshoot
@@ -1444,28 +1632,53 @@ export class TargetManager {
         const side = Math.sin(missileBearing - tgt.heading) >= 0 ? -1 : 1;
         const beamHeading = missileBearing + Math.PI * 0.5 * side;
 
-        let bDiff = beamHeading - tgt.heading;
-        while (bDiff > Math.PI) bDiff -= Math.PI * 2;
-        while (bDiff < -Math.PI) bDiff += Math.PI * 2;
+        let bDiff = wrapAngle(beamHeading - tgt.heading);
 
-        tgt.heading += Math.sign(bDiff) * Math.min(Math.abs(bDiff), dynamicTurnRate * 1.15 * dt);
-        tgt.speed = Math.min(opts.maxSpeed, tgt.speed + 140 * dt);
+        const evadeTurnMult = isBoss ? 1.40 : 1.15;
+        tgt.heading += Math.sign(bDiff) * Math.min(Math.abs(bDiff), dynamicTurnRate * evadeTurnMult * dt);
+        tgt.speed = Math.min(opts.maxSpeed, tgt.speed + 150 * dt);
 
-        // Flare deployment for Elite & Ace when missile gets critically close
-        if (opts.useFlares && (tgt.flareCooldown || 0) <= 0 && opts.threat.dist < 900 && opts.threat.dot > 0.40) {
-          if (particles && particles.spawnFlares) {
-            particles.spawnFlares(
-              tgt.x,
-              tgt.y,
-              tgt.heading,
-              Math.cos(tgt.heading) * tgt.speed,
-              Math.sin(tgt.heading) * tgt.speed
-            );
+        const canCobra = isBoss && opts.allowCobra &&
+          (tgt.model === 'su27' || tgt.model === 'su57' || tgt.model === 'f22' || tgt.hasTVC || tgt.hasCobra || !tgt.model || tgt.model === 'mig21');
+
+        // Prioritises using Cobra before flares:
+        if (canCobra && (tgt.cobraCooldown || 0) <= 0 && opts.threat.dist < 1500 && opts.threat.dot > 0.30) {
+          tgt.isCobraActive = true;
+          tgt.cobraTimer = 1.6;
+          tgt.cobraCooldown = 25.0;
+          tgt.cobraPitchScale = 1.0;
+          if (particles && particles.spawnCobraVapor) {
+            particles.spawnCobraVapor(tgt.x, tgt.y, tgt.heading, { wingSpan: 50, length: 70 });
           }
           if (audio && audio.playFlareSound) {
             audio.playFlareSound();
           }
-          tgt.flareCooldown = opts.flareCooldownTime || 15.0;
+          // Defend against missile: forces missile to lose lock and spoof
+          m.isGuided = false;
+          m.turnRate = 0;
+          m.lostLock = true;
+          m.life = Math.min(m.life, 1.0);
+        }
+        // Only uses flares if cobra is on cooldown:
+        else if (opts.useFlares && (tgt.flareCooldown || 0) <= 0 && opts.threat.dist < (isBoss ? 1300 : 900) && opts.threat.dot > 0.35) {
+          const cobraReady = canCobra && (tgt.cobraCooldown || 0) <= 0;
+          if (!cobraReady) {
+            if (particles && particles.spawnFlares) {
+              particles.spawnFlares(
+                tgt.x,
+                tgt.y,
+                tgt.heading,
+                Math.cos(tgt.heading) * tgt.speed,
+                Math.sin(tgt.heading) * tgt.speed
+              );
+            }
+            if (audio && audio.playFlareSound) {
+              audio.playFlareSound();
+            }
+            tgt.flareCooldown = opts.flareCooldownTime || (isBoss ? 8.0 : 15.0);
+            m.decoyed = true;
+            m.targetFlare = particles.flares[particles.flares.length - 1];
+          }
         }
       } else {
         // Post-Stall Maneuver (PSM) for Ace AI (Cobra / drift yaw with nose-flip snapshot)
@@ -1506,8 +1719,9 @@ export class TargetManager {
           }
 
           // Gun snap during PSM
-          const canUseGuns = (opts.level === 'veteran' || opts.level === 'elite' || opts.level === 'ace');
-          if (canUseGuns && distP <= 1000 && Math.abs(diffToPlayer) < 0.32) {
+          const canUseGuns = (opts.level === 'veteran' || opts.level === 'elite' || opts.level === 'ace' || isBoss);
+          const snapGuaranteed = isBoss ? (distP <= 750 && Math.abs(diffToPlayer) < 0.08) : (distP <= 1000 && Math.abs(diffToPlayer) < 0.32);
+          if (canUseGuns && snapGuaranteed) {
             tgt.gunTimer = (tgt.gunTimer || 0) + dt;
             const gunInterval = 0.055;
             while (tgt.gunTimer >= gunInterval) {
@@ -1621,9 +1835,9 @@ export class TargetManager {
             if (canFire && tgt.fireCooldown <= 0) {
               if (Math.abs(diffToPlayer) < 0.60 && distP >= 750 && distP <= 3500) {
                 if (opts.salvoSize === 2) {
-                  if (opts.allowSPW && (tgt.spwCooldown || 0) <= 0 && tgt.equippedSpw === 'qaam') {
+                  if (opts.allowSPW && (tgt.spwCooldown || 0) <= 0 && (opts.level === 'boss' || tgt.equippedSpw === 'qaam')) {
                     this.launchFighterMissile(tgt, playerX, playerY, particles, audio, true);
-                    tgt.spwCooldown = opts.spwCooldownTime || 8.0;
+                    tgt.spwCooldown = opts.spwCooldownTime || (opts.level === 'boss' ? 4.5 : 8.0);
                   } else {
                     this.launchFighterSalvo(tgt, playerX, playerY, particles, audio);
                   }
@@ -1637,27 +1851,39 @@ export class TargetManager {
               }
             }
 
-            // Machine Gun fire for Veteran, Elite, and Ace AI (close dogfight & nose aligned)
-            const canUseGuns = (opts.level === 'veteran' || opts.level === 'elite' || opts.level === 'ace');
-            if (canUseGuns && distP <= 1000 && Math.abs(lDiff) < 0.28) {
-              tgt.gunTimer = (tgt.gunTimer || 0) + dt;
-              const gunInterval = 0.055; // ~18 rounds/sec during gun tracking burst
-              while (tgt.gunTimer >= gunInterval) {
-                tgt.gunTimer -= gunInterval;
-                if (particles && particles.spawnBullet) {
-                  particles.spawnBullet(
-                    tgt.x,
-                    tgt.y,
-                    tgt.heading,
-                    Math.cos(tgt.heading) * tgt.speed,
-                    Math.sin(tgt.heading) * tgt.speed,
-                    1.4,
-                    true // isEnemy = true
-                  );
-                }
+            // Machine Gun fire for Veteran, Elite, Ace, and Boss AI
+            const canUseGuns = (opts.level === 'veteran' || opts.level === 'elite' || opts.level === 'ace' || isBoss);
+            if (canUseGuns) {
+              let guaranteedShot = false;
+              if (isBoss) {
+                // Boss AI only fires gun when it has a guaranteed shot on the player (close and nose strictly on target)
+                guaranteedShot = distP <= 750 && Math.abs(diffToPlayer) < 0.08;
+              } else {
+                guaranteedShot = distP <= 1000 && Math.abs(lDiff) < 0.28;
               }
-              if (audio && audio.playGunSound && Math.random() < 0.25) {
-                audio.playGunSound();
+
+              if (guaranteedShot) {
+                tgt.gunTimer = (tgt.gunTimer || 0) + dt;
+                const gunInterval = isBoss ? 0.045 : 0.055;
+                while (tgt.gunTimer >= gunInterval) {
+                  tgt.gunTimer -= gunInterval;
+                  if (particles && particles.spawnBullet) {
+                    particles.spawnBullet(
+                      tgt.x,
+                      tgt.y,
+                      tgt.heading,
+                      Math.cos(tgt.heading) * tgt.speed,
+                      Math.sin(tgt.heading) * tgt.speed,
+                      isBoss ? 2.2 : 1.4,
+                      true // isEnemy = true
+                    );
+                  }
+                }
+                if (audio && audio.playGunSound && Math.random() < 0.35) {
+                  audio.playGunSound();
+                }
+              } else {
+                tgt.gunTimer = 0;
               }
             } else {
               tgt.gunTimer = 0;
@@ -1865,6 +2091,8 @@ export class TargetManager {
   // Apply damage from bullets, missiles, or bombs
   damageTarget(tgt, damage, particles, audio) {
     if (tgt.isDestroyed || tgt.isFalling) return;
+    // Cobra immunity: While actively performing a Cobra Maneuver, aircraft is immune to missiles/damage
+    if (tgt.isCobraActive) return;
     tgt.hp -= damage;
     if (tgt.hp <= 0) {
       tgt.hp = 0;
@@ -1922,6 +2150,9 @@ export class TargetManager {
       ctx.save();
       ctx.translate(tgt.x, tgt.y);
       ctx.rotate(tgt.heading);
+      if (tgt.cobraPitchScale !== undefined && tgt.cobraPitchScale < 1.0) {
+        ctx.scale(tgt.cobraPitchScale, 1.0);
+      }
 
       if (tgt.type === 'air') {
         const isSu27 = tgt.model === 'su27';

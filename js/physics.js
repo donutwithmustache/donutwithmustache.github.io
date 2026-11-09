@@ -56,19 +56,26 @@ export class FlightPhysics {
     return angle;
   }
 
-  update(dt, input) {
+  update(dt, input, abilityState = null) {
     const p = this.p;
 
+    const isEmergencyAB = !!(abilityState && abilityState.active && abilityState.id === 'emergencyAfterburner');
+    const isAoAPhase1 = !!(abilityState && abilityState.active && abilityState.id === 'aoaLimiter' && abilityState.phase === 1);
+    const isAoAPhase2 = !!(abilityState && abilityState.active && abilityState.id === 'aoaLimiter' && abilityState.phase === 2);
+    const accelMult = isEmergencyAB ? 1.6 : 1.0;
+    const maxSpeedMult = isEmergencyAB ? 1.10 : 1.0;
+    const effectiveMaxSpeed = p.maxSpeed * maxSpeedMult;
+
     // 1. Throttle & Airbrake logic
-    const targetThrottle = input.shift 
+    const targetThrottle = (input.shift || isEmergencyAB) 
       ? 1.5 
       : (input.ctrl ? 0.0 : 0.70);
 
-    this.isAirbraking = input.ctrl;
-    this.isAfterburning = input.shift && this.throttle > 1.05;
+    this.isAirbraking = input.ctrl && !isEmergencyAB;
+    this.isAfterburning = isEmergencyAB || (input.shift && this.throttle > 1.05);
 
     // Smooth fast throttle transition
-    const throttleRate = input.ctrl ? 4.5 : (input.shift ? 4.0 : 2.5);
+    const throttleRate = input.ctrl ? 4.5 : (input.shift || isEmergencyAB ? 4.0 : 2.5);
     this.throttle += (targetThrottle - this.throttle) * Math.min(1.0, throttleRate * dt);
 
     // 2. Turn Authority & Aerodynamic Steering
@@ -100,13 +107,13 @@ export class FlightPhysics {
 
     // Steering & Input Refusal During Stall
     const hasTVC = p.hasThrustVectoring || p.thrustVectoring;
-    if (this.isStalled && !hasTVC) {
+    if (this.isStalled && !hasTVC && !isAoAPhase1 && !isAoAPhase2) {
       // STALL (Conventional Aerodynamics): Plane refuses pilot steering input,
       // but retains its rotational inertia and continues rotating in the axis it was rotating in!
       this.targetOmega = this.omega;
       this.omega *= Math.exp(-0.25 * dt);
     } else {
-      // NORMAL FLIGHT OR THRUST-VECTORING POST-STALL: Steering tracks mouse
+      // NORMAL FLIGHT OR THRUST-VECTORING POST-STALL OR AOA LIMITER: Steering tracks mouse
       const dx = input.targetWorldX - this.x;
       const dy = input.targetWorldY - this.y;
       const distToTarget = Math.hypot(dx, dy);
@@ -121,15 +128,15 @@ export class FlightPhysics {
       const deflectionFraction = Math.min(1.0, Math.abs(angleError) / maxDeflectionAngle);
       const smoothDeflection = Math.sin(deflectionFraction * Math.PI * 0.5);
 
-      // In stall with 3D thrust vectoring nozzles, engine exhaust generates immediate turning authority:
+      // In stall with 3D thrust vectoring nozzles or AoA limiter active:
       let effectiveTurnRate = maxInstantTurnRate;
-      if (this.isStalled && hasTVC) {
-        effectiveTurnRate = Math.max(2.8, p.baseTurnRate * 1.05);
+      if ((this.isStalled && hasTVC) || isAoAPhase1 || isAoAPhase2) {
+        effectiveTurnRate = Math.max(3.0, p.baseTurnRate * 1.15);
       }
 
       this.targetOmega = Math.sign(angleError) * effectiveTurnRate * smoothDeflection;
 
-      const responseRate = (this.isStalled && hasTVC) ? p.turnResponse * 1.3 : p.turnResponse;
+      const responseRate = ((this.isStalled && hasTVC) || isAoAPhase1 || isAoAPhase2) ? p.turnResponse * 1.4 : p.turnResponse;
       const dOmega = (this.targetOmega - this.omega) * responseRate * dt;
       this.omega += dOmega;
     }
@@ -141,14 +148,14 @@ export class FlightPhysics {
     let forwardThrustAccel = 0;
     let inducedDrag = 0;
 
-    if (this.isStalled) {
+    if (this.isStalled && !isAoAPhase1 && !isAoAPhase2) {
       // ========================================================
       // STALLED FLIGHT REGIME (TVC or CONVENTIONAL)
       // ========================================================
       if (hasTVC) {
         // Thrust-Vectoring Post-Stall Maneuver (Ace Combat PSM):
         if (this.isAfterburning) {
-          this.speed = Math.min(p.maxSpeed, this.speed + p.accelAfterburner * dt);
+          this.speed = Math.min(effectiveMaxSpeed, this.speed + p.accelAfterburner * accelMult * dt);
         } else {
           const stallProgress = Math.min(1.0, this.stallTimer / 4.0);
           const targetDispKph = p.stallSpeed - (p.stallSpeed - 100) * stallProgress;
@@ -165,9 +172,9 @@ export class FlightPhysics {
         // Conventional Aerodynamic Stall (Su-27, F-15C, etc.):
         if (this.isAfterburning) {
           // Afterburner thrust pulls the aircraft forward along its nose
-          this.vx += Math.cos(this.heading) * p.accelAfterburner * dt;
-          this.vy += Math.sin(this.heading) * p.accelAfterburner * dt;
-          this.speed = Math.hypot(this.vx, this.vy);
+          this.vx += Math.cos(this.heading) * p.accelAfterburner * accelMult * dt;
+          this.vy += Math.sin(this.heading) * p.accelAfterburner * accelMult * dt;
+          this.speed = Math.min(effectiveMaxSpeed, Math.hypot(this.vx, this.vy));
           this.stallTrajectoryAngle = Math.atan2(this.vy, this.vx);
         } else {
           // Momentum glide / flat spin: smoothly decelerate along entry trajectory
@@ -208,98 +215,114 @@ export class FlightPhysics {
       }
     } else {
       // ========================================================
-      // NORMAL FLIGHT (NOT STALLED)
+      // NORMAL FLIGHT (NOT STALLED OR AOA LIMITER ACTIVE)
       // ========================================================
-      const cosH = Math.cos(this.heading);
-      const sinH = Math.sin(this.heading);
-
-      let vF = this.vx * cosH + this.vy * sinH;
-      let vL = -this.vx * sinH + this.vy * cosH;
-
-      if (vF < 0) vF = 0;
-
-      this.alpha = FlightPhysics.wrapAngle(this.heading - flightPathAngle);
-      this.alphaDeg = Math.abs(this.alpha * 180 / Math.PI);
-
-      // Forward Thrust & Aerodynamic Drag
-      forwardThrustAccel = 0;
-      if (this.isAfterburning) {
-        forwardThrustAccel = p.accelAfterburner;
-      } else if (!this.isAirbraking) {
-        if (this.speed <= p.normalMinSpeed) {
-          forwardThrustAccel = p.accelCruise * 1.5;
-        } else if (this.speed < p.cruiseSpeed) {
-          forwardThrustAccel = 25;
-        } else {
-          forwardThrustAccel = -20;
-        }
-      }
-
-      let dragMagnitude = p.highAlphaDrag || 70;
-      if (this.isAfterburning) {
-        dragMagnitude = p.inducedDragFactor || 12;
-      }
-
-      let compDamping = 1.0;
-      if (this.turnCompression > 0.45) {
-        compDamping = Math.max(0.02, 1.0 - (this.turnCompression - 0.45) / 0.35);
-      }
-
-      const alphaFactor = Math.sin(this.alpha) * Math.sin(this.alpha);
-      inducedDrag = dragMagnitude * alphaFactor * compDamping;
-      vF += (forwardThrustAccel - inducedDrag) * dt;
-
-      if (this.isAirbraking) {
-        const brakeAmount = (p.airbrakeDecel || 75) * dt;
-        const currentV = Math.hypot(vF, vL);
-        if (currentV > minStallPhys) {
-          const newV = Math.max(minStallPhys, currentV - brakeAmount);
-          const brakeRatio = newV / currentV;
-          vF *= brakeRatio;
-          vL *= brakeRatio;
-        }
-      }
-
-      const minFwd = this.isAirbraking ? minStallPhys : p.normalMinSpeed;
-      vF = Math.max(minFwd, Math.min(p.maxSpeed, vF));
-
-      // Lateral Drift & Directional Stability:
-      let gripFactor = 1.0;
-      if (this.displayedKph < 500) {
-        const speedRatio = Math.max(0, Math.min(1.0, (this.displayedKph - 150) / 350));
-        gripFactor = 0.65 + 0.35 * Math.pow(speedRatio, 1.5);
-      }
-
-      const effectiveGrip = (p.grip || 3.0) * gripFactor * (2.0 - (p.driftTolerance || 0.7));
-      const lateralDecay = Math.exp(-effectiveGrip * dt);
-      vL *= lateralDecay;
-
-      // Reconstruct World Velocity
-      this.vx = vF * cosH - vL * sinH;
-      this.vy = vF * sinH + vL * cosH;
-      this.speed = Math.hypot(this.vx, this.vy);
-
-      const absMinSpeed = this.isAirbraking ? minStallPhys : p.normalMinSpeed;
-      if (this.speed < absMinSpeed) {
-        const scale = absMinSpeed / Math.max(0.001, this.speed);
-        this.vx *= scale;
-        this.vy *= scale;
-        this.speed = absMinSpeed;
-      }
-
-      const physKph = this.speed * 3.6;
-      this.displayedKph = this.isAirbraking 
-        ? Math.max(100, Math.round(physKph - 250))
-        : Math.max(300, Math.round(physKph - 250));
-
-      // Check stall entry:
-      if (this.isAirbraking && this.displayedKph <= p.stallSpeed) {
-        this.isStalled = true;
-        this.stallTimer = 0;
-        this.stallTrajectoryAngle = this.speed > 1.0 ? Math.atan2(this.vy, this.vx) : this.heading;
-        this.psmTrajectoryAngle = this.stallTrajectoryAngle;
+      if (isAoAPhase1) {
+        // AoA Limiter Phase 1: Locks direction of flight, nose points freely, bleeds speed quickly
+        const lockedAngle = abilityState.lockedTrajectory !== undefined ? abilityState.lockedTrajectory : flightPathAngle;
+        const bleedRate = 32.0; // Rapid speed bleed
+        this.speed = Math.max(minStallPhys, this.speed - bleedRate * dt);
+        this.vx = Math.cos(lockedAngle) * this.speed;
+        this.vy = Math.sin(lockedAngle) * this.speed;
+        this.alpha = FlightPhysics.wrapAngle(this.heading - lockedAngle);
+        this.alphaDeg = Math.abs(this.alpha * 180 / Math.PI);
+        const physKph = this.speed * 3.6;
+        this.displayedKph = Math.max(100, Math.round(physKph - 250));
       } else {
-        this.stallTimer = Math.max(0, this.stallTimer - dt * 3.0);
+        const cosH = Math.cos(this.heading);
+        const sinH = Math.sin(this.heading);
+
+        let vF = this.vx * cosH + this.vy * sinH;
+        let vL = -this.vx * sinH + this.vy * cosH;
+
+        if (vF < 0) vF = 0;
+
+        this.alpha = FlightPhysics.wrapAngle(this.heading - flightPathAngle);
+        this.alphaDeg = Math.abs(this.alpha * 180 / Math.PI);
+
+        // Forward Thrust & Aerodynamic Drag
+        forwardThrustAccel = 0;
+        if (this.isAfterburning) {
+          forwardThrustAccel = p.accelAfterburner * accelMult;
+        } else if (!this.isAirbraking) {
+          if (this.speed <= p.normalMinSpeed) {
+            forwardThrustAccel = p.accelCruise * 1.5;
+          } else if (this.speed < p.cruiseSpeed) {
+            forwardThrustAccel = 25;
+          } else {
+            forwardThrustAccel = -20;
+          }
+        }
+
+        let dragMagnitude = p.highAlphaDrag || 70;
+        if (this.isAfterburning) {
+          dragMagnitude = p.inducedDragFactor || 12;
+        }
+
+        let compDamping = 1.0;
+        if (this.turnCompression > 0.45) {
+          compDamping = Math.max(0.02, 1.0 - (this.turnCompression - 0.45) / 0.35);
+        }
+
+        const alphaFactor = Math.sin(this.alpha) * Math.sin(this.alpha);
+        inducedDrag = dragMagnitude * alphaFactor * compDamping;
+        vF += (forwardThrustAccel - inducedDrag) * dt;
+
+        if (this.isAirbraking) {
+          const brakeAmount = (p.airbrakeDecel || 75) * dt;
+          const currentV = Math.hypot(vF, vL);
+          if (currentV > minStallPhys) {
+            const newV = Math.max(minStallPhys, currentV - brakeAmount);
+            const brakeRatio = newV / currentV;
+            vF *= brakeRatio;
+            vL *= brakeRatio;
+          }
+        }
+
+        const minFwd = this.isAirbraking ? minStallPhys : p.normalMinSpeed;
+        vF = Math.max(minFwd, Math.min(effectiveMaxSpeed, vF));
+
+        // Lateral Drift & Directional Stability:
+        let gripFactor = 1.0;
+        if (isAoAPhase2) {
+          // AoA Phase 2: High authority grip quickly redirects velocity to where nose is pointed
+          gripFactor = 3.5;
+        } else if (this.displayedKph < 500) {
+          const speedRatio = Math.max(0, Math.min(1.0, (this.displayedKph - 150) / 350));
+          gripFactor = 0.65 + 0.35 * Math.pow(speedRatio, 1.5);
+        }
+
+        const effectiveGrip = (p.grip || 3.0) * gripFactor * (2.0 - (p.driftTolerance || 0.7));
+        const lateralDecay = Math.exp(-effectiveGrip * dt);
+        vL *= lateralDecay;
+
+        // Reconstruct World Velocity
+        this.vx = vF * cosH - vL * sinH;
+        this.vy = vF * sinH + vL * cosH;
+        this.speed = Math.hypot(this.vx, this.vy);
+
+        const absMinSpeed = this.isAirbraking ? minStallPhys : p.normalMinSpeed;
+        if (this.speed < absMinSpeed) {
+          const scale = absMinSpeed / Math.max(0.001, this.speed);
+          this.vx *= scale;
+          this.vy *= scale;
+          this.speed = absMinSpeed;
+        }
+
+        const physKph = this.speed * 3.6;
+        this.displayedKph = this.isAirbraking 
+          ? Math.max(100, Math.round(physKph - 250))
+          : Math.max(300, Math.round(physKph - 250));
+
+        // Check stall entry:
+        if (this.isAirbraking && this.displayedKph <= p.stallSpeed) {
+          this.isStalled = true;
+          this.stallTimer = 0;
+          this.stallTrajectoryAngle = this.speed > 1.0 ? Math.atan2(this.vy, this.vx) : this.heading;
+          this.psmTrajectoryAngle = this.stallTrajectoryAngle;
+        } else {
+          this.stallTimer = Math.max(0, this.stallTimer - dt * 3.0);
+        }
       }
     }
 

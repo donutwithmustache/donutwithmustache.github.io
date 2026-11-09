@@ -5,6 +5,8 @@
 // Layer 3: Dynamics (Objectives, Triggers, Events, Dialogue, Nukes, Explosions)
 // ==========================================
 
+import { getAIPlaneHealth } from './targets.js';
+
 export class MissionManager {
   constructor(game) {
     this.game = game;
@@ -158,13 +160,17 @@ export class MissionManager {
 
         if (allTargets.length > 0) {
           // Initialize fresh targets with active/dormant spawn tracking
-          this.game.targetManager.targets = allTargets.map(t => Object.assign({}, t, {
-            active: (t.active !== undefined ? t.active : (t.spawned !== undefined ? t.spawned : true)),
-            isDestroyed: false,
-            respawnTimer: 0,
-            hp: t.hp || t.maxHp || 100,
-            maxHp: t.maxHp || t.hp || 100
-          }));
+          this.game.targetManager.targets = allTargets.map(t => {
+            const defaultHp = (t.type === 'air' && t.aiType) ? getAIPlaneHealth(t.aiType) : 100;
+            const finalMaxHp = t.maxHp || t.hp || defaultHp;
+            return Object.assign({}, t, {
+              active: (t.active !== undefined ? t.active : (t.spawned !== undefined ? t.spawned : true)),
+              isDestroyed: false,
+              respawnTimer: 0,
+              hp: t.hp || finalMaxHp,
+              maxHp: finalMaxHp
+            });
+          });
         }
       }
     }
@@ -559,11 +565,13 @@ export class MissionManager {
   spawnWave(units) {
     if (!this.game.targetManager || !Array.isArray(units)) return;
     for (const u of units) {
+      const defaultHp = (u.type === 'air' && u.aiType) ? getAIPlaneHealth(u.aiType) : 100;
+      const finalMaxHp = u.maxHp || u.hp || defaultHp;
       const copy = Object.assign({}, u, {
         active: true,
         isDestroyed: false,
-        hp: u.hp || 100,
-        maxHp: u.hp || 100
+        hp: u.hp || finalMaxHp,
+        maxHp: finalMaxHp
       });
       this.game.targetManager.targets.push(copy);
     }

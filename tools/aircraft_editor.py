@@ -43,7 +43,7 @@ STANDARD_TAGS = [
 ]
 
 SPECIAL_WEAPONS_LIST = ["qaam", "saam", "4aam", "hpaa", "ugb", "lasm", "sffs", "mpbm"]
-ABILITIES_LIST = ["highGBreak", "afterburnerSurge", "ecmJammer", "flareRing"]
+ABILITIES_LIST = ["aoaLimiter", "emDispenser", "sensorFusion", "cobraManeuver", "emergencyAfterburner"]
 PLANE_ROLES = ["FIGHTER", "STRIKE", "MULTIROLE", "ECM"]
 
 DEFAULT_PLANE = {
@@ -52,9 +52,12 @@ DEFAULT_PLANE = {
     "shortName": "F-XX",
     "role": "Next-Gen Air Superiority Fighter",
     "planeRole": "FIGHTER",
+    "tier": 0,
+    "partSlots": 3,
+    "cost": 0,
     "sprite": "./assets/planes/f15c.png",
     "tags": ["AIR_SUPERIORITY", "SUPERCRUISE"],
-    "stats": {"spd": 80, "def": 70, "air": 85, "gnd": 50},
+    "stats": {"spd": 80, "def": 70, "air": 85, "gnd": 50, "stealth": 0},
     "weapons": {
         "gunAmmo": 800,
         "maxGunAmmo": 800,
@@ -70,10 +73,10 @@ DEFAULT_PLANE = {
         "specialWeapons": ["qaam", "4aam", "hpaa"],
         "equippedSpecialWeapon": "qaam",
         "spwAmmo": {"qaam": 24, "4aam": 32, "hpaa": 18},
-        "ability": "highGBreak",
-        "abilityCharges": 3,
-        "maxAbilityCharges": 3,
-        "abilityRecharge": 10.0
+        "ability": "emergencyAfterburner",
+        "abilityCharges": 1,
+        "maxAbilityCharges": 1,
+        "abilityRecharge": 45.0
     },
     "physics": {
         "mass": 18000,
@@ -260,19 +263,51 @@ class AircraftEditorApp(tk.Tk):
             ("shortName", "HUD / Radar Callout:", "Su-27"),
             ("role", "Military Designation:", "Air Superiority Fighter"),
             ("planeRole", "Combat Damage Role:", PLANE_ROLES),
+            ("tier", "Aircraft Tier (0-10):", 0),
+            ("partSlots", "Upgrade Part Slots:", 3),
+            ("cost", "Shop Purchase Cost ($):", 150000),
             ("sprite", "Sprite Asset Path:", "./assets/planes/su27.png"),
             ("description", "Description / Lore:", "Text...")
         ]
 
         for i, (k, lbl, default) in enumerate(rows):
-            tk.Label(form_frame, text=lbl, bg="#0b131e", fg="#00ffcc", font=("Consolas", 10, "bold"), anchor="w").grid(row=i, column=0, sticky="w", pady=6)
+            tk.Label(form_frame, text=lbl, bg="#0b131e", fg="#00ffcc", font=("Consolas", 10, "bold"), anchor="w").grid(row=i, column=0, sticky="w", pady=5)
             if k == "planeRole":
                 cb = ttk.Combobox(form_frame, values=default, state="readonly", width=34)
-                cb.grid(row=i, column=1, sticky="w", padx=10, pady=6)
+                cb.grid(row=i, column=1, sticky="w", padx=10, pady=5)
                 self.fields_gen[k] = cb
+            elif k == "tier":
+                tf = tk.Frame(form_frame, bg="#0b131e")
+                tf.grid(row=i, column=1, sticky="w", padx=10, pady=5)
+                sp = tk.Spinbox(tf, from_=0, to=10, width=5, bg="#132030", fg="#00ffcc",
+                                buttonbackground="#183048", font=("Consolas", 10, "bold"),
+                                command=self.update_tier_badge)
+                sp.pack(side="left")
+                sp.bind("<KeyRelease>", lambda e: self.update_tier_badge())
+                self.fields_gen[k] = sp
+                self.lbl_tier_badge = tk.Label(tf, text="Tier 0 // STARTER AIRCRAFT", bg="#0b131e",
+                                               fg="#00e5ff", font=("Consolas", 9, "bold"), padx=8)
+                self.lbl_tier_badge.pack(side="left")
+            elif k == "partSlots":
+                sf = tk.Frame(form_frame, bg="#0b131e")
+                sf.grid(row=i, column=1, sticky="w", padx=10, pady=5)
+                sp = tk.Spinbox(sf, from_=0, to=10, width=5, bg="#132030", fg="#00ffcc",
+                                buttonbackground="#183048", font=("Consolas", 10, "bold"))
+                sp.pack(side="left")
+                self.fields_gen[k] = sp
+                tk.Label(sf, text="(Slots for upgrade pods: Flare Pod, IRST, Tuners)", bg="#0b131e",
+                         fg="#88b0a0", font=("Consolas", 9), padx=8).pack(side="left")
+            elif k == "cost":
+                cf = tk.Frame(form_frame, bg="#0b131e")
+                cf.grid(row=i, column=1, sticky="w", padx=10, pady=5)
+                ent = ttk.Entry(cf, width=16)
+                ent.pack(side="left")
+                self.fields_gen[k] = ent
+                tk.Label(cf, text="Credits (Purchase cost to unlock in Shop / Hangar)", bg="#0b131e",
+                         fg="#88b0a0", font=("Consolas", 9), padx=8).pack(side="left")
             elif k == "sprite":
                 sf = tk.Frame(form_frame, bg="#0b131e")
-                sf.grid(row=i, column=1, sticky="w", padx=10, pady=6)
+                sf.grid(row=i, column=1, sticky="w", padx=10, pady=5)
                 ent = ttk.Entry(sf, width=34)
                 ent.pack(side="left")
                 ent.bind("<KeyRelease>", lambda e: self.update_sprite_preview())
@@ -282,11 +317,11 @@ class AircraftEditorApp(tk.Tk):
                 self.fields_gen[k] = ent
             elif k == "description":
                 txt = tk.Text(form_frame, height=4, width=44, bg="#132030", fg="#ffffff", font=("Consolas", 10), insertbackground="#00ff66")
-                txt.grid(row=i, column=1, sticky="w", padx=10, pady=6)
+                txt.grid(row=i, column=1, sticky="w", padx=10, pady=5)
                 self.fields_gen[k] = txt
             else:
                 ent = ttk.Entry(form_frame, width=38)
-                ent.grid(row=i, column=1, sticky="w", padx=10, pady=6)
+                ent.grid(row=i, column=1, sticky="w", padx=10, pady=5)
                 self.fields_gen[k] = ent
 
         # Right Frame Components: HUD Canvas + Metadata
@@ -307,6 +342,30 @@ class AircraftEditorApp(tk.Tk):
                   command=self.open_sprites_folder).pack(side="left", expand=True, fill="x", padx=2)
         tk.Button(btn_box, text="Reload Sprite", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"),
                   command=lambda: self.update_sprite_preview()).pack(side="left", expand=True, fill="x", padx=2)
+
+    def update_tier_badge(self, val=None):
+        if not hasattr(self, "lbl_tier_badge") or not hasattr(self, "fields_gen") or "tier" not in self.fields_gen:
+            return
+        if val is None:
+            try:
+                val = int(self.fields_gen["tier"].get() or 0)
+            except Exception:
+                val = 0
+        val = max(0, min(10, val))
+        tier_names = {
+            0: "Tier 0 // STARTER AIRCRAFT",
+            1: "Tier 1 // EARLY COMBAT / LIGHT",
+            2: "Tier 2 // TACTICAL / INTERDICTOR",
+            3: "Tier 3 // EARLY 4TH-GEN FIGHTER",
+            4: "Tier 4 // MAINLINE 4TH-GEN SUPERIORITY",
+            5: "Tier 5 // ADVANCED 4TH-GEN + COBRA",
+            6: "Tier 6 // 4.5-GEN HEAVY COMBAT",
+            7: "Tier 7 // ADVANCED 4.5+ GEN MULTIROLE",
+            8: "Tier 8 // 5TH-GEN STEALTH FIGHTER",
+            9: "Tier 9 // ADVANCED 5TH-GEN APEX",
+            10: "Tier 10 // TOP TIER // EXPERIMENTAL DOMINANCE"
+        }
+        self.lbl_tier_badge.config(text=tier_names.get(val, f"Tier {val}"))
 
     def draw_hud_grid(self, canvas, w, h, center_color="#004422", line_color="#002214"):
         canvas.delete("all")
@@ -496,6 +555,45 @@ class AircraftEditorApp(tk.Tk):
             val_lbl = tk.Label(row, textvariable=var, bg="#0b131e", fg="#00ffcc", font=("Consolas", 10, "bold"), width=4)
             val_lbl.pack(side="left")
 
+        # Stealth Signature Rating (0 - 4)
+        box_stealth = tk.LabelFrame(frame, text=" Radar Stealth Signature & Cross-Section (0 - 4) ", bg="#101c2b", fg="#00e5ff", font=("Consolas", 10, "bold"), padx=12, pady=10)
+        box_stealth.pack(fill="x", pady=(18, 5))
+
+        s_row = tk.Frame(box_stealth, bg="#101c2b")
+        s_row.pack(fill="x", pady=4)
+        tk.Label(s_row, text="Stealth Stat (0 - 4):", bg="#101c2b", fg="#c0f0d0", font=("Consolas", 10, "bold"), width=34, anchor="w").pack(side="left")
+
+        var_stealth = tk.IntVar(value=0)
+        self.stat_vars["stealth"] = var_stealth
+
+        self.lbl_stealth_desc = tk.Label(box_stealth, text="", bg="#101c2b", fg="#00ffcc", font=("Consolas", 9), justify="left", wraplength=700)
+
+        def on_stealth_change(*args):
+            try:
+                val = var_stealth.get()
+            except Exception:
+                val = 0
+            descs = {
+                0: "LEVEL 0 [STANDARD]: Full radar cross-section. Always appears on the minimap radar anywhere on map.",
+                1: "LEVEL 1 [LOW STEALTH]: Reduced radar cross-section. Only appears on radar minimap within 1/4th of the map distance.",
+                2: "LEVEL 2 [MEDIUM STEALTH]: Moderate stealth shaping. Only appears on radar minimap within 1/8th of the map distance.",
+                3: "LEVEL 3 [HIGH STEALTH]: Advanced stealth. Only appears on radar minimap within visual distance (on screen). Slightly reduced lock-on range (must be on screen to lock, lock lost if off-screen).",
+                4: "LEVEL 4 [RADAR GHOST]: Ultimate stealth. NEVER appears on the radar minimap. Lockable in visual range with slightly reduced lock-on range (must be on screen to lock, lock lost if off-screen)."
+            }
+            self.lbl_stealth_desc.config(text=descs.get(val, ""))
+
+        var_stealth.trace_add("write", on_stealth_change)
+
+        scale_stealth = tk.Scale(s_row, from_=0, to_=4, resolution=1, orient="horizontal", variable=var_stealth,
+                                 bg="#142234", fg="#00e5ff", highlightbackground="#101c2b", length=280)
+        scale_stealth.pack(side="left", padx=10)
+
+        val_stl_lbl = tk.Label(s_row, textvariable=var_stealth, bg="#101c2b", fg="#00e5ff", font=("Consolas", 10, "bold"), width=4)
+        val_stl_lbl.pack(side="left")
+
+        self.lbl_stealth_desc.pack(anchor="w", pady=(8, 2))
+        on_stealth_change()
+
     # ----------------------------------------------------
     # TAB 4: WEAPONS & ABILITY
     # ----------------------------------------------------
@@ -576,6 +674,30 @@ class AircraftEditorApp(tk.Tk):
         tk.Label(sec4, text="Recharge (s):", bg="#101c2b", fg="#c0e0d0", font=("Consolas", 9)).grid(row=0, column=4, sticky="w")
         self.ability_recharge = ttk.Entry(sec4, width=8)
         self.ability_recharge.grid(row=0, column=5, sticky="w", padx=6)
+
+        self.lbl_ability_desc = tk.Label(sec4, text="", bg="#101c2b", fg="#00e5ff", font=("Consolas", 8), wraplength=700, justify="left")
+        self.lbl_ability_desc.grid(row=1, column=0, columnspan=6, sticky="w", pady=(4, 2))
+
+        def on_ability_changed(event=None):
+            a_id = self.ability_cb.get()
+            info = {
+                "aoaLimiter": ("Bypasses angle-of-attack limits below 400 kph, locking flight trajectory for up to 1.5s while allowing nose to point anywhere, followed by 1s mouse pointing. Cancels below 130 kph. 5s cooldown starts after ability ends.", 1, 5.0),
+                "emDispenser": ("Rapid-fires an intense continuous string of flares behind the plane for 2 seconds. Flares linger in the air 1 second longer. 35s cooldown starts after ability ends.", 1, 35.0),
+                "sensorFusion": ("Integrates radar and optical sensor arrays, making planes with stealth 1, 2, and 3 visible from 150% further distance for 5 seconds. 20s cooldown starts after ability ends.", 1, 20.0),
+                "cobraManeuver": ("Pitches airframe vertically into a Pugachev Cobra, rapidly shedding speed to just above stall speed while generating thick wing vapor. 25s cooldown starts after ability ends.", 1, 25.0),
+                "emergencyAfterburner": ("Injects emergency stage fuel boosting acceleration to 160% and top speed to 110% for 4 seconds before returning to normal. 45s cooldown starts after ability ends.", 1, 45.0)
+            }
+            if a_id in info:
+                desc, chg, cd = info[a_id]
+                self.lbl_ability_desc.config(text=desc)
+                if event:
+                    self.ability_charges.delete(0, tk.END)
+                    self.ability_charges.insert(0, str(chg))
+                    self.ability_recharge.delete(0, tk.END)
+                    self.ability_recharge.insert(0, str(cd))
+
+        self.ability_cb.bind("<<ComboboxSelected>>", on_ability_changed)
+        self.on_ability_changed_fn = on_ability_changed
 
     # ----------------------------------------------------
     # TAB 5: FLIGHT PHYSICS
@@ -675,7 +797,8 @@ class AircraftEditorApp(tk.Tk):
         for p_id, p_data in self.aircraft_cache.items():
             name = p_data.get("name", p_id)
             role = p_data.get("planeRole", "FIGHTER")
-            self.listbox.insert(tk.END, f"{p_id.ljust(8)} | {name} [{role}]")
+            tier = p_data.get("tier", 0)
+            self.listbox.insert(tk.END, f"[T{tier}] {p_id.ljust(8)} | {name} [{role}]")
 
         if self.aircraft_cache:
             self.listbox.selection_set(0)
@@ -703,6 +826,23 @@ class AircraftEditorApp(tk.Tk):
             ent.insert(0, str(data.get(k, "")))
 
         self.fields_gen["planeRole"].set(data.get("planeRole", "FIGHTER"))
+
+        tier_val = data.get("tier", 0)
+        if "tier" in self.fields_gen:
+            self.fields_gen["tier"].delete(0, tk.END)
+            self.fields_gen["tier"].insert(0, str(tier_val))
+            self.update_tier_badge(tier_val)
+
+        if "partSlots" in self.fields_gen:
+            slots_val = data.get("partSlots", 3)
+            self.fields_gen["partSlots"].delete(0, tk.END)
+            self.fields_gen["partSlots"].insert(0, str(slots_val))
+
+        if "cost" in self.fields_gen:
+            cost_val = data.get("cost", 0)
+            self.fields_gen["cost"].delete(0, tk.END)
+            self.fields_gen["cost"].insert(0, str(cost_val))
+
         self.fields_gen["description"].delete("1.0", tk.END)
         self.fields_gen["description"].insert("1.0", data.get("description", ""))
         self.update_sprite_preview(str(data.get("sprite", "")))
@@ -721,7 +861,7 @@ class AircraftEditorApp(tk.Tk):
         # Tab 3: Stats
         stats = data.get("stats", {})
         for k, var in self.stat_vars.items():
-            var.set(stats.get(k, 75))
+            var.set(stats.get(k, 0 if k == "stealth" else 75))
 
         # Tab 4: Weapons
         weps = data.get("weapons", {})
@@ -750,11 +890,13 @@ class AircraftEditorApp(tk.Tk):
         self.spw3_ammo.delete(0, tk.END)
         self.spw3_ammo.insert(0, str(sp_ammo.get(s3, 40)))
 
-        self.ability_cb.set(weps.get("ability", "highGBreak"))
+        self.ability_cb.set(weps.get("ability", "emergencyAfterburner"))
         self.ability_charges.delete(0, tk.END)
-        self.ability_charges.insert(0, str(weps.get("abilityCharges", 3)))
+        self.ability_charges.insert(0, str(weps.get("abilityCharges", 1)))
         self.ability_recharge.delete(0, tk.END)
-        self.ability_recharge.insert(0, str(weps.get("abilityRecharge", 10.0)))
+        self.ability_recharge.insert(0, str(weps.get("abilityRecharge", 45.0)))
+        if hasattr(self, "on_ability_changed_fn"):
+            self.on_ability_changed_fn()
 
         # Tab 5: Physics
         phys = data.get("physics", {})
@@ -774,7 +916,7 @@ class AircraftEditorApp(tk.Tk):
         new_plane["id"] = new_id
         new_plane["name"] = f"F/A-{len(self.aircraft_cache) + 1} Phoenix"
         self.aircraft_cache[new_id] = new_plane
-        self.listbox.insert(tk.END, f"{new_id.ljust(8)} | {new_plane['name']} [FIGHTER]")
+        self.listbox.insert(tk.END, f"[T{new_plane.get('tier', 0)}] {new_id.ljust(8)} | {new_plane['name']} [FIGHTER]")
         self.listbox.selection_clear(0, tk.END)
         self.listbox.selection_set(tk.END)
         self.display_aircraft(new_id)
@@ -788,7 +930,7 @@ class AircraftEditorApp(tk.Tk):
         cloned["id"] = new_id
         cloned["name"] = f"{src.get('name', 'Plane')} (Copy)"
         self.aircraft_cache[new_id] = cloned
-        self.listbox.insert(tk.END, f"{new_id.ljust(8)} | {cloned['name']} [{cloned.get('planeRole','FIGHTER')}]")
+        self.listbox.insert(tk.END, f"[T{cloned.get('tier', 0)}] {new_id.ljust(8)} | {cloned['name']} [{cloned.get('planeRole','FIGHTER')}]")
         self.listbox.selection_clear(0, tk.END)
         self.listbox.selection_set(tk.END)
         self.display_aircraft(new_id)
@@ -895,12 +1037,30 @@ class AircraftEditorApp(tk.Tk):
             "engineOffset": -46
         }
 
+        try:
+            tier_val = max(0, min(10, int(self.fields_gen["tier"].get() or 0)))
+        except Exception:
+            tier_val = 0
+
+        try:
+            slots_val = max(0, int(self.fields_gen["partSlots"].get() or 0))
+        except Exception:
+            slots_val = 0
+
+        try:
+            cost_val = max(0, int(self.fields_gen["cost"].get() or 0))
+        except Exception:
+            cost_val = 0
+
         data = {
             "id": p_id,
             "name": self.fields_gen["name"].get().strip(),
             "shortName": self.fields_gen["shortName"].get().strip(),
             "role": self.fields_gen["role"].get().strip(),
             "planeRole": self.fields_gen["planeRole"].get().strip(),
+            "tier": tier_val,
+            "partSlots": slots_val,
+            "cost": cost_val,
             "sprite": self.fields_gen["sprite"].get().strip(),
             "tags": tags,
             "stats": stats,

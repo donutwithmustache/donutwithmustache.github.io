@@ -4,6 +4,9 @@
   "shortName": "F-111F",
   "role": "Heavy Strike Bomber / Interdictor",
   "planeRole": "STRIKE",
+  "tier": 2,
+  "partSlots": 2,
+  "cost": 75000,
   "sprite": "./assets/planes/f111f.png",
   "tags": [
     "STRIKE",
@@ -15,7 +18,8 @@
     "spd": 45,
     "def": 90,
     "air": 35,
-    "gnd": 98
+    "gnd": 98,
+    "stealth": 0
   },
   "weapons": {
     "gunAmmo": 1200,
@@ -40,10 +44,10 @@
       "lasm": 24,
       "sffs": 32
     },
-    "ability": "ecmJammer",
-    "abilityCharges": 2,
-    "maxAbilityCharges": 2,
-    "abilityRecharge": 12.0
+    "ability": "emDispenser",
+    "abilityCharges": 1,
+    "maxAbilityCharges": 1,
+    "abilityRecharge": 35.0
   },
   "physics": {
     "mass": 38500,

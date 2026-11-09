@@ -4,6 +4,9 @@
   "shortName": "Su-27",
   "role": "Air Superiority Fighter",
   "planeRole": "FIGHTER",
+  "tier": 5,
+  "partSlots": 4,
+  "cost": 220000,
   "sprite": "./assets/planes/su27.png",
   "tags": [
     "AIR_SUPERIORITY",
@@ -15,7 +18,8 @@
     "spd": 92,
     "def": 65,
     "air": 95,
-    "gnd": 50
+    "gnd": 50,
+    "stealth": 0
   },
   "weapons": {
     "gunAmmo": 600,
@@ -40,10 +44,10 @@
       "4aam": 32,
       "hpaa": 18
     },
-    "ability": "highGBreak",
-    "abilityCharges": 3,
-    "maxAbilityCharges": 3,
-    "abilityRecharge": 10.0
+    "ability": "cobraManeuver",
+    "abilityCharges": 1,
+    "maxAbilityCharges": 1,
+    "abilityRecharge": 25.0
   },
   "physics": {
     "mass": 16500,

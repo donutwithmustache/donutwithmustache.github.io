@@ -10,8 +10,10 @@ import sys
 import json
 import re
 import glob
+import subprocess
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
+from PIL import Image, ImageTk, ImageDraw
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data", "aircraft")
@@ -115,6 +117,8 @@ class AircraftEditorApp(tk.Tk):
         self.aircraft_cache = {}
         self.current_id = None
         self.tag_vars = {}
+        self.sprite_photo_main = None
+        self.sprite_photo_sidebar = None
 
         self.setup_styles()
         self.build_ui()
@@ -192,6 +196,18 @@ class AircraftEditorApp(tk.Tk):
                             command=self.delete_aircraft)
         btn_del.pack(side="left", expand=True, fill="x", padx=2)
 
+        # Sidebar Sprite Preview
+        side_preview_frame = tk.Frame(sidebar, bg="#101c2b", bd=1, relief="ridge", padx=6, pady=6)
+        side_preview_frame.pack(fill="x", padx=8, pady=(4, 8))
+        tk.Label(side_preview_frame, text="// SPRITE PREVIEW", bg="#101c2b", fg="#00ffcc",
+                 font=("Consolas", 8, "bold")).pack(anchor="w")
+        self.sidebar_sprite_canvas = tk.Canvas(side_preview_frame, width=220, height=125, bg="#071018",
+                                               highlightthickness=1, highlightbackground="#1b3044")
+        self.sidebar_sprite_canvas.pack(fill="x", pady=4)
+        self.sidebar_sprite_label = tk.Label(side_preview_frame, text="No sprite", bg="#101c2b", fg="#88c0a0",
+                                             font=("Consolas", 8))
+        self.sidebar_sprite_label.pack(anchor="w")
+
         # ------------------ RIGHT NOTEBOOK ------------------
         right_panel = tk.Frame(main_pane, bg="#0b131e")
         main_pane.add(right_panel, minsize=680)
@@ -226,8 +242,16 @@ class AircraftEditorApp(tk.Tk):
     # TAB 1: GENERAL & VISUALS
     # ----------------------------------------------------
     def build_tab_general(self):
-        frame = tk.Frame(self.tab_general, bg="#0b131e", padx=20, pady=20)
-        frame.pack(fill="both", expand=True)
+        container = tk.Frame(self.tab_general, bg="#0b131e", padx=16, pady=16)
+        container.pack(fill="both", expand=True)
+
+        # Left Column: Form Fields
+        form_frame = tk.Frame(container, bg="#0b131e")
+        form_frame.pack(side="left", fill="both", expand=True, padx=(0, 16))
+
+        # Right Column: Visual Sprite Schematic Viewer
+        preview_frame = tk.Frame(container, bg="#101c2b", bd=1, relief="ridge", padx=14, pady=14)
+        preview_frame.pack(side="right", fill="both", expand=False)
 
         self.fields_gen = {}
         rows = [
@@ -241,28 +265,161 @@ class AircraftEditorApp(tk.Tk):
         ]
 
         for i, (k, lbl, default) in enumerate(rows):
-            tk.Label(frame, text=lbl, bg="#0b131e", fg="#00ffcc", font=("Consolas", 10, "bold"), anchor="w").grid(row=i, column=0, sticky="w", pady=6)
+            tk.Label(form_frame, text=lbl, bg="#0b131e", fg="#00ffcc", font=("Consolas", 10, "bold"), anchor="w").grid(row=i, column=0, sticky="w", pady=6)
             if k == "planeRole":
-                cb = ttk.Combobox(frame, values=default, state="readonly", width=35)
+                cb = ttk.Combobox(form_frame, values=default, state="readonly", width=34)
                 cb.grid(row=i, column=1, sticky="w", padx=10, pady=6)
                 self.fields_gen[k] = cb
             elif k == "sprite":
-                sf = tk.Frame(frame, bg="#0b131e")
+                sf = tk.Frame(form_frame, bg="#0b131e")
                 sf.grid(row=i, column=1, sticky="w", padx=10, pady=6)
-                ent = ttk.Entry(sf, width=38)
+                ent = ttk.Entry(sf, width=34)
                 ent.pack(side="left")
+                ent.bind("<KeyRelease>", lambda e: self.update_sprite_preview())
                 btn_browse = tk.Button(sf, text="Browse...", bg="#1a2e44", fg="#00ffcc", font=("Consolas", 9),
                                        command=self.browse_sprite)
                 btn_browse.pack(side="left", padx=6)
                 self.fields_gen[k] = ent
             elif k == "description":
-                txt = tk.Text(frame, height=4, width=50, bg="#132030", fg="#ffffff", font=("Consolas", 10), insertbackground="#00ff66")
+                txt = tk.Text(form_frame, height=4, width=44, bg="#132030", fg="#ffffff", font=("Consolas", 10), insertbackground="#00ff66")
                 txt.grid(row=i, column=1, sticky="w", padx=10, pady=6)
                 self.fields_gen[k] = txt
             else:
-                ent = ttk.Entry(frame, width=42)
+                ent = ttk.Entry(form_frame, width=38)
                 ent.grid(row=i, column=1, sticky="w", padx=10, pady=6)
                 self.fields_gen[k] = ent
+
+        # Right Frame Components: HUD Canvas + Metadata
+        tk.Label(preview_frame, text="// AIRCRAFT SPRITE SCHEMATIC", bg="#101c2b", fg="#00ffcc",
+                 font=("Consolas", 11, "bold")).pack(anchor="w", pady=(0, 6))
+
+        self.sprite_canvas = tk.Canvas(preview_frame, width=320, height=320, bg="#071018",
+                                       highlightthickness=1, highlightbackground="#00ff66")
+        self.sprite_canvas.pack(pady=4)
+
+        self.lbl_sprite_info = tk.Label(preview_frame, text="Sprite: None", bg="#101c2b", fg="#88e0c0",
+                                        font=("Consolas", 9), justify="left", anchor="w")
+        self.lbl_sprite_info.pack(fill="x", pady=6)
+
+        btn_box = tk.Frame(preview_frame, bg="#101c2b")
+        btn_box.pack(fill="x", pady=2)
+        tk.Button(btn_box, text="Open Assets Folder", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"),
+                  command=self.open_sprites_folder).pack(side="left", expand=True, fill="x", padx=2)
+        tk.Button(btn_box, text="Reload Sprite", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"),
+                  command=lambda: self.update_sprite_preview()).pack(side="left", expand=True, fill="x", padx=2)
+
+    def draw_hud_grid(self, canvas, w, h, center_color="#004422", line_color="#002214"):
+        canvas.delete("all")
+        cx, cy = w // 2, h // 2
+        for r in [w * 0.20, w * 0.35, w * 0.46]:
+            canvas.create_oval(cx - r, cy - r, cx + r, cy + r, outline=line_color, width=1, dash=(3, 3))
+        canvas.create_line(0, cy, w, cy, fill=center_color, width=1)
+        canvas.create_line(cx, 0, cx, h, fill=center_color, width=1)
+        # Corner brackets
+        b = 10
+        canvas.create_line(4, 4, 4 + b, 4, fill="#00aa55")
+        canvas.create_line(4, 4, 4, 4 + b, fill="#00aa55")
+        canvas.create_line(w - 4, 4, w - 4 - b, 4, fill="#00aa55")
+        canvas.create_line(w - 4, 4, w - 4, 4 + b, fill="#00aa55")
+        canvas.create_line(4, h - 4, 4 + b, h - 4, fill="#00aa55")
+        canvas.create_line(4, h - 4, 4, h - 4 - b, fill="#00aa55")
+        canvas.create_line(w - 4, h - 4, w - 4 - b, h - 4, fill="#00aa55")
+        canvas.create_line(w - 4, h - 4, w - 4, h - 4 - b, fill="#00aa55")
+
+    def update_sprite_preview(self, path=None):
+        if path is None:
+            if hasattr(self, "fields_gen") and "sprite" in self.fields_gen:
+                path = self.fields_gen["sprite"].get().strip()
+            else:
+                path = ""
+
+        clean_path = str(path).strip().replace("\\", "/")
+        if not clean_path:
+            if hasattr(self, "sprite_canvas"):
+                self.draw_hud_grid(self.sprite_canvas, 320, 320)
+                self.sprite_canvas.create_text(160, 160, text="NO SPRITE ASSIGNED", fill="#668877", font=("Consolas", 10, "bold"))
+            if hasattr(self, "sidebar_sprite_canvas"):
+                self.draw_hud_grid(self.sidebar_sprite_canvas, 220, 125)
+                self.sidebar_sprite_canvas.create_text(110, 62, text="NO SPRITE", fill="#557766", font=("Consolas", 8))
+                self.sidebar_sprite_label.config(text="No sprite assigned", fg="#88c0a0")
+            if hasattr(self, "lbl_sprite_info"):
+                self.lbl_sprite_info.config(text="No sprite asset specified.", fg="#88c0a0")
+            return
+
+        candidates = [
+            clean_path,
+            os.path.join(BASE_DIR, clean_path.lstrip("./\\")),
+            os.path.join(PLANES_DIR, os.path.basename(clean_path)),
+            os.path.join(BASE_DIR, "assets", "planes", os.path.basename(clean_path))
+        ]
+        found_path = None
+        for c in candidates:
+            if os.path.isfile(c):
+                found_path = os.path.abspath(c)
+                break
+
+        if not found_path:
+            if hasattr(self, "sprite_canvas"):
+                self.draw_hud_grid(self.sprite_canvas, 320, 320)
+                self.sprite_canvas.create_text(160, 140, text="[ SPRITE NOT FOUND ]", fill="#ff6644", font=("Consolas", 10, "bold"))
+                self.sprite_canvas.create_text(160, 175, text=os.path.basename(clean_path), fill="#ffaa88", font=("Consolas", 9))
+            if hasattr(self, "sidebar_sprite_canvas"):
+                self.draw_hud_grid(self.sidebar_sprite_canvas, 220, 125)
+                self.sidebar_sprite_canvas.create_text(110, 62, text="NOT FOUND", fill="#ff6644", font=("Consolas", 8, "bold"))
+                self.sidebar_sprite_label.config(text="File missing on disk", fg="#ff7777")
+            if hasattr(self, "lbl_sprite_info"):
+                self.lbl_sprite_info.config(text=f"Asset Missing:\n{clean_path}", fg="#ff7777")
+            return
+
+        try:
+            pil_img = Image.open(found_path).convert("RGBA")
+            orig_w, orig_h = pil_img.size
+
+            # Main preview: max 290x290
+            main_max_w, main_max_h = 290, 290
+            scale_main = min(main_max_w / orig_w, main_max_h / orig_h, 1.0)
+            target_main_w = max(1, int(orig_w * scale_main))
+            target_main_h = max(1, int(orig_h * scale_main))
+            resized_main = pil_img.resize((target_main_w, target_main_h), Image.Resampling.LANCZOS)
+            self.sprite_photo_main = ImageTk.PhotoImage(resized_main)
+
+            if hasattr(self, "sprite_canvas"):
+                self.draw_hud_grid(self.sprite_canvas, 320, 320)
+                self.sprite_canvas.create_image(160, 160, image=self.sprite_photo_main, anchor="center")
+                self.sprite_canvas.create_text(8, 312, text=f"{orig_w}x{orig_h}px", fill="#00ff66", anchor="sw", font=("Consolas", 8))
+
+            # Sidebar thumbnail: max 190x105
+            side_max_w, side_max_h = 190, 105
+            scale_side = min(side_max_w / orig_w, side_max_h / orig_h, 1.0)
+            target_side_w = max(1, int(orig_w * scale_side))
+            target_side_h = max(1, int(orig_h * scale_side))
+            resized_side = pil_img.resize((target_side_w, target_side_h), Image.Resampling.LANCZOS)
+            self.sprite_photo_sidebar = ImageTk.PhotoImage(resized_side)
+
+            if hasattr(self, "sidebar_sprite_canvas"):
+                self.draw_hud_grid(self.sidebar_sprite_canvas, 220, 125)
+                self.sidebar_sprite_canvas.create_image(110, 62, image=self.sprite_photo_sidebar, anchor="center")
+                self.sidebar_sprite_label.config(text=f"{os.path.basename(found_path)} ({orig_w}x{orig_h})", fg="#88c0a0")
+
+            if hasattr(self, "lbl_sprite_info"):
+                rel_display = os.path.relpath(found_path, BASE_DIR).replace("\\", "/")
+                self.lbl_sprite_info.config(
+                    text=f"Asset: ./{rel_display}\nResolution: {orig_w} x {orig_h} px | RGBA\nStatus: Online & Ready",
+                    fg="#88e0c0"
+                )
+        except Exception as e:
+            print("Error rendering sprite:", e)
+
+    def open_sprites_folder(self):
+        try:
+            if sys.platform == "win32":
+                os.startfile(PLANES_DIR)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", PLANES_DIR])
+            else:
+                subprocess.Popen(["xdg-open", PLANES_DIR])
+        except Exception:
+            messagebox.showinfo("Planes Directory", f"Planes directory path:\n{PLANES_DIR}")
 
     def browse_sprite(self):
         f = filedialog.askopenfilename(initialdir=PLANES_DIR, filetypes=[("PNG Images", "*.png"), ("All Files", "*.*")])
@@ -272,6 +429,7 @@ class AircraftEditorApp(tk.Tk):
                 rel = "./" + rel
             self.fields_gen["sprite"].delete(0, tk.END)
             self.fields_gen["sprite"].insert(0, rel)
+            self.update_sprite_preview(rel)
 
     # ----------------------------------------------------
     # TAB 2: TAGS SYSTEM
@@ -547,6 +705,7 @@ class AircraftEditorApp(tk.Tk):
         self.fields_gen["planeRole"].set(data.get("planeRole", "FIGHTER"))
         self.fields_gen["description"].delete("1.0", tk.END)
         self.fields_gen["description"].insert("1.0", data.get("description", ""))
+        self.update_sprite_preview(str(data.get("sprite", "")))
 
         # Tab 2: Tags
         plane_tags = [t.upper() for t in data.get("tags", [])]

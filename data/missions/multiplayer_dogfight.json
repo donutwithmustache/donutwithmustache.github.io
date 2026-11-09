@@ -1,0 +1,199 @@
+{
+  "missionType": "multiplayer",
+  "playerCount": 4,
+  "loadout": {
+    "mode": "player"
+  },
+  "map": {
+    "id": "multiplayer_dogfight",
+    "name": "Theater 1: Tactical Air Superiority (4P)",
+    "size": 32000,
+    "halfMapSize": 16000,
+    "returnLine": {
+      "enabled": true,
+      "side": "bottom",
+      "offset": 0.08
+    },
+    "oceanTheme": {
+      "gradTop": "#050e18",
+      "gradMid": "#061524",
+      "gradBottom": "#04101a"
+    },
+    "terrain": [
+      {
+        "id": "central_atoll",
+        "type": "island",
+        "x": 0,
+        "y": 0,
+        "radius": 1200,
+        "color": "#1a382d",
+        "sandColor": "#45594b"
+      }
+    ],
+    "weather": {
+      "cloudDensity": 1.0,
+      "waveCount": 1500,
+      "windHeading": -0.45,
+      "windSpeed": 12
+    },
+    "areas": [
+      {
+        "id": "area_combat_hub",
+        "name": "Central Dogfight Arena",
+        "x": 0,
+        "y": 0,
+        "radius": 4500,
+        "color": "#00e5ff"
+      }
+    ]
+  },
+  "units": {
+    "playerSpawns": [
+      {
+        "id": "spawn_p1",
+        "team": "friendly",
+        "x": 0.0,
+        "y": 5000.0,
+        "heading": -1.57,
+        "speed": 340,
+        "altitude": 1.0,
+        "isPrimary": true,
+        "allowedTags": []
+      },
+      {
+        "id": "spawn_p2",
+        "team": "friendly",
+        "x": 200.0,
+        "y": 5060.0,
+        "heading": -1.57,
+        "speed": 340,
+        "altitude": 1.0,
+        "isPrimary": false,
+        "allowedTags": []
+      },
+      {
+        "id": "spawn_p3",
+        "team": "friendly",
+        "x": -200.0,
+        "y": 5060.0,
+        "heading": -1.57,
+        "speed": 340,
+        "altitude": 1.0,
+        "isPrimary": false,
+        "allowedTags": []
+      },
+      {
+        "id": "spawn_p4",
+        "team": "friendly",
+        "x": 400.0,
+        "y": 5120.0,
+        "heading": -1.57,
+        "speed": 340,
+        "altitude": 1.0,
+        "isPrimary": false,
+        "allowedTags": []
+      }
+    ],
+    "airUnits": [
+      {
+        "id": "bogie_lead",
+        "name": "Su-27 Aggressor [TGT]",
+        "team": "enemy",
+        "x": 0,
+        "y": -5000,
+        "heading": 1.57,
+        "speed": 320,
+        "aiType": "ace",
+        "hp": 100,
+        "active": true,
+        "orders": {
+          "type": "DEFEND_AREA",
+          "areaId": "area_combat_hub"
+        }
+      },
+      {
+        "id": "bogie_wing1",
+        "name": "Su-27 Wingman A",
+        "team": "enemy",
+        "x": 300,
+        "y": -5100,
+        "heading": 1.57,
+        "speed": 320,
+        "aiType": "veteran",
+        "hp": 100,
+        "active": true,
+        "orders": {
+          "type": "DEFEND_AREA",
+          "areaId": "area_combat_hub"
+        }
+      },
+      {
+        "id": "bogie_wing2",
+        "name": "Su-27 Wingman B",
+        "team": "enemy",
+        "x": -300,
+        "y": -5100,
+        "heading": 1.57,
+        "speed": 320,
+        "aiType": "veteran",
+        "hp": 100,
+        "active": true,
+        "orders": {
+          "type": "DEFEND_AREA",
+          "areaId": "area_combat_hub"
+        }
+      }
+    ],
+    "navalUnits": [],
+    "groundUnits": []
+  },
+  "dynamics": {
+    "meta": {
+      "id": "multiplayer_dogfight",
+      "title": "THEATER 1: AIR SUPERIORITY",
+      "codename": "SWARM-ENGAGE",
+      "briefing": "Hostile 4-ship flight detected in sector. Coordinated squadron engagement authorized."
+    },
+    "objectives": [
+      {
+        "id": "obj_primary_domination",
+        "title": "Establish Air Superiority",
+        "description": "Engage and neutralize hostile interceptors.",
+        "type": "DESTROY_TARGETS",
+        "requiredCount": 3,
+        "isPrimary": true
+      }
+    ],
+    "winConditions": {
+      "allPrimaryComplete": true,
+      "requiredKills": 3
+    },
+    "loseConditions": {
+      "playerDestroyed": true,
+      "timeLimit": 600
+    },
+    "areas": [
+      {
+        "id": "area_combat_hub",
+        "name": "Central Dogfight Arena",
+        "x": 0,
+        "y": 0,
+        "radius": 4500,
+        "color": "#00e5ff"
+      }
+    ],
+    "triggers": [
+      {
+        "id": "trig_mp_start",
+        "name": "Combat Net Uplink",
+        "event": "ON_START",
+        "actions": [
+          {
+            "type": "RADIO_MESSAGE",
+            "text": "AWACS // MULTIPLAYER SORTIE ACTIVE. ALL PILOTS ENGAGE DESIGNATED TARGETS."
+          }
+        ]
+      }
+    ]
+  }
+}

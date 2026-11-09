@@ -995,8 +995,8 @@ export class TargetManager {
           });
         }
       } else if (tgt.type === 'ground') {
-        // Ground unit scripted movement & pathing (mobile SAMs, convoys, advancing armor)
-        if (tgt.orders && (tgt.orders.type === 'MOVE_TO_POINT' || tgt.orders.type === 'ADVANCE_AND_ATTACK')) {
+        // Ground unit scripted movement & pathing (mobile SAMs, convoys, advancing armor, area orders)
+        if (tgt.orders && (tgt.orders.type === 'MOVE_TO_POINT' || tgt.orders.type === 'ADVANCE_AND_ATTACK' || tgt.orders.type === 'FLY_TO_AREA' || tgt.orders.type === 'MOVE_TO_AREA' || tgt.orders.type === 'STAY_IN_AREA' || tgt.orders.type === 'DEFEND_AREA')) {
           const tx = tgt.orders.targetX !== undefined ? tgt.orders.targetX : tgt.x;
           const ty = tgt.orders.targetY !== undefined ? tgt.orders.targetY : tgt.y;
           const dx = tx - tgt.x;
@@ -1063,6 +1063,96 @@ export class TargetManager {
 
     // Scan for incoming player guided missiles
     const threat = this.detectIncomingThreats(tgt, particles);
+
+    // Tactical Area-based AI Orders: FLY_TO_AREA, STAY_IN_AREA, DEFEND_AREA
+    if (tgt.orders) {
+      if (tgt.orders.type === 'FLY_TO_AREA') {
+        const tx = tgt.orders.targetX !== undefined ? tgt.orders.targetX : tgt.x;
+        const ty = tgt.orders.targetY !== undefined ? tgt.orders.targetY : tgt.y;
+        const trad = tgt.orders.targetRadius || 2000;
+        const dx = tx - tgt.x;
+        const dy = ty - tgt.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist <= trad * 0.75) {
+          // Reached destination area, transition to stay/orbit
+          tgt.orders.type = 'STAY_IN_AREA';
+        } else {
+          const targetAngle = Math.atan2(dy, dx);
+          let diff = targetAngle - tgt.heading;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          const turnSpd = tgt.turnRate || 2.0;
+          tgt.heading += Math.sign(diff) * Math.min(Math.abs(diff), turnSpd * dt);
+          tgt.speed = tgt.orders.speed || tgt.baseSpeed || 230;
+          tgt.x += Math.cos(tgt.heading) * tgt.speed * dt;
+          tgt.y += Math.sin(tgt.heading) * tgt.speed * dt;
+          return;
+        }
+      }
+
+      if (tgt.orders.type === 'STAY_IN_AREA') {
+        const tx = tgt.orders.targetX !== undefined ? tgt.orders.targetX : tgt.x;
+        const ty = tgt.orders.targetY !== undefined ? tgt.orders.targetY : tgt.y;
+        const trad = tgt.orders.targetRadius || 2000;
+        const dist = Math.hypot(tgt.x - tx, tgt.y - ty);
+
+        if (dist > trad * 0.8) {
+          // Turn back towards area center
+          const toCenter = Math.atan2(ty - tgt.y, tx - tgt.x);
+          let diff = toCenter - tgt.heading;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          tgt.heading += Math.sign(diff) * Math.min(Math.abs(diff), (tgt.turnRate || 2.2) * dt);
+        } else {
+          // Gentle orbit patrol inside area
+          tgt.heading += 0.35 * dt;
+        }
+        tgt.speed = tgt.orders.speed || tgt.baseSpeed || 215;
+        tgt.x += Math.cos(tgt.heading) * tgt.speed * dt;
+        tgt.y += Math.sin(tgt.heading) * tgt.speed * dt;
+        return;
+      }
+
+      if (tgt.orders.type === 'DEFEND_AREA') {
+        const tx = tgt.orders.targetX !== undefined ? tgt.orders.targetX : tgt.x;
+        const ty = tgt.orders.targetY !== undefined ? tgt.orders.targetY : tgt.y;
+        const trad = tgt.orders.targetRadius || 2000;
+        const playerDistFromArea = Math.hypot(playerX - tx, playerY - ty);
+        const isPlayerIntruding = (tgt.team === 'enemy') && (playerDistFromArea <= trad * 1.35);
+
+        let threatInArea = null;
+        for (const other of this.targets) {
+          if (other === tgt || other.isDestroyed || other.active === false) continue;
+          if (other.team !== tgt.team) {
+            const d = Math.hypot(other.x - tx, other.y - ty);
+            if (d <= trad * 1.35) {
+              threatInArea = other;
+              break;
+            }
+          }
+        }
+
+        if (!isPlayerIntruding && !threatInArea) {
+          // Area is secure: fly toward center or patrol inside
+          const dist = Math.hypot(tgt.x - tx, tgt.y - ty);
+          if (dist > trad * 0.75) {
+            const toCenter = Math.atan2(ty - tgt.y, tx - tgt.x);
+            let diff = toCenter - tgt.heading;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            tgt.heading += Math.sign(diff) * Math.min(Math.abs(diff), (tgt.turnRate || 2.2) * dt);
+          } else {
+            tgt.heading += 0.35 * dt;
+          }
+          tgt.speed = tgt.orders.speed || tgt.baseSpeed || 220;
+          tgt.x += Math.cos(tgt.heading) * tgt.speed * dt;
+          tgt.y += Math.sin(tgt.heading) * tgt.speed * dt;
+          return;
+        }
+        // Threat detected in defense zone: fall through to combat AI
+      }
+    }
 
     switch (aiType) {
       case 'dummy': {

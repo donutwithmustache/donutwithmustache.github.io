@@ -1,4 +1,9 @@
 {
+  "missionType": "singleplayer",
+  "playerCount": 1,
+  "loadout": {
+    "mode": "player"
+  },
   "map": {
     "id": "test_flight",
     "name": "Open Ocean & Archipelago",
@@ -488,15 +493,33 @@
       "waveCount": 1500,
       "windHeading": -0.45,
       "windSpeed": 10
-    }
+    },
+    "areas": [
+      {
+        "id": "area_carrier_strike",
+        "name": "Carrier Defense Perimeter",
+        "x": 8500.0,
+        "y": -8500.0,
+        "radius": 4500.0,
+        "color": "#00e5ff"
+      },
+      {
+        "id": "area_proving_grounds",
+        "name": "Live-Fire Proving Grounds",
+        "x": 0.0,
+        "y": 0.0,
+        "radius": 3000.0,
+        "color": "#00ff66"
+      }
+    ]
   },
   "units": {
     "playerSpawns": [
       {
-        "id": "player_spawn_1",
+        "id": "spawn_p1",
         "team": "friendly",
-        "x": 0,
-        "y": 0,
+        "x": 0.0,
+        "y": 0.0,
         "heading": -0.785,
         "speed": 335,
         "altitude": 1.0,
@@ -504,10 +527,10 @@
         "allowedTags": []
       },
       {
-        "id": "player_spawn_2",
+        "id": "spawn_p2",
         "team": "friendly",
-        "x": 250,
-        "y": -250,
+        "x": 84.8,
+        "y": 169.7,
         "heading": -0.785,
         "speed": 335,
         "altitude": 1.0,
@@ -1386,13 +1409,50 @@
       }
     ],
     "winConditions": {
-      "allPrimaryComplete": true
+      "allPrimaryComplete": true,
+      "requiredKills": 0
     },
     "loseConditions": {
-      "playerDestroyed": false,
-      "timeLimit": 0
+      "playerDestroyed": true,
+      "timeLimit": 0,
+      "noRespawn": false
     },
+    "areas": [
+      {
+        "id": "area_carrier_strike",
+        "name": "Carrier Defense Perimeter",
+        "x": 8500.0,
+        "y": -8500.0,
+        "radius": 4500.0,
+        "color": "#00e5ff"
+      },
+      {
+        "id": "area_proving_grounds",
+        "name": "Live-Fire Proving Grounds",
+        "x": 0.0,
+        "y": 0.0,
+        "radius": 3000.0,
+        "color": "#00ff66"
+      }
+    ],
     "triggers": [
+      {
+        "id": "trig_proving_grounds",
+        "name": "Proving Grounds Airspace Entry",
+        "event": "PLAYER_ENTER_AREA",
+        "areaId": "area_proving_grounds",
+        "actions": [
+          {
+            "type": "DIALOGUE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767 AWACS",
+            "squadron": "OADF",
+            "portrait": "./assets/portraits/awacs_astra.png",
+            "duration": 4.5,
+            "text": "Tac-Com online. You have entered the live-fire weapons proving ground."
+          }
+        ]
+      },
       {
         "id": "trig_carrier_group",
         "name": "Carrier Strike Group Perimeter",
@@ -1405,6 +1465,7 @@
             "speaker": "ASTRA",
             "aircraft": "E-767 AWACS",
             "squadron": "OADF",
+            "portrait": "./assets/portraits/awacs_astra.png",
             "duration": 4.5,
             "text": "Warning: Approaching Carrier Strike Group defense perimeter."
           }
@@ -1423,5 +1484,6 @@
         ]
       }
     ]
-  }
+  },
+  "noRespawn": false
 }

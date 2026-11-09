@@ -20,6 +20,16 @@ export class MissionManager {
     this.isFailed = false;
     this.playerSpawns = [];
     this.radioMessages = [];
+    this.areas = [];
+
+    // Mission Mode, Player Count & Loadout Configuration
+    this.missionType = 'singleplayer'; // 'singleplayer' | 'multiplayer'
+    this.playerCount = 1;
+    this.loadout = { mode: 'player' };
+    this.noRespawn = false;
+    this.isScriptedEnding = false;
+    this.scriptedEndTitle = null;
+    this.scriptedEndText = null;
 
     // Dialogue transmission system (top-right animated portrait + typewriter speech bubble)
     this.activeDialogue = null;
@@ -160,19 +170,48 @@ export class MissionManager {
     }
 
     // ----------------------------------------------------
-    // LAYER 3: THE DYNAMICS LAYER
+    // LAYER 3: THE DYNAMICS LAYER & OPERATIONAL AREAS
     // ----------------------------------------------------
     this.resetDynamics();
+
+    // Differentiate Singleplayer vs Multiplayer Missions & Aircraft Loadout
+    this.missionType = data.missionType || (data.mode === 'multiplayer' ? 'multiplayer' : 'singleplayer');
+    this.playerCount = data.playerCount || (this.missionType === 'multiplayer' ? Math.max(2, (this.playerSpawns ? this.playerSpawns.length : 2)) : 1);
+    this.loadout = data.loadout || { mode: 'player' };
+    this.noRespawn = (this.missionType === 'singleplayer') && !!(data.noRespawn || (data.dynamics && data.dynamics.loseConditions && data.dynamics.loseConditions.noRespawn));
+
+    // Singleplayer can use equipped loadout or force a specific plane/loadout
+    if (this.missionType === 'singleplayer' && this.loadout.mode === 'forced' && this.loadout.aircraft) {
+      if (this.game && this.game.applyForcedLoadout) {
+        this.game.applyForcedLoadout(this.loadout);
+      }
+    } else {
+      // Multiplayer ALWAYS uses the plane/loadout the player has equipped
+      if (this.game && this.game.restoreEquippedLoadout) {
+        this.game.restoreEquippedLoadout();
+      }
+    }
+
+    this.areas = (data.dynamics && data.dynamics.areas) || (data.map && data.map.areas) || data.areas || [];
     if (data.dynamics) {
       const d = data.dynamics;
       this.objectives = Array.isArray(d.objectives) ? d.objectives.map(o => Object.assign({ currentKills: 0, isCompleted: false }, o)) : [];
       this.triggers = Array.isArray(d.triggers) ? d.triggers : [];
       this.winConditions = d.winConditions || { allPrimaryComplete: true };
       this.loseConditions = d.loseConditions || { playerDestroyed: false };
+      if (this.noRespawn) {
+        this.loseConditions.playerDestroyed = true;
+        this.loseConditions.noRespawn = true;
+      }
     }
 
     // Fire ON_START triggers immediately
     this.evaluateTriggers('ON_START');
+  }
+
+  getArea(id) {
+    if (!id || !this.areas) return null;
+    return this.areas.find(a => a.id === id) || null;
   }
 
   resetDynamics() {
@@ -180,6 +219,9 @@ export class MissionManager {
     this.firedTriggers.clear();
     this.isCompleted = false;
     this.isFailed = false;
+    this.isScriptedEnding = false;
+    this.scriptedEndTitle = null;
+    this.scriptedEndText = null;
     this.radioMessages = [];
     this.activeDialogue = null;
     this.dialogueQueue = [];
@@ -211,11 +253,13 @@ export class MissionManager {
     // 3. Cinematic Sector Fade Transition Update
     this.updateFadeTransition(dt);
 
-    // 4. Evaluate Periodic Triggers (TIMER, PROXIMITY)
+    // 4. Evaluate Periodic Triggers (TIMER, PROXIMITY, AREA ENTRY)
     this.evaluateTriggers('TIMER', { time: this.elapsedTime });
     if (flightState) {
       this.evaluateTriggers('PLAYER_PROXIMITY', { x: flightState.x, y: flightState.y });
+      this.evaluateTriggers('PLAYER_ENTER_AREA', { x: flightState.x, y: flightState.y });
     }
+    this.evaluateTriggers('UNIT_ENTER_AREA');
 
     // 5. Track Objectives Progress
     const tm = this.game.targetManager;
@@ -239,6 +283,39 @@ export class MissionManager {
       this.radioMessages[i].life -= dt;
       if (this.radioMessages[i].life <= 0) {
         this.radioMessages.splice(i, 1);
+      }
+    }
+
+    // 7. Evaluate Win & Lose conditions
+    if (!this.isCompleted && !this.isFailed) {
+      // Lose conditions
+      if (this.loseConditions) {
+        const isPlayerDown = (this.game.physics && this.game.physics.isCrashed) || (this.game && this.game.playerDying);
+        if ((this.noRespawn || this.loseConditions.playerDestroyed) && isPlayerDown) {
+          this.isFailed = true;
+          this.postRadioMessage('CRITICAL ALERT // AIRCRAFT DESTROYED - MISSION FAILED', 5.0);
+        } else if (this.loseConditions.timeLimit > 0 && this.elapsedTime >= this.loseConditions.timeLimit) {
+          this.isFailed = true;
+          this.postRadioMessage('OPERATION TIME EXCEEDED // MISSION FAILED', 5.0);
+        }
+      }
+
+      // Win conditions
+      if (this.winConditions) {
+        if (this.winConditions.requiredKills > 0 && this.game.targetManager) {
+          const destroyed = this.game.targetManager.targets.filter(t => t.active !== false && t.isDestroyed).length;
+          if (destroyed >= this.winConditions.requiredKills) {
+            this.isCompleted = true;
+            this.postRadioMessage('MISSION ACCOMPLISHED // TARGET QUOTA SECURED', 5.0);
+          }
+        }
+        if (this.winConditions.allPrimaryComplete && this.objectives.length > 0) {
+          const allPrimDone = this.objectives.filter(o => o.isPrimary).every(o => o.isCompleted);
+          if (allPrimDone && !this.isCompleted) {
+            this.isCompleted = true;
+            this.postRadioMessage('MISSION ACCOMPLISHED // ALL PRIMARY OBJECTIVES SECURED', 5.0);
+          }
+        }
       }
     }
   }
@@ -528,13 +605,38 @@ export class MissionManager {
       } else if (eventType === 'TIMER') {
         const threshold = trig.time || (trig.param && trig.param.time) || 0;
         if (context.time >= threshold) triggered = true;
+      } else if (eventType === 'PLAYER_ENTER_AREA') {
+        const areaId = trig.areaId || (trig.param && trig.param.areaId) || trig.targetId;
+        const area = this.getArea(areaId);
+        if (area && context.x !== undefined && context.y !== undefined) {
+          const dist = Math.hypot(context.x - area.x, context.y - area.y);
+          if (dist <= (area.radius || 2000)) triggered = true;
+        }
+      } else if (eventType === 'UNIT_ENTER_AREA') {
+        const areaId = trig.areaId || (trig.param && trig.param.areaId);
+        const unitId = trig.unitId || (trig.param && trig.param.unitId) || trig.targetId;
+        const area = this.getArea(areaId);
+        if (area && this.game.targetManager) {
+          const unit = this.game.targetManager.targets.find(t => t.id === unitId);
+          if (unit && !unit.isDestroyed && unit.active !== false) {
+            const dist = Math.hypot(unit.x - area.x, unit.y - area.y);
+            if (dist <= (area.radius || 2000)) triggered = true;
+          }
+        }
       } else if (eventType === 'PLAYER_PROXIMITY') {
-        const targetId = trig.targetId || (trig.param && trig.param.targetId);
-        const range = trig.range || (trig.param && trig.param.range) || 3000;
-        const target = this.game.targetManager ? this.game.targetManager.targets.find(t => t.id === targetId) : null;
-        if (target && !target.isDestroyed && target.active !== false) {
-          const dist = Math.hypot(context.x - target.x, context.y - target.y);
+        const targetId = trig.targetId || trig.areaId || (trig.param && (trig.param.targetId || trig.param.areaId));
+        const area = this.getArea(targetId);
+        if (area && context.x !== undefined && context.y !== undefined) {
+          const dist = Math.hypot(context.x - area.x, context.y - area.y);
+          const range = trig.range || (trig.param && trig.param.range) || area.radius || 2000;
           if (dist <= range) triggered = true;
+        } else {
+          const range = trig.range || (trig.param && trig.param.range) || 3000;
+          const target = this.game.targetManager ? this.game.targetManager.targets.find(t => t.id === targetId) : null;
+          if (target && !target.isDestroyed && target.active !== false) {
+            const dist = Math.hypot(context.x - target.x, context.y - target.y);
+            if (dist <= range) triggered = true;
+          }
         }
       } else if (eventType === 'TARGET_DESTROYED') {
         const targetId = trig.targetId || (trig.param && trig.param.targetId);
@@ -553,6 +655,77 @@ export class MissionManager {
     for (const act of actions) {
       if (act.type === 'DIALOGUE') {
         this.triggerDialogue(act);
+      } else if (act.type === 'FLY_TO_AREA' || act.type === 'MOVE_TO_AREA') {
+        const area = this.getArea(act.areaId);
+        if (area && this.game.targetManager) {
+          const unit = this.game.targetManager.targets.find(t => t.id === act.unitId);
+          if (unit) {
+            unit.orders = {
+              type: 'FLY_TO_AREA',
+              areaId: act.areaId,
+              targetX: area.x,
+              targetY: area.y,
+              targetRadius: area.radius || 2000,
+              speed: act.speed || unit.speed || 240
+            };
+          }
+        }
+      } else if (act.type === 'DEFEND_AREA') {
+        const area = this.getArea(act.areaId);
+        if (area && this.game.targetManager) {
+          const unit = this.game.targetManager.targets.find(t => t.id === act.unitId);
+          if (unit) {
+            unit.orders = {
+              type: 'DEFEND_AREA',
+              areaId: act.areaId,
+              targetX: area.x,
+              targetY: area.y,
+              targetRadius: area.radius || 2000,
+              speed: act.speed || unit.speed || 260
+            };
+          }
+        }
+      } else if (act.type === 'STAY_IN_AREA') {
+        const area = this.getArea(act.areaId);
+        if (area && this.game.targetManager) {
+          const unit = this.game.targetManager.targets.find(t => t.id === act.unitId);
+          if (unit) {
+            unit.orders = {
+              type: 'STAY_IN_AREA',
+              areaId: act.areaId,
+              targetX: area.x,
+              targetY: area.y,
+              targetRadius: area.radius || 2000,
+              speed: act.speed || unit.speed || 220
+            };
+          }
+        }
+      } else if (act.type === 'TELEPORT_TO_AREA' || act.type === 'TELEPORT_PLAYER' || act.type === 'TELEPORT_UNIT') {
+        const area = this.getArea(act.areaId);
+        if (area) {
+          const isPlayer = act.type === 'TELEPORT_PLAYER' || act.unitId === 'player' || act.target === 'player' || !act.unitId;
+          if (isPlayer) {
+            if (this.game.physics) {
+              this.game.physics.x = area.x;
+              this.game.physics.y = area.y;
+              if (act.heading !== undefined) this.game.physics.heading = act.heading;
+              if (act.speed !== undefined) this.game.physics.speed = act.speed;
+            }
+            if (this.game.flightState) {
+              this.game.flightState.x = area.x;
+              this.game.flightState.y = area.y;
+            }
+            this.postRadioMessage(`TACTICAL WARP // TRANSLOCATED TO ${area.name || area.id.toUpperCase()}`, 3.5);
+          } else if (this.game.targetManager) {
+            const unit = this.game.targetManager.targets.find(t => t.id === act.unitId);
+            if (unit) {
+              unit.x = area.x;
+              unit.y = area.y;
+              if (act.heading !== undefined) unit.heading = act.heading;
+              if (act.speed !== undefined) unit.speed = act.speed;
+            }
+          }
+        }
       } else if (act.type === 'FADE_TRANSITION' || act.type === 'SECTOR_TRANSITION') {
         this.startFadeTransition(act);
       } else if (act.type === 'DETONATE_NUKE') {
@@ -571,6 +744,18 @@ export class MissionManager {
         this.postRadioMessage(act.text, act.life || 3.0);
       } else if (act.type === 'SET_AI_ORDER') {
         this.applyUnitOrder(act.unitId, act.order);
+      } else if (act.type === 'SCRIPTED_END') {
+        this.isScriptedEnding = true;
+        this.isCompleted = true;
+        this.scriptedEndTitle = act.title || 'OPERATION CONCLUDED';
+        this.scriptedEndText = act.text || 'MISSION UPDATE // SCRIPTED SEQUENCE TRIGGERED';
+        this.postRadioMessage(`MISSION UPDATE // ${this.scriptedEndTitle.toUpperCase()}`, 5.0);
+        this.startFadeTransition({
+          title: this.scriptedEndTitle,
+          subtitle: this.scriptedEndText,
+          fadeTime: act.fadeTime || 2.0,
+          holdTime: 3.0
+        });
       } else if (act.type === 'MISSION_COMPLETE') {
         this.isCompleted = true;
         this.postRadioMessage('MISSION ACCOMPLISHED // ALL OBJECTIVES SECURED', 4.0);

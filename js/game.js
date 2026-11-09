@@ -24,6 +24,7 @@ class FlightGame {
 
     // Aircraft Management
     this.currentAircraftId = 'f15c';
+    this.equippedAircraftId = 'f15c';
     this.aircraftConfig = AIRCRAFT_DATA[this.currentAircraftId];
     this.physics = new FlightPhysics(this.aircraftConfig);
 
@@ -292,9 +293,12 @@ class FlightGame {
     }
   }
 
-  selectAircraft(aircraftId) {
+  selectAircraft(aircraftId, isPlayerChoice = false) {
     if (!AIRCRAFT_DATA[aircraftId]) return;
     this.currentAircraftId = aircraftId;
+    if (isPlayerChoice) {
+      this.equippedAircraftId = aircraftId;
+    }
     this.aircraftConfig = AIRCRAFT_DATA[aircraftId];
 
     // Preserve current position, heading, velocity
@@ -317,6 +321,26 @@ class FlightGame {
 
     this.audio.playSwitchSound();
     this.updateUIButtons();
+  }
+
+  // Apply forced loadout if mission demands a specific plane & loadout (Singleplayer only)
+  applyForcedLoadout(loadout) {
+    if (!loadout) return;
+    const planeId = loadout.aircraft;
+    if (planeId && AIRCRAFT_DATA[planeId] && this.currentAircraftId !== planeId) {
+      this.selectAircraft(planeId, false);
+    }
+    if (loadout.specialWeapon && SPECIAL_WEAPONS[loadout.specialWeapon]) {
+      this.equipSpecialWeapon(loadout.specialWeapon);
+    }
+  }
+
+  // Restore player's equipped loadout (from hangar/selection) - used in Multiplayer & player-loadout SP
+  restoreEquippedLoadout() {
+    const targetId = this.equippedAircraftId || 'f15c';
+    if (AIRCRAFT_DATA[targetId] && this.currentAircraftId !== targetId) {
+      this.selectAircraft(targetId, false);
+    }
   }
 
   resize() {
@@ -1018,6 +1042,12 @@ class FlightGame {
     if (this.audio) {
       this.audio.playCrashSound();
     }
+
+    // If singleplayer mission has No Respawn enabled, fail mission immediately upon shootdown
+    if (this.missionManager && this.missionManager.noRespawn) {
+      this.missionManager.isFailed = true;
+      this.missionManager.postRadioMessage('CRITICAL ALERT // AIRCRAFT SHOT DOWN - MISSION FAILED', 5.0);
+    }
   }
 
   // Full airframe and system reset on respawn (guarantees 100% full HP restore)
@@ -1352,10 +1382,15 @@ class FlightGame {
         );
         this.audio.playCrashSound();
 
-        // Prolonged respawn timer (3.5s after ground impact, total ~6.3s)
-        setTimeout(() => {
-          this.respawnPlayer(0, 0, -Math.PI * 0.25, 335);
-        }, 3500);
+        // Prolonged respawn timer or terminate sortie on No Respawn
+        if (this.missionManager && this.missionManager.noRespawn) {
+          this.missionManager.isFailed = true;
+          this.missionManager.postRadioMessage('PILOT SHOT DOWN // MISSION FAILED (NO RESPAWN)', 5.0);
+        } else {
+          setTimeout(() => {
+            this.respawnPlayer(0, 0, -Math.PI * 0.25, 335);
+          }, 3500);
+        }
       }
     } else {
       flightState = this.physics.update(dt, this.input);
@@ -1433,13 +1468,18 @@ class FlightGame {
         this.particles.spawnExplosion(flightState.x, flightState.y);
         this.audio.playCrashSound();
 
-        setTimeout(() => {
-          // Reset safely inside the combat theater facing towards center
-          const resetX = Math.sign(flightState.x || 1) * Math.min(Math.abs(flightState.x), halfSize - 2000);
-          const resetY = Math.sign(flightState.y || 1) * Math.min(Math.abs(flightState.y), halfSize - 2000);
-          const headingToCenter = Math.atan2(-resetY, -resetX);
-          this.respawnPlayer(resetX, resetY, headingToCenter, 335);
-        }, 2200);
+        if (this.missionManager && this.missionManager.noRespawn) {
+          this.missionManager.isFailed = true;
+          this.missionManager.postRadioMessage('LEFT AREA OF OPERATION // MISSION FAILED (NO RESPAWN)', 5.0);
+        } else {
+          setTimeout(() => {
+            // Reset safely inside the combat theater facing towards center
+            const resetX = Math.sign(flightState.x || 1) * Math.min(Math.abs(flightState.x), halfSize - 2000);
+            const resetY = Math.sign(flightState.y || 1) * Math.min(Math.abs(flightState.y), halfSize - 2000);
+            const headingToCenter = Math.atan2(-resetY, -resetX);
+            this.respawnPlayer(resetX, resetY, headingToCenter, 335);
+          }, 2200);
+        }
       }
     } else if (isNearBorder && !flightState.isCrashed && !this.playerDying) {
       this.boundaryTimer = 0;
@@ -1470,9 +1510,14 @@ class FlightGame {
       this.crashHandled = true;
       this.particles.spawnExplosion(flightState.x, flightState.y);
       this.audio.playCrashSound();
-      setTimeout(() => {
-        this.respawnPlayer(flightState.x, flightState.y, flightState.heading, 335);
-      }, 2500);
+      if (this.missionManager && this.missionManager.noRespawn) {
+        this.missionManager.isFailed = true;
+        this.missionManager.postRadioMessage('STALL SPIN CRASH // MISSION FAILED (NO RESPAWN)', 5.0);
+      } else {
+        setTimeout(() => {
+          this.respawnPlayer(flightState.x, flightState.y, flightState.heading, 335);
+        }, 2500);
+      }
     }
 
     // Dynamic Altitude Factor (Stall Falling Illusion)

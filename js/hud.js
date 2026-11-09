@@ -45,7 +45,7 @@ export class FlightHUD {
     this.drawTacticalTargets(ctx, targets, targeting, camera, canvasWidth, canvasHeight, flightState.x, flightState.y, flightState.heading, weapons, input);
 
     // 3. Tactical Center Warnings: HIGH-G, DRIFT, STALL, AO BOUNDARY, MISSILE INBOUND
-    this.drawTacticalWarnings(ctx, centerX, centerY - 150, flightState, aircraftConfig, boundaryState, targeting);
+    this.drawTacticalWarnings(ctx, centerX, centerY - 150, flightState, aircraftConfig, boundaryState, targeting, missionManager);
 
     // 4. Target Destruction Kill Confirmations
     if (targetManager && targetManager.destroyedNotifications && targetManager.destroyedNotifications.length > 0) {
@@ -87,8 +87,8 @@ export class FlightHUD {
     // 5. Top Left: Aircraft Info & 4 Stats (Removed per test flight HUD cleanup)
     // this.drawAircraftStatsCard(ctx, 24, 35, aircraftConfig, flightState, weapons);
 
-    // 6. Top Center: Heading Compass Tape (with "MISSION: TEST FLIGHT")
-    this.drawCompassTape(ctx, centerX, 30, flightState.heading);
+    // 6. Top Center: Heading Compass Tape (with dynamic mission header & mode)
+    this.drawCompassTape(ctx, centerX, 30, flightState.heading, missionManager);
 
     // 7. Bottom-Left: 75% Scale Flight Telemetry & Weapons HUD Console (Perfect Ergonomic Scale)
     const consoleX = 35;
@@ -116,6 +116,11 @@ export class FlightHUD {
     // 11. Cinematic Sector Fade Transition (Fade to black while loading/unloading units)
     if (missionManager && missionManager.fadeTransition) {
       this.drawFadeTransition(ctx, canvasWidth, canvasHeight, missionManager.fadeTransition);
+    }
+
+    // 12. Mission Completion / Failure / Scripted End Tactical Banner
+    if (missionManager && (missionManager.isCompleted || missionManager.isFailed)) {
+      this.drawMissionStatusBanner(ctx, canvasWidth, canvasHeight, missionManager);
     }
 
     ctx.restore();
@@ -321,7 +326,7 @@ export class FlightHUD {
   }
 
   // Tactical Center Warnings
-  drawTacticalWarnings(ctx, cx, cy, flightState, aircraftConfig, boundaryState, targeting) {
+  drawTacticalWarnings(ctx, cx, cy, flightState, aircraftConfig, boundaryState, targeting, missionManager = null) {
     ctx.save();
     ctx.textAlign = 'center';
 
@@ -343,8 +348,16 @@ export class FlightHUD {
       }
       ctx.font = 'bold 13px monospace';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('RESTORING AIRCRAFT AIRFRAME...', cx, cy + 20);
-    } else if (boundaryState && boundaryState.isDying) {
+      if (missionManager && (missionManager.noRespawn || (missionManager.loseConditions && missionManager.loseConditions.noRespawn))) {
+        ctx.fillText('MISSION FAILED // NO RESPAWN AUTHORIZED [ESC TO RESTART]', cx, cy + 20);
+      } else {
+        ctx.fillText('RESTORING AIRCRAFT AIRFRAME...', cx, cy + 20);
+      }
+      ctx.restore();
+      return;
+    }
+
+    if (boundaryState && boundaryState.isDying) {
       const blink = Math.floor(performance.now() / 110) % 2 === 0;
       ctx.fillStyle = blink ? '#ff2200' : '#ffff00';
       ctx.font = 'bold 22px monospace';
@@ -354,80 +367,110 @@ export class FlightHUD {
       ctx.font = 'bold 13px monospace';
       ctx.fillStyle = '#ffffff';
       ctx.fillText('HYDRAULIC FAILURE // IMPACT IMMINENT', cx, cy + 18);
-    } else if (targeting && targeting.missileInbound) {
-      // Urgent Incoming Missile Alert
+      ctx.restore();
+      return;
+    }
+
+    // Determine active alert states
+    const isMissile = !!(targeting && targeting.missileInbound);
+    const isRearmed = !!(boundaryState && boundaryState.returnLineRearmedNotice > 0);
+    const isNearReturnLine = !isRearmed && !!(boundaryState && boundaryState.isNearReturnLine);
+    const isOutOfBounds = !isRearmed && !isNearReturnLine && !!(boundaryState && boundaryState.isOutOfBounds);
+    const isNearBorder = !isRearmed && !isNearReturnLine && !isOutOfBounds && !!(boundaryState && boundaryState.isNearBorder);
+    const hasBoundaryAlert = isRearmed || isNearReturnLine || isOutOfBounds || isNearBorder;
+    const isStalled = !!flightState.isStalled;
+
+    // Calculate vertical layout anchors to prevent collisions when multiple warnings are active
+    let boundaryY = cy;
+    let stallY = cy;
+    let missileY = cy - 20;
+
+    if (hasBoundaryAlert && isStalled) {
+      boundaryY = cy - 38;
+      stallY = cy + 28;
+      missileY = cy - 86;
+    } else if (hasBoundaryAlert) {
+      boundaryY = cy;
+      missileY = cy - 54;
+    } else if (isStalled) {
+      stallY = cy;
+      missileY = cy - 54;
+    }
+
+    // 1. Incoming Missile Alert
+    if (isMissile) {
       const blink = Math.floor(performance.now() / 120) % 2 === 0;
       ctx.fillStyle = blink ? '#ff2200' : '#ffff00';
       ctx.font = 'bold 22px monospace';
       ctx.shadowColor = '#ff2200';
       ctx.shadowBlur = 18;
-      ctx.fillText('<< WARNING: MISSILE INBOUND >>', cx, cy - 18);
+      ctx.fillText('<< WARNING: MISSILE INBOUND >>', cx, missileY);
 
       ctx.font = 'bold 13px monospace';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('HIT [S] TO DEPLOY FLARES // BREAK HIGH-G', cx, cy + 8);
-    } else if (boundaryState && boundaryState.returnLineRearmedNotice > 0) {
-      // Ace Combat Return Line Rearmed Notice
+      ctx.fillText('HIT [S] TO DEPLOY FLARES // BREAK HIGH-G', cx, missileY + 22);
+    }
+
+    // 2. Boundary / Return Line / Area of Operation Alert
+    if (isRearmed) {
       ctx.fillStyle = '#00f0ff';
       ctx.font = 'bold 22px monospace';
       ctx.shadowColor = '#00bbff';
       ctx.shadowBlur = 18;
-      ctx.fillText('<< AIRCRAFT FULLY REARMED >>', cx, cy - 14);
+      ctx.fillText('<< AIRCRAFT FULLY REARMED >>', cx, boundaryY - 14);
       ctx.font = 'bold 14px monospace';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('RETURNING TO COMBAT AIRSPACE', cx, cy + 12);
-    } else if (boundaryState && boundaryState.isNearReturnLine) {
-      // Approaching Return Line Resupply
+      ctx.fillText('RETURNING TO COMBAT AIRSPACE', cx, boundaryY + 12);
+    } else if (isNearReturnLine) {
       const blink = Math.floor(performance.now() / 200) % 2 === 0;
       ctx.fillStyle = blink ? '#00f0ff' : '#ffffff';
       ctx.font = 'bold 20px monospace';
       ctx.shadowColor = '#00bbff';
       ctx.shadowBlur = 14;
-      ctx.fillText('<< APPROACHING RETURN LINE >>', cx, cy - 14);
+      ctx.fillText('<< APPROACHING RETURN LINE >>', cx, boundaryY - 14);
       ctx.font = 'bold 13px monospace';
       ctx.fillStyle = '#8ec5ff';
-      ctx.fillText('CROSS BLUE LINE TO FULLY REARM WEAPONS', cx, cy + 12);
-    } else if (boundaryState && boundaryState.isOutOfBounds) {
-      // Exited combat perimeter - 3.0s countdown before self-destruction
+      ctx.fillText('CROSS BLUE LINE TO FULLY REARM WEAPONS', cx, boundaryY + 12);
+    } else if (isOutOfBounds) {
       const blink = Math.floor(performance.now() / 140) % 2 === 0;
       ctx.fillStyle = blink ? '#ff2200' : '#ffff00';
       ctx.font = 'bold 22px monospace';
       ctx.shadowColor = '#ff2200';
       ctx.shadowBlur = 18;
-      ctx.fillText('<< OUT OF AREA OF OPERATION >>', cx, cy - 18);
+      ctx.fillText('<< OUT OF AREA OF OPERATION >>', cx, boundaryY - 18);
 
       const remaining = Math.max(0, 3.0 - (boundaryState.boundaryTimer || 0));
       ctx.font = 'bold 15px monospace';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(`AIRFRAME DESTRUCTION IN: ${remaining.toFixed(1)}s // TURN BACK NOW`, cx, cy + 8);
+      ctx.fillText(`AIRFRAME DESTRUCTION IN: ${remaining.toFixed(1)}s // TURN BACK NOW`, cx, boundaryY + 8);
 
-      // Warning danger countdown progress bar
       const barW = 260;
       const barH = 7;
       ctx.strokeStyle = '#ff2200';
-      ctx.strokeRect(cx - barW * 0.5, cy + 18, barW, barH);
+      ctx.strokeRect(cx - barW * 0.5, boundaryY + 18, barW, barH);
       ctx.fillStyle = '#ff2200';
-      ctx.fillRect(cx - barW * 0.5, cy + 18, ((boundaryState.boundaryTimer || 0) / 3.0) * barW, barH);
-    } else if (boundaryState && boundaryState.isNearBorder) {
-      // Getting close to boundary
+      ctx.fillRect(cx - barW * 0.5, boundaryY + 18, ((boundaryState.boundaryTimer || 0) / 3.0) * barW, barH);
+    } else if (isNearBorder) {
       const blink = Math.floor(performance.now() / 240) % 2 === 0;
       ctx.fillStyle = blink ? '#ff9900' : '#ffff44';
       ctx.font = 'bold 20px monospace';
       ctx.shadowColor = '#ff8800';
       ctx.shadowBlur = 14;
-      ctx.fillText('<< EXITING AREA OF OPERATION // TURN BACK NOW >>', cx, cy - 10);
-    } else if (flightState.isStalled) {
+      ctx.fillText('<< EXITING AREA OF OPERATION // TURN BACK NOW >>', cx, boundaryY - 10);
+    }
+
+    // 3. Flight Dynamics: Stall / PSM Warning
+    if (isStalled) {
       const hasTVC = aircraftConfig && aircraftConfig.physics && aircraftConfig.physics.hasThrustVectoring;
-      // Blinking Stall Warning
       const blink = Math.floor(performance.now() / 200) % 2 === 0;
       ctx.fillStyle = blink ? (hasTVC ? '#00ffee' : '#ff2200') : '#ffaa00';
       ctx.font = 'bold 20px monospace';
       ctx.shadowColor = hasTVC ? '#00ffee' : '#ff2200';
       ctx.shadowBlur = 14;
       const warningTitle = hasTVC
-        ? '<< STALL WARNING // PSM ACTIVE>>'
-        : '<< STALL WARNING>>';
-      ctx.fillText(warningTitle, cx, cy - 15);
+        ? '<< STALL WARNING // PSM ACTIVE >>'
+        : '<< STALL WARNING >>';
+      ctx.fillText(warningTitle, cx, stallY - 15);
 
       ctx.font = 'bold 13px monospace';
       ctx.fillStyle = '#ffffff';
@@ -435,23 +478,25 @@ export class FlightHUD {
       const subTitle = hasTVC
         ? `FULL NOSE CONTROL RETAINED // SPINDOWN CRASH IN: ${remaining.toFixed(1)}s`
         : `HIT AFTERBURNER [SHIFT] TO RECOVER // CRASH IN: ${remaining.toFixed(1)}s`;
-      ctx.fillText(subTitle, cx, cy + 10);
+      ctx.fillText(subTitle, cx, stallY + 10);
 
-      // Danger progress bar
       const barW = 240;
       const barH = 6;
       ctx.strokeStyle = hasTVC ? '#00ffee' : '#ff2200';
-      ctx.strokeRect(cx - barW * 0.5, cy + 20, barW, barH);
+      ctx.strokeRect(cx - barW * 0.5, stallY + 20, barW, barH);
       ctx.fillStyle = hasTVC ? '#00ffee' : '#ff2200';
-      ctx.fillRect(cx - barW * 0.5, cy + 20, (flightState.stallTimer / 4.0) * barW, barH);
-    } else if (flightState.isHighG) {
-      ctx.fillStyle = this.warnColor;
-      ctx.font = 'bold 15px monospace';
-      ctx.fillText('<< HIGH G TURN >>', cx, cy);
-    } else if (flightState.isDrifting) {
-      ctx.fillStyle = this.amberColor;
-      ctx.font = 'bold 14px monospace';
-      ctx.fillText(`<< HIGH ALPHA DRIFT [${flightState.alphaDeg.toFixed(0)}°] >>`, cx, cy);
+      ctx.fillRect(cx - barW * 0.5, stallY + 20, (flightState.stallTimer / 4.0) * barW, barH);
+    } else if (!hasBoundaryAlert) {
+      // High-G or High-Alpha Drift alerts (only if not stalled and no boundary alert)
+      if (flightState.isHighG) {
+        ctx.fillStyle = this.warnColor;
+        ctx.font = 'bold 15px monospace';
+        ctx.fillText('<< HIGH G TURN >>', cx, cy);
+      } else if (flightState.isDrifting) {
+        ctx.fillStyle = this.amberColor;
+        ctx.font = 'bold 14px monospace';
+        ctx.fillText(`<< HIGH ALPHA DRIFT [${flightState.alphaDeg.toFixed(0)}°] >>`, cx, cy);
+      }
     }
 
     ctx.restore();
@@ -825,7 +870,7 @@ export class FlightHUD {
   }
 
   // Top Compass Tape
-  drawCompassTape(ctx, cx, cy, heading) {
+  drawCompassTape(ctx, cx, cy, heading, missionManager = null) {
     ctx.save();
     ctx.textAlign = 'center';
 
@@ -838,7 +883,16 @@ export class FlightHUD {
 
     ctx.font = 'bold 10px monospace';
     ctx.fillStyle = 'rgba(0, 255, 102, 0.75)';
-    ctx.fillText('MISSION: TEST FLIGHT', cx, cy + 24);
+
+    let missionText = 'MISSION: TEST FLIGHT [SP]';
+    if (missionManager && missionManager.currentMission) {
+      const mName = (missionManager.currentMission.map && missionManager.currentMission.map.name) || (missionManager.activeMissionId || 'SORTIE');
+      const isMP = missionManager.missionType === 'multiplayer';
+      const noResp = missionManager.noRespawn ? ' // NO RESPAWN' : '';
+      const tag = isMP ? `[MP // ${missionManager.playerCount || 2} PLAYERS]` : (missionManager.loadout && missionManager.loadout.mode === 'forced' ? `[SP // FORCED LOADOUT${noResp}]` : `[SP // PILOT LOADOUT${noResp}]`);
+      missionText = `MISSION: ${mName.toUpperCase()} ${tag}`;
+    }
+    ctx.fillText(missionText, cx, cy + 24);
 
     ctx.strokeStyle = 'rgba(0, 255, 102, 0.4)';
     ctx.beginPath();
@@ -847,6 +901,67 @@ export class FlightHUD {
     ctx.moveTo(cx, cy + 6);
     ctx.lineTo(cx, cy + 11);
     ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // Mission Status Overlay Banner (Accomplished, Failed, or Scripted Ending)
+  drawMissionStatusBanner(ctx, canvasWidth, canvasHeight, missionManager) {
+    if (!missionManager) return;
+    const cx = canvasWidth * 0.5;
+    const cy = canvasHeight * 0.38;
+
+    ctx.save();
+    let title = 'MISSION ACCOMPLISHED';
+    let subtitle = 'ALL OBJECTIVES COMPLETED // RETURN TO BASE';
+    let col = '#00ff66';
+    let bgGrad = 'rgba(0, 30, 15, 0.88)';
+
+    if (missionManager.isFailed) {
+      title = 'MISSION FAILED';
+      subtitle = 'TACTICAL OBJECTIVES COMPROMISED // CEASE OPERATION';
+      col = '#ff3333';
+      bgGrad = 'rgba(40, 10, 10, 0.88)';
+    } else if (missionManager.isScriptedEnding) {
+      title = missionManager.scriptedEndTitle || 'OPERATION CONCLUDED';
+      subtitle = missionManager.scriptedEndText || 'SCRIPTED SEQUENCE COMPLETE';
+      col = '#00e5ff';
+      bgGrad = 'rgba(0, 25, 35, 0.88)';
+    }
+
+    // High tech tactical bar
+    const barWidth = Math.min(680, canvasWidth - 40);
+    const barHeight = 72;
+
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(cx - barWidth * 0.5, cy - barHeight * 0.5, barWidth, barHeight);
+
+    // Glowing border
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx - barWidth * 0.5, cy - barHeight * 0.5, barWidth, barHeight);
+
+    // Corner tech brackets
+    ctx.fillStyle = col;
+    const bSize = 8;
+    ctx.fillRect(cx - barWidth * 0.5 - 2, cy - barHeight * 0.5 - 2, bSize, 3);
+    ctx.fillRect(cx - barWidth * 0.5 - 2, cy - barHeight * 0.5 - 2, 3, bSize);
+    ctx.fillRect(cx + barWidth * 0.5 - bSize + 2, cy - barHeight * 0.5 - 2, bSize, 3);
+    ctx.fillRect(cx + barWidth * 0.5 - 1, cy - barHeight * 0.5 - 2, 3, bSize);
+    ctx.fillRect(cx - barWidth * 0.5 - 2, cy + barHeight * 0.5 - 1, bSize, 3);
+    ctx.fillRect(cx - barWidth * 0.5 - 2, cy + barHeight * 0.5 - bSize + 2, 3, bSize);
+    ctx.fillRect(cx + barWidth * 0.5 - bSize + 2, cy + barHeight * 0.5 - 1, bSize, 3);
+    ctx.fillRect(cx + barWidth * 0.5 - 1, cy + barHeight * 0.5 - bSize + 2, 3, bSize);
+
+    // Text
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 22px Consolas, monospace';
+    ctx.fillStyle = col;
+    ctx.fillText(title, cx, cy - 8);
+
+    ctx.font = '12px Consolas, monospace';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(subtitle, cx, cy + 18);
 
     ctx.restore();
   }

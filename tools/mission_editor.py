@@ -14,11 +14,13 @@ import math
 import copy
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
+from PIL import Image, ImageTk
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MISSIONS_DIR = os.path.join(BASE_DIR, "data", "missions")
 MANIFEST_FILE = os.path.join(MISSIONS_DIR, "manifest.json")
 PLANES_DIR = os.path.join(BASE_DIR, "assets", "planes")
+PORTRAITS_DIR = os.path.join(BASE_DIR, "assets", "portraits")
 
 AI_LEVELS = ["dummy", "drone", "rookie", "veteran", "elite", "ace", "strike"]
 AIRCRAFT_MODELS = ["su27", "f15c", "f111f", "su57", "f22", "mig21"]
@@ -28,12 +30,20 @@ GROUND_TYPES = ["sam", "flak", "radar"]
 TRIGGER_EVENTS = [
     "ON_START",
     "TIMER",
+    "PLAYER_ENTER_AREA",
+    "UNIT_ENTER_AREA",
     "PLAYER_PROXIMITY",
     "TARGET_DESTROYED"
 ]
 
 TRIGGER_ACTIONS = [
     "DIALOGUE",
+    "FLY_TO_AREA",
+    "DEFEND_AREA",
+    "STAY_IN_AREA",
+    "TELEPORT_TO_AREA",
+    "TELEPORT_PLAYER",
+    "TELEPORT_UNIT",
     "FADE_TRANSITION",
     "DETONATE_NUKE",
     "EXPLODE_UNIT",
@@ -42,11 +52,15 @@ TRIGGER_ACTIONS = [
     "DESPAWN_UNIT",
     "RADIO_MESSAGE",
     "SET_AI_ORDER",
+    "SCRIPTED_END",
     "MISSION_COMPLETE",
     "MISSION_FAILED"
 ]
 
 AI_ORDER_TYPES = [
+    "FLY_TO_AREA",
+    "DEFEND_AREA",
+    "STAY_IN_AREA",
     "PATROL_AREA",
     "COVER_AREA",
     "ATTACK_TARGET",
@@ -94,17 +108,21 @@ class MissionEditorApp(tk.Tk):
         self.zoom = 0.018  # Canvas pixels per world meter
         self.tool_mode = "select"  # select, island, poly_island, spawn, air, ground, naval, nuke
         self.selected_item = None  # (layer, type, index_or_id)
+        self.selected_area_idx = None
         self.selected_trigger_idx = None
         self.drag_start = None
+        self.dragging_area_resize = False
+        self.portrait_preview_img = None
 
         # Polygonal island drawing and vertex manipulation state
         self.poly_drawing_pts = []  # List of (wx, wy)
         self.mouse_world_pos = (0.0, 0.0)
         self.selected_vertex_idx = None  # Index of active vertex in selected polygon island
 
-        # Clipboard buffers for units and triggers
+        # Clipboard buffers for units, triggers, and areas
         self.clipboard_unit = None
         self.clipboard_trigger = None
+        self.clipboard_area = None
 
         self.setup_styles()
         self.build_ui()
@@ -139,6 +157,14 @@ class MissionEditorApp(tk.Tk):
 
     def get_empty_mission(self):
         return {
+            "missionType": "singleplayer",
+            "noRespawn": False,
+            "playerCount": 1,
+            "loadout": {
+                "mode": "player",
+                "aircraft": "f15c",
+                "specialWeapon": "qaam"
+            },
             "map": {
                 "id": "new_mission",
                 "name": "New Tactical Operation",
@@ -167,8 +193,9 @@ class MissionEditorApp(tk.Tk):
                 "objectives": [
                     {"id": "obj_primary", "title": "Eliminate Hostiles", "description": "Destroy hostile forces in sector.", "type": "DESTROY_TARGETS", "requiredCount": 5, "isPrimary": True}
                 ],
-                "winConditions": {"allPrimaryComplete": True},
-                "loseConditions": {"playerDestroyed": False, "timeLimit": 0},
+                "winConditions": {"allPrimaryComplete": True, "requiredKills": 0},
+                "loseConditions": {"playerDestroyed": True, "timeLimit": 0, "noRespawn": False},
+                "areas": [],
                 "triggers": [
                     {
                         "id": "trig_start",
@@ -199,6 +226,7 @@ class MissionEditorApp(tk.Tk):
         self.mode_var = tk.StringVar(value="select")
         tools = [
             ("Select/Move", "select"),
+            ("+ Area", "area"),
             ("+ Island", "island"),
             ("+ Poly Island", "poly_island"),
             ("+ Spawn", "spawn"),
@@ -329,10 +357,12 @@ class MissionEditorApp(tk.Tk):
             self.notebook.select(self.tab_map)
         elif self.tool_mode in ("spawn", "air", "ground", "naval"):
             self.notebook.select(self.tab_units)
-        elif self.tool_mode == "nuke":
+        elif self.tool_mode in ("nuke", "area"):
             self.notebook.select(self.tab_dynamics)
         if self.tool_mode == "poly_island":
             self.status_bar.config(text="POLY ISLAND TOOL: Click map to place vertices. Click near start vertex, Double-Click, or press Enter to finish. Escape to cancel.")
+        elif self.tool_mode == "area":
+            self.status_bar.config(text="AREA TOOL: Click on map to place a circular trigger zone. Use perimeter handle or radius controls to resize.")
         self.canvas.config(cursor="hand2" if self.tool_mode == "select" else "crosshair")
 
     # ----------------------------------------------------
@@ -356,6 +386,72 @@ class MissionEditorApp(tk.Tk):
         tk.Label(box_meta, text="Mission ID:", bg="#101c2b", fg="#c0e0d0", font=("Consolas", 9)).grid(row=1, column=0, sticky="w", pady=4)
         self.ent_mission_id = ttk.Entry(box_meta, width=18)
         self.ent_mission_id.grid(row=1, column=1, sticky="w", padx=8)
+
+        # Mission Mode, Player Count & Loadout Configuration
+        box_mode = tk.LabelFrame(frame, text=" Mission Mode, Player Count & Loadout Configuration ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=8)
+        box_mode.pack(fill="x", pady=4)
+
+        # Row 0: Mode selection
+        tk.Label(box_mode, text="Mission Mode:", bg="#101c2b", fg="#c0e0d0", font=("Consolas", 9, "bold")).grid(row=0, column=0, sticky="w", pady=3)
+        self.cb_mission_type = ttk.Combobox(box_mode, values=["singleplayer", "multiplayer"], state="readonly", width=14)
+        self.cb_mission_type.set("singleplayer")
+        self.cb_mission_type.grid(row=0, column=1, sticky="w", padx=6, pady=3)
+        self.cb_mission_type.bind("<<ComboboxSelected>>", self.on_mission_type_changed)
+
+        self.lbl_mode_badge = tk.Label(box_mode, text="[ SINGLEPLAYER CAMPAIGN / SORTIE ]", bg="#101c2b", fg="#00ff66", font=("Consolas", 9, "bold"))
+        self.lbl_mode_badge.grid(row=0, column=2, columnspan=2, sticky="w", padx=6)
+
+        # Row 1: Multiplayer Controls
+        self.lbl_mp_players = tk.Label(box_mode, text="Player Count:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9))
+        self.lbl_mp_players.grid(row=1, column=0, sticky="w", pady=3)
+
+        self.spin_player_count = tk.Spinbox(box_mode, from_=2, to=16, width=6, bg="#132030", fg="#00ffcc", font=("Consolas", 9), command=self.on_player_count_changed)
+        self.spin_player_count.delete(0, tk.END)
+        self.spin_player_count.insert(0, "4")
+        self.spin_player_count.grid(row=1, column=1, sticky="w", padx=6, pady=3)
+        self.spin_player_count.bind("<KeyRelease>", lambda e: self.on_player_count_changed())
+
+        self.btn_gen_spawns = tk.Button(box_mode, text="Auto-Generate Spawns", bg="#1a3248", fg="#00e5ff", font=("Consolas", 8, "bold"), command=self.auto_generate_player_spawns)
+        self.btn_gen_spawns.grid(row=1, column=2, sticky="w", padx=4)
+
+        self.lbl_spawns_status = tk.Label(box_mode, text="Spawns: 0/0", bg="#101c2b", fg="#00ffcc", font=("Consolas", 8))
+        self.lbl_spawns_status.grid(row=1, column=3, sticky="w", padx=6)
+
+        # Row 2: Singleplayer Loadout Controls
+        self.lbl_sp_loadout = tk.Label(box_mode, text="Loadout Option:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9))
+        self.lbl_sp_loadout.grid(row=2, column=0, sticky="w", pady=3)
+
+        self.cb_loadout_mode = ttk.Combobox(box_mode, values=["Player Loadout", "Forced Aircraft & Loadout"], state="readonly", width=24)
+        self.cb_loadout_mode.set("Player Loadout")
+        self.cb_loadout_mode.grid(row=2, column=1, sticky="w", padx=6, pady=3)
+        self.cb_loadout_mode.bind("<<ComboboxSelected>>", self.on_loadout_mode_changed)
+
+        self.f_forced_loadout = tk.Frame(box_mode, bg="#101c2b")
+        self.f_forced_loadout.grid(row=2, column=2, columnspan=2, sticky="w")
+
+        tk.Label(self.f_forced_loadout, text="Plane:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 8)).pack(side="left")
+        self.cb_forced_plane = ttk.Combobox(self.f_forced_loadout, values=["f15c", "su27", "f111f", "su57"], state="readonly", width=8)
+        self.cb_forced_plane.set("f15c")
+        self.cb_forced_plane.pack(side="left", padx=2)
+
+        tk.Label(self.f_forced_loadout, text="SPW:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 8)).pack(side="left", padx=(4, 0))
+        self.cb_forced_spw = ttk.Combobox(self.f_forced_loadout, values=["qaam", "saam", "4aam", "hpaa", "ugb", "lasm", "sffs", "mpbm"], state="readonly", width=7)
+        self.cb_forced_spw.set("qaam")
+        self.cb_forced_spw.pack(side="left", padx=2)
+
+        # Row 3: Singleplayer No Respawn Option
+        self.var_no_respawn = tk.BooleanVar(value=False)
+        self.chk_no_respawn = tk.Checkbutton(
+            box_mode, text="No Respawn (Strict Singleplayer: Mission fails immediately if pilot is shot down)",
+            variable=self.var_no_respawn, bg="#101c2b", fg="#ff7766", selectcolor="#440000",
+            activebackground="#101c2b", activeforeground="#ff9988", font=("Consolas", 8, "bold"),
+            command=self.update_conditions_notes
+        )
+        self.chk_no_respawn.grid(row=3, column=0, columnspan=4, sticky="w", pady=2)
+
+        # Row 4: Operational Notes / Rules
+        self.lbl_mode_notes = tk.Label(box_mode, text="", bg="#101c2b", fg="#88a898", font=("Consolas", 8), wraplength=480, justify="left")
+        self.lbl_mode_notes.grid(row=4, column=0, columnspan=4, sticky="w", pady=3)
 
         # Ace Combat Return Line (Resupply Zone) Settings
         box_rl = tk.LabelFrame(frame, text=" Return Line (Ace Combat Resupply Zone) ", bg="#101c2b", fg="#00e5ff", font=("Consolas", 10, "bold"), padx=10, pady=8)
@@ -458,6 +554,7 @@ class MissionEditorApp(tk.Tk):
         sp_btns = tk.Frame(box_spawns, bg="#101c2b")
         sp_btns.pack(fill="x")
         tk.Button(sp_btns, text="+ Add Spawn Point", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.add_spawn_point).pack(side="left", padx=2)
+        tk.Button(sp_btns, text="Auto-Format Spawns", bg="#15334e", fg="#00e5ff", font=("Consolas", 8, "bold"), command=self.auto_generate_player_spawns).pack(side="left", padx=2)
         tk.Button(sp_btns, text="- Remove", bg="#4a1818", fg="#ff8888", font=("Consolas", 8), command=self.delete_selected_spawn).pack(side="left", padx=2)
 
         self.spawns_listbox = tk.Listbox(box_spawns, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", font=("Consolas", 9), height=3, bd=0)
@@ -536,14 +633,116 @@ class MissionEditorApp(tk.Tk):
         self.objs_listbox = tk.Listbox(box_objs, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", font=("Consolas", 9), height=3, bd=0)
         self.objs_listbox.pack(fill="x", pady=4)
 
-        # 2. Triggers List Box
+        # 1B. Win & Lose Conditions Panel
+        box_conds = tk.LabelFrame(frame, text=" Mission Win / Lose Conditions & Endings ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=6)
+        box_conds.pack(fill="x", pady=4)
+
+        f_win = tk.Frame(box_conds, bg="#101c2b")
+        f_win.pack(fill="x", pady=2)
+        tk.Label(f_win, text="Win Conditions:", bg="#101c2b", fg="#00ff66", font=("Consolas", 9, "bold")).pack(side="left")
+
+        self.var_win_all_primary = tk.BooleanVar(value=True)
+        self.chk_win_primary = tk.Checkbutton(f_win, text="All Primary Objectives Completed", variable=self.var_win_all_primary,
+                                              bg="#101c2b", fg="#c0f0d0", selectcolor="#005522",
+                                              activebackground="#101c2b", activeforeground="#00ffcc", font=("Consolas", 8),
+                                              command=self.update_conditions_notes)
+        self.chk_win_primary.pack(side="left", padx=6)
+
+        tk.Label(f_win, text="Target Kills:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 8)).pack(side="left", padx=(4, 2))
+        self.ent_win_kills = ttk.Entry(f_win, width=5)
+        self.ent_win_kills.insert(0, "0")
+        self.ent_win_kills.pack(side="left")
+        self.ent_win_kills.bind("<KeyRelease>", lambda e: self.update_conditions_notes())
+
+        f_lose = tk.Frame(box_conds, bg="#101c2b")
+        f_lose.pack(fill="x", pady=2)
+        tk.Label(f_lose, text="Lose Conditions:", bg="#101c2b", fg="#ff4444", font=("Consolas", 9, "bold")).pack(side="left")
+
+        self.var_lose_destroyed = tk.BooleanVar(value=True)
+        self.chk_lose_destroyed = tk.Checkbutton(f_lose, text="Player Aircraft Destroyed / Crashed", variable=self.var_lose_destroyed,
+                                                 bg="#101c2b", fg="#c0f0d0", selectcolor="#550000",
+                                                 activebackground="#101c2b", activeforeground="#ff8888", font=("Consolas", 8),
+                                                 command=self.update_conditions_notes)
+        self.chk_lose_destroyed.pack(side="left", padx=6)
+
+        self.chk_cond_no_respawn = tk.Checkbutton(
+            f_lose, text="[No Respawn]", variable=self.var_no_respawn,
+            bg="#101c2b", fg="#ff7766", selectcolor="#440000",
+            activebackground="#101c2b", activeforeground="#ff9988", font=("Consolas", 8, "bold"),
+            command=self.update_conditions_notes
+        )
+        self.chk_cond_no_respawn.pack(side="left", padx=4)
+
+        tk.Label(f_lose, text="Time Limit (s):", bg="#101c2b", fg="#88c0a0", font=("Consolas", 8)).pack(side="left", padx=(4, 2))
+        self.ent_lose_time = ttk.Entry(f_lose, width=6)
+        self.ent_lose_time.insert(0, "0")
+        self.ent_lose_time.pack(side="left")
+        self.ent_lose_time.bind("<KeyRelease>", lambda e: self.update_conditions_notes())
+
+        self.lbl_conds_status = tk.Label(box_conds, text="", bg="#101c2b", fg="#88b0a0", font=("Consolas", 8), wraplength=480, justify="left")
+        self.lbl_conds_status.pack(fill="x", pady=2)
+
+        # 2. Operational Areas (Trigger Zones) Box
+        box_areas = tk.LabelFrame(frame, text=" Operational Areas & Trigger Zones (Invisible In-Game) ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=6)
+        box_areas.pack(fill="x", pady=4)
+
+        a_btns = tk.Frame(box_areas, bg="#101c2b")
+        a_btns.pack(fill="x")
+        tk.Button(a_btns, text="+ Add Area", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.add_new_area_button).pack(side="left", padx=2)
+        tk.Button(a_btns, text="Duplicate", bg="#1f3b58", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.duplicate_area).pack(side="left", padx=2)
+        tk.Button(a_btns, text="- Delete", bg="#331111", fg="#ff6666", font=("Consolas", 8), command=self.delete_area).pack(side="left", padx=2)
+
+        self.areas_listbox = tk.Listbox(box_areas, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", font=("Consolas", 9), height=3, bd=0)
+        self.areas_listbox.pack(fill="x", pady=4)
+        self.areas_listbox.bind("<<ListboxSelect>>", self.on_select_area_item)
+
+        # Area Inspector inside box_areas
+        self.area_insp = tk.Frame(box_areas, bg="#101c2b", pady=2)
+        self.area_insp.pack(fill="x")
+
+        tk.Label(self.area_insp, text="Area ID:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=0, column=0, sticky="w")
+        self.ent_area_id = ttk.Entry(self.area_insp, width=16)
+        self.ent_area_id.grid(row=0, column=1, sticky="w", padx=4, pady=2)
+
+        tk.Label(self.area_insp, text="Area Name:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=0, column=2, sticky="w")
+        self.ent_area_name = ttk.Entry(self.area_insp, width=22)
+        self.ent_area_name.grid(row=0, column=3, sticky="w", padx=4, pady=2)
+
+        tk.Label(self.area_insp, text="Center X / Y:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=1, column=0, sticky="w")
+        a_xy_frame = tk.Frame(self.area_insp, bg="#101c2b")
+        a_xy_frame.grid(row=1, column=1, sticky="w", padx=4, pady=2)
+        self.ent_area_x = ttk.Entry(a_xy_frame, width=7)
+        self.ent_area_x.pack(side="left")
+        self.ent_area_y = ttk.Entry(a_xy_frame, width=7)
+        self.ent_area_y.pack(side="left", padx=2)
+
+        tk.Label(self.area_insp, text="Radius (m):", bg="#101c2b", fg="#00ffcc", font=("Consolas", 9, "bold")).grid(row=1, column=2, sticky="w")
+        r_frame = tk.Frame(self.area_insp, bg="#101c2b")
+        r_frame.grid(row=1, column=3, sticky="w", padx=4, pady=2)
+        self.ent_area_radius = ttk.Entry(r_frame, width=8)
+        self.ent_area_radius.pack(side="left")
+        tk.Button(r_frame, text="-250", bg="#182c40", fg="#00ffcc", font=("Consolas", 7), command=lambda: self.nudge_area_radius(-250)).pack(side="left", padx=1)
+        tk.Button(r_frame, text="+250", bg="#182c40", fg="#00ffcc", font=("Consolas", 7), command=lambda: self.nudge_area_radius(250)).pack(side="left", padx=1)
+
+        tk.Label(self.area_insp, text="Theme Color:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=2, column=0, sticky="w")
+        self.cb_area_color = ttk.Combobox(self.area_insp, values=["#00e5ff", "#00ff66", "#ffaa00", "#ff00aa", "#3388ff", "#ffff00"], state="readonly", width=14)
+        self.cb_area_color.grid(row=2, column=1, sticky="w", padx=4, pady=2)
+        self.cb_area_color.set("#00e5ff")
+
+        btn_save_area = tk.Button(self.area_insp, text="Apply Area Changes", bg="#1a3248", fg="#00ffcc", font=("Consolas", 8, "bold"),
+                                  command=self.update_area_from_form)
+        btn_save_area.grid(row=2, column=3, sticky="e", padx=4, pady=2)
+
+        # 3. Triggers List Box
         box_trigs = tk.LabelFrame(frame, text=" Scripted Triggers & Story Events ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=6)
         box_trigs.pack(fill="x", pady=4)
 
         t_btns = tk.Frame(box_trigs, bg="#101c2b")
         t_btns.pack(fill="x")
         tk.Button(t_btns, text="+ Dialogue", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.add_dialogue_trigger).pack(side="left", padx=2)
+        tk.Button(t_btns, text="+ Area Trigger", bg="#1a3848", fg="#00e5ff", font=("Consolas", 8, "bold"), command=self.add_area_trigger).pack(side="left", padx=2)
         tk.Button(t_btns, text="+ Fade to Black", bg="#122538", fg="#00eeff", font=("Consolas", 8, "bold"), command=self.add_fade_trigger).pack(side="left", padx=2)
+        tk.Button(t_btns, text="+ Scripted End", bg="#123542", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.add_scripted_end_trigger).pack(side="left", padx=2)
         tk.Button(t_btns, text="+ Nuke", bg="#3a2818", fg="#ffaa00", font=("Consolas", 8, "bold"), command=self.add_nuke_trigger).pack(side="left", padx=2)
         tk.Button(t_btns, text="+ Explode", bg="#4a1818", fg="#ff8888", font=("Consolas", 8), command=self.add_explode_trigger).pack(side="left", padx=2)
         tk.Button(t_btns, text="Duplicate", bg="#1f3b58", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.duplicate_trigger).pack(side="left", padx=2)
@@ -555,7 +754,7 @@ class MissionEditorApp(tk.Tk):
         self.trigs_listbox.pack(fill="x", pady=4)
         self.trigs_listbox.bind("<<ListboxSelect>>", self.on_select_trigger_item)
 
-        # 3. Trigger & Dialogue Action Inspector
+        # 4. Trigger & Dialogue Action Inspector
         self.trig_insp = tk.LabelFrame(frame, text=" Trigger & Action Inspector ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=8)
         self.trig_insp.pack(fill="x", pady=6)
 
@@ -564,7 +763,7 @@ class MissionEditorApp(tk.Tk):
         self.ent_trig_name.grid(row=0, column=1, sticky="w", padx=4, pady=2)
 
         tk.Label(self.trig_insp, text="Condition Event:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=0, column=2, sticky="w")
-        self.cb_trig_event = ttk.Combobox(self.trig_insp, values=TRIGGER_EVENTS, state="readonly", width=16)
+        self.cb_trig_event = ttk.Combobox(self.trig_insp, values=TRIGGER_EVENTS, state="readonly", width=18)
         self.cb_trig_event.grid(row=0, column=3, sticky="w", padx=4, pady=2)
 
         tk.Label(self.trig_insp, text="Action Type:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=1, column=0, sticky="w")
@@ -588,43 +787,224 @@ class MissionEditorApp(tk.Tk):
         self.ent_dia_dur = ttk.Entry(self.trig_insp, width=8)
         self.ent_dia_dur.grid(row=3, column=3, sticky="w", padx=4, pady=2)
 
-        tk.Label(self.trig_insp, text="Dialogue Text:", bg="#101c2b", fg="#00ffcc", font=("Consolas", 9, "bold")).grid(row=4, column=0, sticky="nw", pady=4)
-        self.txt_dia_body = tk.Text(self.trig_insp, height=3, width=44, bg="#132030", fg="#ffffff", font=("Consolas", 9))
-        self.txt_dia_body.grid(row=4, column=1, columnspan=3, sticky="w", padx=4, pady=4)
+        # Portrait row with preview canvas
+        tk.Label(self.trig_insp, text="Portrait Image:", bg="#101c2b", fg="#00ffcc", font=("Consolas", 9, "bold")).grid(row=4, column=0, sticky="w")
+        port_frame = tk.Frame(self.trig_insp, bg="#101c2b")
+        port_frame.grid(row=4, column=1, columnspan=2, sticky="w", padx=4, pady=2)
+        self.ent_dia_portrait = ttk.Entry(port_frame, width=24)
+        self.ent_dia_portrait.pack(side="left")
+        self.ent_dia_portrait.bind("<KeyRelease>", lambda e: self.update_portrait_preview())
+        tk.Button(port_frame, text="Browse...", bg="#1a2e44", fg="#00ffcc", font=("Consolas", 8), command=self.browse_portrait).pack(side="left", padx=3)
+        tk.Button(port_frame, text="Clear", bg="#3a1a1a", fg="#ff8888", font=("Consolas", 8), command=self.clear_portrait).pack(side="left")
 
-        # Action parameters (target unit ID, coordinates for Nuke or Path)
-        tk.Label(self.trig_insp, text="Target Unit ID:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=5, column=0, sticky="w")
+        # Portrait thumbnail preview canvas
+        self.dia_portrait_canvas = tk.Canvas(self.trig_insp, width=64, height=64, bg="#05121a", highlightthickness=1, highlightbackground="#00ff66")
+        self.dia_portrait_canvas.grid(row=4, column=3, rowspan=2, sticky="w", padx=6, pady=2)
+
+        tk.Label(self.trig_insp, text="Dialogue Text:", bg="#101c2b", fg="#00ffcc", font=("Consolas", 9, "bold")).grid(row=5, column=0, sticky="nw", pady=4)
+        self.txt_dia_body = tk.Text(self.trig_insp, height=3, width=38, bg="#132030", fg="#ffffff", font=("Consolas", 9))
+        self.txt_dia_body.grid(row=5, column=1, columnspan=2, sticky="w", padx=4, pady=4)
+
+        # Row 6: Area Target / Trigger Zone Selector & Target Unit ID
+        tk.Label(self.trig_insp, text="Area (Zone/Target):", bg="#101c2b", fg="#00e5ff", font=("Consolas", 9, "bold")).grid(row=6, column=0, sticky="w")
+        self.cb_trig_area = ttk.Combobox(self.trig_insp, values=[], state="readonly", width=22)
+        self.cb_trig_area.grid(row=6, column=1, sticky="w", padx=4, pady=2)
+
+        tk.Label(self.trig_insp, text="Target Unit ID:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=6, column=2, sticky="w")
         self.ent_act_target = ttk.Entry(self.trig_insp, width=16)
-        self.ent_act_target.grid(row=5, column=1, sticky="w", padx=4, pady=2)
+        self.ent_act_target.grid(row=6, column=3, sticky="w", padx=4, pady=2)
 
-        tk.Label(self.trig_insp, text="Action X / Y:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=5, column=2, sticky="w")
+        tk.Label(self.trig_insp, text="Action X / Y:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=7, column=0, sticky="w")
         xy_frame = tk.Frame(self.trig_insp, bg="#101c2b")
-        xy_frame.grid(row=5, column=3, sticky="w", padx=4)
+        xy_frame.grid(row=7, column=1, sticky="w", padx=4)
         self.ent_act_x = ttk.Entry(xy_frame, width=7)
         self.ent_act_x.pack(side="left")
         self.ent_act_y = ttk.Entry(xy_frame, width=7)
         self.ent_act_y.pack(side="left", padx=2)
 
         # Fade to Black / Sector Transition fields
-        tk.Label(self.trig_insp, text="Sector Title:", bg="#101c2b", fg="#00e5ff", font=("Consolas", 9)).grid(row=6, column=0, sticky="w")
-        self.ent_fade_title = ttk.Entry(self.trig_insp, width=20)
-        self.ent_fade_title.grid(row=6, column=1, sticky="w", padx=4, pady=2)
+        tk.Label(self.trig_insp, text="Sector Title:", bg="#101c2b", fg="#00e5ff", font=("Consolas", 9)).grid(row=7, column=2, sticky="w")
+        self.ent_fade_title = ttk.Entry(self.trig_insp, width=16)
+        self.ent_fade_title.grid(row=7, column=3, sticky="w", padx=4, pady=2)
 
-        tk.Label(self.trig_insp, text="Subtitle / Time:", bg="#101c2b", fg="#00e5ff", font=("Consolas", 9)).grid(row=6, column=2, sticky="w")
+        tk.Label(self.trig_insp, text="Subtitle / Time:", bg="#101c2b", fg="#00e5ff", font=("Consolas", 9)).grid(row=8, column=0, sticky="w")
         self.ent_fade_subtitle = ttk.Entry(self.trig_insp, width=20)
-        self.ent_fade_subtitle.grid(row=6, column=3, sticky="w", padx=4, pady=2)
+        self.ent_fade_subtitle.grid(row=8, column=1, sticky="w", padx=4, pady=2)
 
-        tk.Label(self.trig_insp, text="Spawn Unit IDs:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=7, column=0, sticky="w")
-        self.ent_fade_spawn = ttk.Entry(self.trig_insp, width=20)
-        self.ent_fade_spawn.grid(row=7, column=1, sticky="w", padx=4, pady=2)
+        tk.Label(self.trig_insp, text="Spawn Unit IDs:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=8, column=2, sticky="w")
+        self.ent_fade_spawn = ttk.Entry(self.trig_insp, width=16)
+        self.ent_fade_spawn.grid(row=8, column=3, sticky="w", padx=4, pady=2)
 
-        tk.Label(self.trig_insp, text="Despawn IDs:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=7, column=2, sticky="w")
+        tk.Label(self.trig_insp, text="Despawn IDs:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=9, column=0, sticky="w")
         self.ent_fade_despawn = ttk.Entry(self.trig_insp, width=20)
-        self.ent_fade_despawn.grid(row=7, column=3, sticky="w", padx=4, pady=2)
+        self.ent_fade_despawn.grid(row=9, column=1, sticky="w", padx=4, pady=2)
 
         btn_save_trig = tk.Button(self.trig_insp, text="Apply Trigger Changes", bg="#1a3248", fg="#00ffcc", font=("Consolas", 9, "bold"),
                                   command=self.update_trigger_from_form)
-        btn_save_trig.grid(row=8, column=2, columnspan=2, sticky="e", padx=4, pady=6)
+        btn_save_trig.grid(row=9, column=2, columnspan=2, sticky="e", padx=4, pady=6)
+
+    # ----------------------------------------------------
+    # MISSION MODE & LOADOUT MANAGEMENT
+    # ----------------------------------------------------
+    def on_mission_type_changed(self, event=None):
+        m_type = self.cb_mission_type.get()
+        self.mission["missionType"] = m_type
+        if m_type == "multiplayer":
+            if hasattr(self, "var_no_respawn"):
+                self.var_no_respawn.set(False)
+            self.lbl_mode_badge.config(text="[ MULTIPLAYER COMBAT THEATER ]", fg="#00e5ff")
+            self.lbl_mp_players.grid()
+            self.spin_player_count.grid()
+            self.btn_gen_spawns.grid()
+            self.lbl_spawns_status.grid()
+            self.lbl_sp_loadout.grid_remove()
+            self.cb_loadout_mode.grid_remove()
+            self.f_forced_loadout.grid_remove()
+            self.chk_no_respawn.grid_remove()
+            if hasattr(self, "chk_cond_no_respawn"):
+                self.chk_cond_no_respawn.pack_forget()
+            self.lbl_mode_notes.config(
+                text="* MULTIPLAYER RULES: Always uses player's equipped hangar aircraft & loadout. Requires spawns for all players, plus at least 1 valid win and 1 lose condition.",
+                fg="#00e5ff"
+            )
+        else:
+            self.lbl_mode_badge.config(text="[ SINGLEPLAYER CAMPAIGN / SORTIE ]", fg="#00ff66")
+            self.lbl_mp_players.grid_remove()
+            self.spin_player_count.grid_remove()
+            self.btn_gen_spawns.grid_remove()
+            self.lbl_spawns_status.grid_remove()
+            self.lbl_sp_loadout.grid()
+            self.cb_loadout_mode.grid()
+            self.chk_no_respawn.grid()
+            if hasattr(self, "chk_cond_no_respawn"):
+                self.chk_cond_no_respawn.pack(side="left", padx=4)
+            self.on_loadout_mode_changed()
+            self.lbl_mode_notes.config(
+                text="* SINGLEPLAYER RULES: Can use player loadout or force a specific plane/loadout. Can end with scripted ending (Trigger: SCRIPTED_END) without real win/loss (win/loss also ends mission if configured).",
+                fg="#88a898"
+            )
+        self.update_spawns_status()
+        self.update_conditions_notes()
+        self.redraw_canvas()
+
+    def on_loadout_mode_changed(self, event=None):
+        if self.cb_loadout_mode.get() == "Forced Aircraft & Loadout":
+            self.f_forced_loadout.grid()
+        else:
+            self.f_forced_loadout.grid_remove()
+
+    def on_player_count_changed(self, event=None):
+        self.update_spawns_status()
+        self.redraw_canvas()
+
+    def update_spawns_status(self):
+        if not hasattr(self, "cb_mission_type"): return
+        is_mp = (self.cb_mission_type.get() == "multiplayer")
+        spawns = self.mission.get("units", {}).get("playerSpawns", [])
+        if is_mp:
+            try:
+                req = int(self.spin_player_count.get() or "4")
+            except Exception:
+                req = 4
+            cur = len(spawns)
+            if cur >= req:
+                self.lbl_spawns_status.config(text=f"Spawns: {cur}/{req} [READY]", fg="#00ff66")
+            else:
+                self.lbl_spawns_status.config(text=f"Spawns: {cur}/{req} [NEEDS {req - cur} MORE]", fg="#ff4444")
+        else:
+            self.lbl_spawns_status.config(text=f"Spawns: {len(spawns)} [SP Primary]", fg="#00ffcc")
+
+    def update_conditions_notes(self, event=None):
+        if not hasattr(self, "cb_mission_type"): return
+        is_mp = (self.cb_mission_type.get() == "multiplayer")
+        try:
+            req_kills = int(self.ent_win_kills.get().strip() or "0")
+        except ValueError:
+            req_kills = 0
+        try:
+            time_lim = int(self.ent_lose_time.get().strip() or "0")
+        except ValueError:
+            time_lim = 0
+
+        has_win = bool(self.var_win_all_primary.get()) or (req_kills > 0)
+        has_lose = bool(self.var_lose_destroyed.get()) or (time_lim > 0)
+
+        if is_mp:
+            if has_win and has_lose:
+                self.lbl_conds_status.config(text="[OK] Multiplayer Win & Lose conditions verified and active.", fg="#00ff66")
+            else:
+                missing = []
+                if not has_win: missing.append("Win Condition")
+                if not has_lose: missing.append("Lose Condition")
+                self.lbl_conds_status.config(text=f"[!] MULTIPLAYER ERROR: Missing required {', '.join(missing)}.", fg="#ff4444")
+        else:
+            if hasattr(self, "var_no_respawn") and self.var_no_respawn.get():
+                self.lbl_conds_status.config(text="[SP - NO RESPAWN] Strict sortie mode: Mission fails immediately upon pilot shootdown or crash.", fg="#ff6666")
+            elif has_win or has_lose:
+                self.lbl_conds_status.config(text="[SP] Formal Win/Lose conditions active (will conclude mission upon trigger).", fg="#88b0a0")
+            else:
+                self.lbl_conds_status.config(text="[SP] Free-flight / Scripted ending mode. Conclude via trigger action 'SCRIPTED_END'.", fg="#00e5ff")
+
+    def auto_generate_player_spawns(self):
+        try:
+            count = int(self.spin_player_count.get() if hasattr(self, "spin_player_count") else 4)
+        except Exception:
+            count = 4
+        count = max(2, min(16, count))
+
+        spawns = self.mission.get("units", {}).get("playerSpawns", [])
+        base_x = spawns[0].get("x", 0.0) if spawns else 0.0
+        base_y = spawns[0].get("y", 0.0) if spawns else 0.0
+        base_heading = spawns[0].get("heading", -0.785) if spawns else -0.785
+        base_speed = spawns[0].get("speed", 335) if spawns else 335
+
+        perp_heading = base_heading + math.pi / 2
+
+        new_spawns = []
+        for i in range(count):
+            slot_num = i + 1
+            step = (i + 1) // 2 * (1 if i % 2 == 1 else -1)
+            lat_dist = step * 180.0
+            long_dist = -abs(step) * 60.0
+
+            px = base_x + math.cos(perp_heading) * lat_dist + math.cos(base_heading) * long_dist
+            py = base_y + math.sin(perp_heading) * lat_dist + math.sin(base_heading) * long_dist
+
+            new_spawns.append({
+                "id": f"spawn_p{slot_num}",
+                "team": "friendly",
+                "x": round(px, 1),
+                "y": round(py, 1),
+                "heading": round(base_heading, 3),
+                "speed": base_speed,
+                "altitude": 1.0,
+                "isPrimary": (i == 0),
+                "allowedTags": []
+            })
+
+        self.mission["units"]["playerSpawns"] = new_spawns
+        self.populate_form_from_mission()
+        self.redraw_canvas()
+        messagebox.showinfo("Spawns Generated", f"Generated {count} tactical formation player spawns for multiplayer.")
+
+    def add_scripted_end_trigger(self):
+        trigs = self.mission["dynamics"].setdefault("triggers", [])
+        new_trig = {
+            "id": f"trig_end_{len(trigs) + 1}",
+            "name": f"Scripted Mission Ending #{len(trigs) + 1}",
+            "event": "ON_START",
+            "actions": [
+                {
+                    "type": "SCRIPTED_END",
+                    "title": "OPERATION CONCLUDED",
+                    "text": "HQ // Tactical sortie objectives completed. RTB approved.",
+                    "fadeTime": 2.0
+                }
+            ]
+        }
+        trigs.append(new_trig)
+        self.selected_trigger_idx = len(trigs) - 1
+        self.populate_form_from_mission()
 
     # ----------------------------------------------------
     # DATA POPULATION & SYNCHRONIZATION
@@ -636,6 +1016,25 @@ class MissionEditorApp(tk.Tk):
 
         self.ent_mission_id.delete(0, tk.END)
         self.ent_mission_id.insert(0, str(m.get("id", "test_flight")))
+
+        # Mission Mode & Loadout Synchronization
+        m_type = self.mission.get("missionType", "singleplayer")
+        self.cb_mission_type.set(m_type)
+
+        p_count = self.mission.get("playerCount", 4 if m_type == "multiplayer" else 1)
+        self.spin_player_count.delete(0, tk.END)
+        self.spin_player_count.insert(0, str(p_count))
+
+        loadout = self.mission.get("loadout", {})
+        l_mode = loadout.get("mode", "player")
+        if l_mode == "forced":
+            self.cb_loadout_mode.set("Forced Aircraft & Loadout")
+            self.cb_forced_plane.set(loadout.get("aircraft", "f15c"))
+            self.cb_forced_spw.set(loadout.get("specialWeapon", "qaam"))
+        else:
+            self.cb_loadout_mode.set("Player Loadout")
+
+        self.on_mission_type_changed()
 
         # Return Line settings
         rl = m.get("returnLine", {})
@@ -656,9 +1055,9 @@ class MissionEditorApp(tk.Tk):
         # Spawns list
         u = self.mission.get("units", {})
         self.spawns_listbox.delete(0, tk.END)
-        for s in u.get("playerSpawns", []):
+        for i, s in enumerate(u.get("playerSpawns", [])):
             prim = "[PRIMARY]" if s.get("isPrimary") else ""
-            self.spawns_listbox.insert(tk.END, f"{s.get('id')} {prim} | ({int(s.get('x',0))}, {int(s.get('y',0))})")
+            self.spawns_listbox.insert(tk.END, f"P{i+1} {s.get('id')} {prim} | ({int(s.get('x',0))}, {int(s.get('y',0))})")
 
         # Units list
         self.units_listbox.delete(0, tk.END)
@@ -677,6 +1076,34 @@ class MissionEditorApp(tk.Tk):
         self.objs_listbox.delete(0, tk.END)
         for o in d.get("objectives", []):
             self.objs_listbox.insert(tk.END, f"OBJ: {o.get('title')} ({o.get('type')})")
+
+        # Win & Lose conditions
+        wc = d.get("winConditions", {})
+        self.var_win_all_primary.set(bool(wc.get("allPrimaryComplete", True)))
+        self.ent_win_kills.delete(0, tk.END)
+        self.ent_win_kills.insert(0, str(wc.get("requiredKills", 0)))
+
+        lc = d.get("loseConditions", {})
+        self.var_lose_destroyed.set(bool(lc.get("playerDestroyed", True)))
+        self.ent_lose_time.delete(0, tk.END)
+        self.ent_lose_time.insert(0, str(lc.get("timeLimit", 0)))
+
+        no_resp = bool(self.mission.get("noRespawn", False) or lc.get("noRespawn", False))
+        if hasattr(self, "var_no_respawn"):
+            self.var_no_respawn.set(no_resp)
+
+        self.update_conditions_notes()
+        self.update_spawns_status()
+
+        # Operational Areas
+        areas = d.setdefault("areas", [])
+        self.areas_listbox.delete(0, tk.END)
+        for a in areas:
+            self.areas_listbox.insert(tk.END, f"{a.get('id', 'area').ljust(12)} | {a.get('name', 'Area')} [R={int(a.get('radius', 2000))}m]")
+
+        # Update Area Combobox values in trigger inspector
+        area_vals = [f"{a['id']} - {a.get('name', 'Area')}" for a in areas]
+        self.cb_trig_area["values"] = area_vals
 
         self.trigs_listbox.delete(0, tk.END)
         for tr in d.get("triggers", []):
@@ -716,6 +1143,12 @@ class MissionEditorApp(tk.Tk):
                         self.units_listbox.selection_set(list_idx)
                         self.units_listbox.activate(list_idx)
                         self.units_listbox.see(list_idx)
+            elif layer == "dynamics" and kind == "area":
+                if s_idx < len(areas):
+                    self.areas_listbox.selection_clear(0, tk.END)
+                    self.areas_listbox.selection_set(s_idx)
+                    self.areas_listbox.activate(s_idx)
+                    self.areas_listbox.see(s_idx)
 
         # Restore trigger selection
         if self.selected_trigger_idx is not None and self.selected_trigger_idx < len(d.get("triggers", [])):
@@ -867,8 +1300,8 @@ class MissionEditorApp(tk.Tk):
 
     def on_select_trigger_item(self, event):
         sel = self.trigs_listbox.curselection()
-        if not sel: return
-        idx = sel[0]
+        idx = sel[0] if sel else self.selected_trigger_idx
+        if idx is None: return
         self.selected_trigger_idx = idx
         trigs = self.mission["dynamics"].get("triggers", [])
         if idx < len(trigs):
@@ -894,8 +1327,24 @@ class MissionEditorApp(tk.Tk):
             self.ent_dia_dur.delete(0, tk.END)
             self.ent_dia_dur.insert(0, str(d_source.get("duration", 5.5)))
 
+            port_val = d_source.get("portrait", "")
+            self.ent_dia_portrait.delete(0, tk.END)
+            self.ent_dia_portrait.insert(0, str(port_val))
+            self.update_portrait_preview()
+
             self.txt_dia_body.delete("1.0", tk.END)
             self.txt_dia_body.insert("1.0", str(d_source.get("text", "")))
+
+            # Area association
+            trig_area = trig.get("areaId") or act.get("areaId") or ""
+            matched = False
+            for val in self.cb_trig_area["values"]:
+                if trig_area and (val == trig_area or val.startswith(trig_area + " ") or val.startswith(trig_area + "-")):
+                    self.cb_trig_area.set(val)
+                    matched = True
+                    break
+            if not matched:
+                self.cb_trig_area.set(trig_area)
 
             tgt_val = trig.get("targetId") or act.get("unitId") or act.get("targetId") or ""
             self.ent_act_target.delete(0, tk.END)
@@ -916,6 +1365,14 @@ class MissionEditorApp(tk.Tk):
             self.ent_fade_despawn.delete(0, tk.END)
             self.ent_fade_despawn.insert(0, ",".join(act.get("despawnUnits", [])))
 
+            if act_type == "SCRIPTED_END":
+                self.ent_fade_title.delete(0, tk.END)
+                self.ent_fade_title.insert(0, str(act.get("title", "OPERATION CONCLUDED")))
+                self.txt_dia_body.delete("1.0", tk.END)
+                self.txt_dia_body.insert("1.0", str(act.get("text", "")))
+                self.ent_dia_dur.delete(0, tk.END)
+                self.ent_dia_dur.insert(0, str(act.get("fadeTime", 2.0)))
+
     def update_trigger_from_form(self):
         if self.selected_trigger_idx is None: return
         trigs = self.mission["dynamics"].get("triggers", [])
@@ -929,6 +1386,13 @@ class MissionEditorApp(tk.Tk):
             if trig["event"] in ["PLAYER_PROXIMITY", "TARGET_DESTROYED"] and tgt_val:
                 trig["targetId"] = tgt_val
 
+            if trig["event"] in ["PLAYER_ENTER_AREA", "UNIT_ENTER_AREA"]:
+                chosen_area = self.cb_trig_area.get().split(" ")[0].strip()
+                if chosen_area:
+                    trig["areaId"] = chosen_area
+                if trig["event"] == "UNIT_ENTER_AREA" and tgt_val:
+                    trig["unitId"] = tgt_val
+
             act_type = self.cb_act_type.get()
             act = {"type": act_type}
 
@@ -938,6 +1402,23 @@ class MissionEditorApp(tk.Tk):
                 act["squadron"] = self.ent_dia_sq.get().strip()
                 act["duration"] = float(self.ent_dia_dur.get() or 5.5)
                 act["text"] = self.txt_dia_body.get("1.0", tk.END).strip()
+                port = self.ent_dia_portrait.get().strip()
+                if port:
+                    act["portrait"] = port
+            elif act_type in ["FLY_TO_AREA", "DEFEND_AREA", "STAY_IN_AREA"]:
+                chosen_area = self.cb_trig_area.get().split(" ")[0].strip()
+                act["areaId"] = chosen_area
+                act["unitId"] = self.ent_act_target.get().strip()
+                if self.ent_act_x.get().strip():
+                    try:
+                        act["speed"] = float(self.ent_act_x.get().strip())
+                    except ValueError:
+                        pass
+            elif act_type in ["TELEPORT_TO_AREA", "TELEPORT_PLAYER", "TELEPORT_UNIT"]:
+                chosen_area = self.cb_trig_area.get().split(" ")[0].strip()
+                act["areaId"] = chosen_area
+                u_id = self.ent_act_target.get().strip()
+                act["unitId"] = u_id if u_id else ("player" if act_type != "TELEPORT_UNIT" else "")
             elif act_type == "FADE_TRANSITION":
                 act["title"] = self.ent_fade_title.get().strip()
                 act["subtitle"] = self.ent_fade_subtitle.get().strip()
@@ -960,6 +1441,13 @@ class MissionEditorApp(tk.Tk):
                 act["targetY"] = float(self.ent_act_y.get() or 0)
             elif act_type == "RADIO_MESSAGE":
                 act["text"] = self.txt_dia_body.get("1.0", tk.END).strip()
+            elif act_type == "SCRIPTED_END":
+                act["title"] = self.ent_fade_title.get().strip() or "OPERATION CONCLUDED"
+                act["text"] = self.txt_dia_body.get("1.0", tk.END).strip() or "HQ // Tactical sortie objectives completed. RTB approved."
+                try:
+                    act["fadeTime"] = float(self.ent_dia_dur.get().strip() or "2.0")
+                except ValueError:
+                    act["fadeTime"] = 2.0
 
             trig["actions"] = [act]
             self.populate_form_from_mission()
@@ -1067,7 +1555,7 @@ class MissionEditorApp(tk.Tk):
     def add_spawn_point(self, x=0, y=0):
         spawns = self.mission["units"].setdefault("playerSpawns", [])
         spawns.append({
-            "id": f"player_spawn_{len(spawns) + 1}",
+            "id": f"spawn_p{len(spawns) + 1}",
             "team": "friendly",
             "x": float(x),
             "y": float(y),
@@ -1078,6 +1566,7 @@ class MissionEditorApp(tk.Tk):
             "allowedTags": []
         })
         self.populate_form_from_mission()
+        self.update_spawns_status()
 
     def add_fade_trigger(self):
         trigs = self.mission["dynamics"].setdefault("triggers", [])
@@ -1107,8 +1596,11 @@ class MissionEditorApp(tk.Tk):
             spawns = self.mission["units"].get("playerSpawns", [])
             if idx < len(spawns):
                 del spawns[idx]
+                if spawns and not any(s.get("isPrimary") for s in spawns):
+                    spawns[0]["isPrimary"] = True
                 self.selected_item = None
                 self.populate_form_from_mission()
+                self.update_spawns_status()
 
     def add_air_unit(self, x=0, y=0):
         air = self.mission["units"].setdefault("airUnits", [])
@@ -1191,8 +1683,192 @@ class MissionEditorApp(tk.Tk):
                     "speaker": "PIXY",
                     "aircraft": "F-15C",
                     "squadron": "1ST BUDDY AIRFORCE",
+                    "portrait": "./assets/portraits/pilot_pixy.png",
                     "text": "Yo buddy, still alive?",
                     "duration": 5.5
+                }
+            ]
+        })
+        self.populate_form_from_mission()
+
+    # ----------------------------------------------------
+    # OPERATIONAL AREAS & PORTRAIT HANDLERS
+    # ----------------------------------------------------
+    def update_portrait_preview(self):
+        if not hasattr(self, "dia_portrait_canvas") or not hasattr(self, "ent_dia_portrait"):
+            return
+        path = self.ent_dia_portrait.get().strip().replace("\\", "/")
+        self.dia_portrait_canvas.delete("all")
+        w, h = 64, 64
+        self.dia_portrait_canvas.create_rectangle(2, 2, w - 2, h - 2, fill="#05121a", outline="#00ff66", width=1.5)
+
+        if not path:
+            self.dia_portrait_canvas.create_text(w // 2, h // 2, text="PILOT\nSILHOUETTE", fill="#00bb55", font=("Consolas", 7), justify="center")
+            self.portrait_preview_img = None
+            return
+
+        candidates = [
+            path,
+            os.path.join(BASE_DIR, path.lstrip("./\\")),
+            os.path.join(PORTRAITS_DIR, os.path.basename(path)),
+            os.path.join(BASE_DIR, "assets", os.path.basename(path))
+        ]
+        found = None
+        for c in candidates:
+            if os.path.isfile(c):
+                found = c
+                break
+
+        if not found:
+            self.dia_portrait_canvas.create_text(w // 2, h // 2, text="[?]\nMISSING", fill="#ff6644", font=("Consolas", 7, "bold"), justify="center")
+            self.portrait_preview_img = None
+            return
+
+        try:
+            im = Image.open(found).convert("RGBA")
+            im.thumbnail((56, 56), Image.Resampling.LANCZOS)
+            self.portrait_preview_img = ImageTk.PhotoImage(im)
+            self.dia_portrait_canvas.create_image(w // 2, h // 2, image=self.portrait_preview_img, anchor="center")
+        except Exception:
+            self.dia_portrait_canvas.create_text(w // 2, h // 2, text="ERR", fill="#ff4444", font=("Consolas", 8))
+
+    def browse_portrait(self):
+        os.makedirs(PORTRAITS_DIR, exist_ok=True)
+        f = filedialog.askopenfilename(initialdir=PORTRAITS_DIR, filetypes=[("Images", "*.png;*.jpg;*.jpeg;*.webp"), ("All Files", "*.*")])
+        if f:
+            rel = os.path.relpath(f, BASE_DIR).replace("\\", "/")
+            if not rel.startswith("./") and not rel.startswith("../"):
+                rel = "./" + rel
+            self.ent_dia_portrait.delete(0, tk.END)
+            self.ent_dia_portrait.insert(0, rel)
+            self.update_portrait_preview()
+
+    def clear_portrait(self):
+        self.ent_dia_portrait.delete(0, tk.END)
+        self.update_portrait_preview()
+
+    def add_area(self, wx, wy, radius=2000.0, name=None):
+        areas = self.mission["dynamics"].setdefault("areas", [])
+        new_num = len(areas) + 1
+        new_area = {
+            "id": f"area_{new_num}",
+            "name": name or f"Zone {new_num}",
+            "x": round(float(wx), 1),
+            "y": round(float(wy), 1),
+            "radius": round(float(radius), 1),
+            "color": "#00e5ff"
+        }
+        areas.append(new_area)
+        self.mission["map"]["areas"] = areas
+        self.populate_form_from_mission()
+        self.select_area(len(areas) - 1)
+        self.redraw_canvas()
+        self.status_bar.config(text=f"Placed Area '{new_area['name']}' at ({new_area['x']}m, {new_area['y']}m) Radius={int(new_area['radius'])}m")
+
+    def add_new_area_button(self):
+        self.add_area(round(self.cam_x, 1), round(self.cam_y, 1))
+
+    def select_area(self, idx):
+        areas = self.mission["dynamics"].setdefault("areas", [])
+        if idx >= len(areas): return
+        area = areas[idx]
+        self.selected_item = ("dynamics", "area", idx)
+        self.selected_area_idx = idx
+        self.selected_vertex_idx = None
+
+        self.terrain_listbox.selection_clear(0, tk.END)
+        self.spawns_listbox.selection_clear(0, tk.END)
+        self.units_listbox.selection_clear(0, tk.END)
+
+        if hasattr(self, "areas_listbox"):
+            self.areas_listbox.selection_clear(0, tk.END)
+            self.areas_listbox.selection_set(idx)
+            self.areas_listbox.activate(idx)
+            self.areas_listbox.see(idx)
+
+        self.ent_area_id.delete(0, tk.END)
+        self.ent_area_id.insert(0, str(area.get("id", f"area_{idx+1}")))
+        self.ent_area_name.delete(0, tk.END)
+        self.ent_area_name.insert(0, str(area.get("name", f"Zone {idx+1}")))
+        self.ent_area_x.delete(0, tk.END)
+        self.ent_area_x.insert(0, str(int(area.get("x", 0))))
+        self.ent_area_y.delete(0, tk.END)
+        self.ent_area_y.insert(0, str(int(area.get("y", 0))))
+        self.ent_area_radius.delete(0, tk.END)
+        self.ent_area_radius.insert(0, str(int(area.get("radius", 2000))))
+        self.cb_area_color.set(area.get("color", "#00e5ff"))
+        self.redraw_canvas()
+
+    def on_select_area_item(self, event=None):
+        sel = self.areas_listbox.curselection()
+        if not sel: return
+        self.select_area(sel[0])
+
+    def update_area_from_form(self):
+        if self.selected_area_idx is None: return
+        areas = self.mission["dynamics"].setdefault("areas", [])
+        if self.selected_area_idx < len(areas):
+            area = areas[self.selected_area_idx]
+            area["id"] = self.ent_area_id.get().strip() or area.get("id", "area_1")
+            area["name"] = self.ent_area_name.get().strip() or "Unnamed Area"
+            try:
+                area["x"] = round(float(self.ent_area_x.get().strip()), 1)
+                area["y"] = round(float(self.ent_area_y.get().strip()), 1)
+                area["radius"] = max(100.0, round(float(self.ent_area_radius.get().strip()), 1))
+            except ValueError:
+                pass
+            area["color"] = self.cb_area_color.get().strip() or "#00e5ff"
+            self.populate_form_from_mission()
+            self.redraw_canvas()
+            self.status_bar.config(text=f"Updated Area '{area['name']}' [R={int(area['radius'])}m]")
+
+    def nudge_area_radius(self, delta):
+        if self.selected_area_idx is None: return
+        areas = self.mission["dynamics"].setdefault("areas", [])
+        if self.selected_area_idx < len(areas):
+            area = areas[self.selected_area_idx]
+            current_r = float(area.get("radius", 2000.0))
+            area["radius"] = max(100.0, round(current_r + delta, 1))
+            self.ent_area_radius.delete(0, tk.END)
+            self.ent_area_radius.insert(0, str(int(area["radius"])))
+            self.redraw_canvas()
+
+    def duplicate_area(self):
+        if self.selected_area_idx is None: return
+        areas = self.mission["dynamics"].setdefault("areas", [])
+        if self.selected_area_idx < len(areas):
+            src = copy.deepcopy(areas[self.selected_area_idx])
+            src["id"] = f"{src['id']}_copy"
+            src["name"] = f"{src.get('name', 'Area')} (Copy)"
+            src["x"] += 600.0
+            src["y"] += 600.0
+            areas.append(src)
+            self.populate_form_from_mission()
+            self.select_area(len(areas) - 1)
+
+    def delete_area(self):
+        if self.selected_area_idx is None: return
+        areas = self.mission["dynamics"].setdefault("areas", [])
+        if self.selected_area_idx < len(areas):
+            del areas[self.selected_area_idx]
+            self.selected_area_idx = None
+            self.selected_item = None
+            self.populate_form_from_mission()
+            self.redraw_canvas()
+
+    def add_area_trigger(self):
+        trigs = self.mission["dynamics"].setdefault("triggers", [])
+        areas = self.mission["dynamics"].get("areas", [])
+        def_area = areas[0]["id"] if areas else "area_1"
+        trigs.append({
+            "id": f"trig_area_{len(trigs) + 1}",
+            "name": f"Area Perimeter Trigger #{len(trigs) + 1}",
+            "event": "PLAYER_ENTER_AREA",
+            "areaId": def_area,
+            "actions": [
+                {
+                    "type": "RADIO_MESSAGE",
+                    "text": f"HQ // SECTOR BREACH DETECTED: {def_area.upper()}"
                 }
             ]
         })
@@ -1577,17 +2253,66 @@ class MissionEditorApp(tk.Tk):
                 self.canvas.create_oval(sx - s_rad, sy - s_rad, sx + s_rad, sy + s_rad,
                                         fill=fill_col, outline=outline_col, width=2 if is_sel else 1)
 
+        # Operational Areas & Trigger Zones (Visible in Editor, Invisible In-Game)
+        areas = self.mission.get("dynamics", {}).get("areas", [])
+        for idx, area in enumerate(areas):
+            ax, ay = area.get("x", 0), area.get("y", 0)
+            rad = area.get("radius", 2000)
+            col = area.get("color", "#00e5ff")
+            is_sel = (self.selected_item == ("dynamics", "area", idx))
+
+            sx, sy = self.world_to_screen(ax, ay)
+            s_rad = max(4, rad * self.zoom)
+
+            if is_sel:
+                self.canvas.create_oval(sx - s_rad, sy - s_rad, sx + s_rad, sy + s_rad,
+                                        outline=col, width=3)
+                self.canvas.create_oval(sx - s_rad - 2, sy - s_rad - 2, sx + s_rad + 2, sy + s_rad + 2,
+                                        outline="#ffffff", width=1, dash=(3, 3))
+            else:
+                self.canvas.create_oval(sx - s_rad, sy - s_rad, sx + s_rad, sy + s_rad,
+                                        outline=col, width=1.5, dash=(6, 4))
+
+            # Center crosshair
+            ch = 6
+            self.canvas.create_line(sx - ch, sy, sx + ch, sy, fill=col, width=1.5)
+            self.canvas.create_line(sx, sy - ch, sx, sy + ch, fill=col, width=1.5)
+
+            # Area label
+            lbl_text = f"// AREA: {area.get('name', area.get('id', 'Zone'))} [R={int(rad)}m]"
+            self.canvas.create_text(sx, sy - s_rad - 10, text=lbl_text,
+                                    fill="#ffffff" if is_sel else col, font=("Consolas", 8, "bold"))
+
+            # Radius resize handle on perimeter
+            if is_sel:
+                hx, hy = sx + s_rad, sy
+                self.canvas.create_rectangle(hx - 5, hy - 5, hx + 5, hy + 5, fill="#ffea00", outline="#000000", width=1.5)
+                self.canvas.create_text(hx + 10, hy, text="[↔ RESIZE]", fill="#ffea00", anchor="w", font=("Consolas", 8, "bold"))
+
         # 3. Layer 2: Player Spawns
+        is_mp = (self.cb_mission_type.get() == "multiplayer") if hasattr(self, "cb_mission_type") else False
+        try:
+            req_players = int(self.spin_player_count.get() or "4") if is_mp else 1
+        except Exception:
+            req_players = 4 if is_mp else 1
+
         for idx, sp in enumerate(self.mission["units"].get("playerSpawns", [])):
             sx, sy = self.world_to_screen(sp.get("x", 0), sp.get("y", 0))
             is_sel = (self.selected_item == ("units", "spawn", idx))
-            col = "#00ffcc" if is_sel else "#00ff66"
-            self.canvas.create_oval(sx - 6, sy - 6, sx + 6, sy + 6, fill=col, outline="#ffffff")
+            is_extra = is_mp and (idx >= req_players)
+
+            col = "#00e5ff" if is_sel else ("#669988" if is_extra else "#00ff66")
+            r = 7 if sp.get("isPrimary") else 5
+            self.canvas.create_oval(sx - r, sy - r, sx + r, sy + r, fill=col, outline="#ffffff")
             hd = sp.get("heading", 0)
-            hx = sx + math.cos(hd) * 18
-            hy = sy + math.sin(hd) * 18
+            hx = sx + math.cos(hd) * 20
+            hy = sy + math.sin(hd) * 20
             self.canvas.create_line(sx, sy, hx, hy, fill=col, width=2, arrow=tk.LAST)
-            self.canvas.create_text(sx, sy - 10, text=f"P-SPAWN {idx+1}", fill=col, font=("Consolas", 8, "bold"))
+
+            slot_label = f"P{idx+1} [LEAD]" if (sp.get("isPrimary") or idx == 0) else f"P{idx+1}"
+            if is_extra:
+                slot_label += " (RESERVE)"
+            self.canvas.create_text(sx, sy - 12, text=slot_label, fill=col, font=("Consolas", 8, "bold"))
 
         # 4. Layer 2: Air Units
         for idx, a in enumerate(self.mission["units"].get("airUnits", [])):
@@ -1747,9 +2472,27 @@ class MissionEditorApp(tk.Tk):
         elif self.tool_mode == "nuke":
             self.add_nuke_trigger(wx, wy)
             return
+        elif self.tool_mode == "area":
+            self.add_area(wx, wy)
+            return
 
         # Select Tool: Click to select entity based on current active layer
         layer = self.get_active_layer()
+
+        # Check if clicking on perimeter resize handle of currently selected area (Layer 3)
+        if self.selected_item and self.selected_item[0] == "dynamics" and self.selected_item[1] == "area":
+            a_idx = self.selected_item[2]
+            areas = self.mission.get("dynamics", {}).get("areas", [])
+            if a_idx < len(areas):
+                a = areas[a_idx]
+                asx, asy = self.world_to_screen(a.get("x", 0), a.get("y", 0))
+                s_rad = max(4, a.get("radius", 2000) * self.zoom)
+                hx, hy = asx + s_rad, asy
+                if math.hypot(event.x - hx, event.y - hy) <= 14:
+                    self.dragging_area_resize = True
+                    self.drag_start = (event.x, event.y)
+                    self.status_bar.config(text=f"Resizing Area '{a.get('name')}' - Drag outward/inward to resize radius.")
+                    return
 
         # Check if clicking on vertex handle of currently selected polygon island (Layer 1 only)
         if layer == "map" and self.selected_item and self.selected_item[1] == "island":
@@ -1860,8 +2603,32 @@ class MissionEditorApp(tk.Tk):
             self.terrain_listbox.selection_clear(0, tk.END)
             self.redraw_canvas()
 
+        elif layer == "dynamics":
+            areas = self.mission.get("dynamics", {}).get("areas", [])
+            hit_area = None
+            min_area_rad = float("inf")
+            for idx, a in enumerate(areas):
+                d = math.hypot(wx - a.get("x", 0), wy - a.get("y", 0))
+                rad = a.get("radius", 2000)
+                asx, asy = self.world_to_screen(a.get("x", 0), a.get("y", 0))
+                screen_d = math.hypot(event.x - asx, event.y - asy)
+                s_rad = max(4, rad * self.zoom)
+                if d <= rad or abs(screen_d - s_rad) <= 14:
+                    if rad < min_area_rad:
+                        min_area_rad = rad
+                        hit_area = idx
+            if hit_area is not None:
+                self.select_area(hit_area)
+                self.drag_start = (event.x, event.y)
+                return
+            self.selected_item = None
+            self.selected_area_idx = None
+            if hasattr(self, "areas_listbox"):
+                self.areas_listbox.selection_clear(0, tk.END)
+            self.redraw_canvas()
+
         else:
-            # Layer 3 or other
+            # Other layers
             self.selected_item = None
             self.selected_vertex_idx = None
             self.redraw_canvas()
@@ -1870,7 +2637,21 @@ class MissionEditorApp(tk.Tk):
         if not self.drag_start: return
         wx, wy = self.screen_to_world(event.x, event.y)
 
-        # Move selected vertex of polygon island
+        # 1. Resize selected area radius via perimeter handle
+        if self.dragging_area_resize and self.selected_item and self.selected_item[1] == "area":
+            idx = self.selected_item[2]
+            areas = self.mission.get("dynamics", {}).get("areas", [])
+            if idx < len(areas):
+                area = areas[idx]
+                new_rad = max(100.0, round(math.hypot(wx - area.get("x", 0), wy - area.get("y", 0)), 0))
+                area["radius"] = new_rad
+                self.ent_area_radius.delete(0, tk.END)
+                self.ent_area_radius.insert(0, str(int(new_rad)))
+                self.redraw_canvas()
+                self.status_bar.config(text=f"Resizing Area '{area.get('name')}': Radius = {int(new_rad)}m")
+            return
+
+        # 2. Move selected vertex of polygon island
         if self.selected_item and self.selected_item[1] == "island" and self.selected_vertex_idx is not None:
             idx = self.selected_item[2]
             terrain = self.mission["map"].get("terrain", [])
@@ -1887,7 +2668,7 @@ class MissionEditorApp(tk.Tk):
                     self.redraw_canvas()
             return
 
-        # Move selected entity
+        # 3. Move selected entity (Island, Unit, or Area)
         if self.selected_item:
             layer, kind, idx = self.selected_item
             if layer == "map" and kind == "island":
@@ -1910,6 +2691,16 @@ class MissionEditorApp(tk.Tk):
                 if key in u and idx < len(u[key]):
                     u[key][idx]["x"] = round(wx, 1)
                     u[key][idx]["y"] = round(wy, 1)
+            elif layer == "dynamics" and kind == "area":
+                areas = self.mission.get("dynamics", {}).get("areas", [])
+                if idx < len(areas):
+                    area = areas[idx]
+                    area["x"] = round(wx, 1)
+                    area["y"] = round(wy, 1)
+                    self.ent_area_x.delete(0, tk.END)
+                    self.ent_area_x.insert(0, str(int(area["x"])))
+                    self.ent_area_y.delete(0, tk.END)
+                    self.ent_area_y.insert(0, str(int(area["y"])))
             self.redraw_canvas()
         else:
             dx = event.x - self.drag_start[0]
@@ -1920,6 +2711,7 @@ class MissionEditorApp(tk.Tk):
             self.redraw_canvas()
 
     def on_canvas_release(self, event):
+        self.dragging_area_resize = False
         self.drag_start = None
         self.populate_form_from_mission()
         if self.selected_item:
@@ -1934,6 +2726,16 @@ class MissionEditorApp(tk.Tk):
                     self.ent_isl_y.insert(0, str(int(isl.get("y", 0))))
                     self.ent_isl_rad.delete(0, tk.END)
                     self.ent_isl_rad.insert(0, str(int(isl.get("radius", 350))))
+            elif layer == "dynamics" and kind == "area":
+                areas = self.mission.get("dynamics", {}).get("areas", [])
+                if idx < len(areas):
+                    a = areas[idx]
+                    self.ent_area_x.delete(0, tk.END)
+                    self.ent_area_x.insert(0, str(int(a.get("x", 0))))
+                    self.ent_area_y.delete(0, tk.END)
+                    self.ent_area_y.insert(0, str(int(a.get("y", 0))))
+                    self.ent_area_radius.delete(0, tk.END)
+                    self.ent_area_radius.insert(0, str(int(a.get("radius", 2000))))
 
     # ----------------------------------------------------
     # FILE LOAD & SAVE
@@ -1950,6 +2752,7 @@ class MissionEditorApp(tk.Tk):
             try:
                 with open(m_file, "r", encoding="utf-8") as f:
                     self.mission = json.load(f)
+                self.normalize_mission_areas()
                 self.current_mission_id = mission_id
                 self.populate_form_from_mission()
                 self.fit_map_view()
@@ -1963,16 +2766,107 @@ class MissionEditorApp(tk.Tk):
             try:
                 with open(f, "r", encoding="utf-8") as jf:
                     self.mission = json.load(jf)
+                self.normalize_mission_areas()
                 self.current_mission_id = os.path.splitext(os.path.basename(f))[0]
                 self.populate_form_from_mission()
                 self.fit_map_view()
             except Exception as e:
                 messagebox.showerror("Error", str(e))
 
+    def normalize_mission_areas(self):
+        d = self.mission.setdefault("dynamics", {})
+        if "areas" not in d:
+            if "areas" in self.mission.get("map", {}):
+                d["areas"] = self.mission["map"]["areas"]
+            elif "areas" in self.mission:
+                d["areas"] = self.mission["areas"]
+            else:
+                d["areas"] = []
+        self.mission.setdefault("map", {})["areas"] = d["areas"]
+
     def save_mission(self):
         m_id = self.ent_mission_id.get().strip() or "mission_custom"
         self.mission["map"]["id"] = m_id
         self.mission["dynamics"]["meta"]["id"] = m_id
+        self.normalize_mission_areas()
+
+        m_type = self.cb_mission_type.get()
+        self.mission["missionType"] = m_type
+
+        # Dynamics win & lose conditions
+        d = self.mission.setdefault("dynamics", {})
+        wc = d.setdefault("winConditions", {})
+        wc["allPrimaryComplete"] = bool(self.var_win_all_primary.get())
+        try:
+            wc["requiredKills"] = int(self.ent_win_kills.get().strip() or "0")
+        except ValueError:
+            wc["requiredKills"] = 0
+
+        lc = d.setdefault("loseConditions", {})
+        lc["playerDestroyed"] = bool(self.var_lose_destroyed.get())
+        try:
+            lc["timeLimit"] = int(self.ent_lose_time.get().strip() or "0")
+        except ValueError:
+            lc["timeLimit"] = 0
+
+        # Validate by mission type
+        if m_type == "multiplayer":
+            self.mission["noRespawn"] = False
+            lc["noRespawn"] = False
+            try:
+                p_count = int(self.spin_player_count.get() or "4")
+            except ValueError:
+                p_count = 4
+            self.mission["playerCount"] = p_count
+
+            # Multiplayer ALWAYS uses player equipped aircraft & loadout
+            self.mission["loadout"] = {"mode": "player"}
+
+            # Requirement 1: Spawns for amount of players specified
+            spawns = self.mission.get("units", {}).get("playerSpawns", [])
+            if len(spawns) < p_count:
+                messagebox.showerror(
+                    "Multiplayer Validation Error",
+                    f"Multiplayer missions require spawns for the amount of players specified.\n\n"
+                    f"Specified Players: {p_count}\n"
+                    f"Configured Spawns: {len(spawns)}\n\n"
+                    f"Please add {p_count - len(spawns)} more spawn point(s) or click 'Auto-Generate Spawns'."
+                )
+                return
+
+            # Requirement 2: Proper Win Condition
+            has_win = wc["allPrimaryComplete"] or (wc["requiredKills"] > 0)
+            if not has_win:
+                messagebox.showerror(
+                    "Multiplayer Validation Error",
+                    "Multiplayer missions require proper game win/lose conditions.\n\n"
+                    "Please configure at least one Win Condition (e.g. check 'All Primary Objectives Completed' or set 'Target Kills' > 0)."
+                )
+                return
+
+            # Requirement 3: Proper Lose Condition
+            has_lose = lc["playerDestroyed"] or (lc["timeLimit"] > 0)
+            if not has_lose:
+                messagebox.showerror(
+                    "Multiplayer Validation Error",
+                    "Multiplayer missions require proper game win/lose conditions.\n\n"
+                    "Please configure at least one Lose Condition (e.g. check 'Player Aircraft Destroyed' or set 'Time Limit' > 0)."
+                )
+                return
+
+        else: # Singleplayer
+            self.mission["playerCount"] = 1
+            l_mode = "forced" if self.cb_loadout_mode.get() == "Forced Aircraft & Loadout" else "player"
+            self.mission["loadout"] = {
+                "mode": l_mode,
+                "aircraft": self.cb_forced_plane.get() if l_mode == "forced" else "f15c",
+                "specialWeapon": self.cb_forced_spw.get() if l_mode == "forced" else "qaam"
+            }
+            no_resp = bool(self.var_no_respawn.get()) if hasattr(self, "var_no_respawn") else False
+            self.mission["noRespawn"] = no_resp
+            lc["noRespawn"] = no_resp
+            if no_resp:
+                lc["playerDestroyed"] = True
 
         out_file = os.path.join(MISSIONS_DIR, f"{m_id}.json")
         os.makedirs(MISSIONS_DIR, exist_ok=True)

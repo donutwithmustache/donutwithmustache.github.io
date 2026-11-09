@@ -1,4 +1,11 @@
 {
+  "missionType": "singleplayer",
+  "playerCount": 1,
+  "loadout": {
+    "mode": "forced",
+    "aircraft": "f15c",
+    "specialWeapon": "qaam"
+  },
   "map": {
     "id": "tutorial",
     "name": "New Tactical Operation",
@@ -387,6 +394,16 @@
       "playerDestroyed": false,
       "timeLimit": 0
     },
+    "areas": [
+      {
+        "id": "area_training_sector",
+        "name": "Alpha Training Sector",
+        "x": 0.0,
+        "y": 0.0,
+        "radius": 2500.0,
+        "color": "#00e5ff"
+      }
+    ],
     "triggers": [
       {
         "id": "trig_start",
@@ -402,6 +419,7 @@
             "speaker": "PIXY",
             "aircraft": "F-15C",
             "squadron": "1ST BUDDY AIRFORCE",
+            "portrait": "./assets/portraits/pilot_pixy.png",
             "text": "Yo buddy, still alive?",
             "duration": 5.5
           }

@@ -1,6 +1,6 @@
-# Sky Dominion – Flight Prototype
+# Early Game Prototype. The game still has no name, but i will refer to it as Codename: Legion during this early alpha.
 
-A fast-paced top-down aerial shooter inspired by Ace Combat.
+A fast-paced top-down aerial shooter inspired by Ace Combat, using DonutBot's assets.
 
 ## Play
 

@@ -817,15 +817,15 @@
         "id": "trig_dia_1",
         "name": "Story Dialogue #1",
         "event": "TIMER",
-        "time": 10.0,
+        "time": 5.0,
         "actions": [
           {
             "type": "DIALOGUE",
             "speaker": "ASTRA",
             "aircraft": "E-767",
             "squadron": "DONUT MERCENARY LEGION",
-            "duration": 5.5,
-            "text": "10",
+            "duration": 4.0,
+            "text": "Welcome to the tutorial.",
             "portrait": "./assets/portraits/awacs_astra.png"
           }
         ]
@@ -841,12 +841,12 @@
             "speaker": "ASTRA",
             "aircraft": "E-767",
             "squadron": "DONUT MERCENARY LEGION",
-            "duration": 5.5,
-            "text": "101",
+            "duration": 5.0,
+            "text": "Great job! Now We will practice groundattack.",
             "portrait": "./assets/portraits/awacs_astra.png"
           }
         ],
-        "targetId": "Firebee Drone"
+        "targetId": "Firebee"
       },
       {
         "id": "trig_end_3",
@@ -857,10 +857,95 @@
             "type": "SCRIPTED_END",
             "title": "OPERATION CONCLUDED",
             "text": "TUTORIAL COMPLETE",
-            "fadeTime": 2.0
+            "fadeTime": 5.0
           }
         ],
-        "targetId": "Mothballed Ship"
+        "targetId": "Mothballed"
+      },
+      {
+        "id": "trig_dia_1_copy2",
+        "name": "Story Dialogue #1 (Copy)",
+        "event": "TIMER",
+        "time": 9.0,
+        "actions": [
+          {
+            "type": "DIALOGUE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767",
+            "squadron": "DONUT MERCENARY LEGION",
+            "duration": 4.0,
+            "text": "First, lets go over basic controls.",
+            "portrait": "./assets/portraits/awacs_astra.png"
+          }
+        ]
+      },
+      {
+        "id": "trig_dia_1_copy3",
+        "name": "Story Dialogue #1 (Copy 3)",
+        "event": "TIMER",
+        "time": 13.0,
+        "actions": [
+          {
+            "type": "RADIO_MESSAGE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767",
+            "squadron": "DONUT MERCENARY LEGION",
+            "duration": 12.0,
+            "text": "MOUSE TO AIM\nSHIFT/CTRL FOR THROTTLE\nZ TO EXPAND MINIMAP",
+            "portrait": "./assets/portraits/awacs_astra.png"
+          }
+        ]
+      },
+      {
+        "id": "trig_dia_1_copy4",
+        "name": "Story Dialogue #1 (Copy 4)",
+        "event": "TIMER",
+        "time": 25.0,
+        "actions": [
+          {
+            "type": "DIALOGUE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767",
+            "squadron": "DONUT MERCENARY LEGION",
+            "duration": 5.0,
+            "text": "Now that you got the hang of flying, lets talk weapons.",
+            "portrait": "./assets/portraits/awacs_astra.png"
+          }
+        ]
+      },
+      {
+        "id": "trig_dia_1_copy5",
+        "name": "Story Dialogue #1 (Copy 5)",
+        "event": "TIMER",
+        "time": 30.0,
+        "actions": [
+          {
+            "type": "DIALOGUE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767",
+            "squadron": "DONUT MERCENARY LEGION",
+            "duration": 15.0,
+            "text": "Destroy the two target drones in the North-West of the map.",
+            "portrait": "./assets/portraits/awacs_astra.png"
+          }
+        ]
+      },
+      {
+        "id": "trig_dia_1_copy6",
+        "name": "Story Dialogue #1 (Copy 6)",
+        "event": "TIMER",
+        "time": 30.0,
+        "actions": [
+          {
+            "type": "RADIO_MESSAGE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767",
+            "squadron": "DONUT MERCENARY LEGION",
+            "duration": 15.0,
+            "text": "LMB FOR GUNS\nRMB FOR TARGET LOCK\nSPACE TO FIRE MSL",
+            "portrait": "./assets/portraits/awacs_astra.png"
+          }
+        ]
       }
     ]
   },

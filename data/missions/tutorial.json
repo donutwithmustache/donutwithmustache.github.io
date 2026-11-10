@@ -1,6 +1,6 @@
 {
-  "name": "Combat Flight Training & Aerial Gunnery",
-  "location": "San Salvacion // Tactical Proving Grounds",
+  "name": "Tutorial",
+  "location": "TESTING RANGE \\\\ 130KM WEST OF DURM ARCHIPELAGO",
   "missionType": "singleplayer",
   "playerCount": 1,
   "loadout": {
@@ -10,8 +10,8 @@
   },
   "map": {
     "id": "tutorial",
-    "name": "Combat Flight Training & Aerial Gunnery",
-    "location": "San Salvacion // Tactical Proving Grounds",
+    "name": "Tutorial",
+    "location": "TESTING RANGE \\\\ 130KM WEST OF DURM ARCHIPELAGO",
     "size": 30150,
     "halfMapSize": 15075,
     "returnLine": {
@@ -819,7 +819,7 @@
       "title": "OPERATION: UNNAMED",
       "codename": "AIR-STRIKE",
       "briefing": "Mission briefing parameters...",
-      "name": "Combat Flight Training & Aerial Gunnery"
+      "name": "Tutorial"
     },
     "objectives": [
       {

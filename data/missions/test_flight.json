@@ -1,6 +1,6 @@
 {
-  "name": "Operation: Open Ocean & Archipelago",
-  "location": "Barents Strait // Archipelago 04",
+  "name": "Testing Range [Free Flight]",
+  "location": "UNKNOWN // 180KM SOUTH OF DURM ARCHIPELAGO",
   "missionType": "singleplayer",
   "playerCount": 1,
   "loadout": {
@@ -10,8 +10,8 @@
   },
   "map": {
     "id": "test_flight",
-    "name": "Operation: Open Ocean & Archipelago",
-    "location": "Barents Strait // Archipelago 04",
+    "name": "Testing Range [Free Flight]",
+    "location": "UNKNOWN // 180KM SOUTH OF DURM ARCHIPELAGO",
     "size": 30150,
     "halfMapSize": 15075.0,
     "returnLine": {
@@ -1619,7 +1619,7 @@
       "title": "OPERATION: PROVING GROUND",
       "codename": "TEST FLIGHT",
       "briefing": "Tactical weapons evaluation and flight envelope calibration. Engage live targets across the combat theater.",
-      "name": "Operation: Open Ocean & Archipelago"
+      "name": "Testing Range [Free Flight]"
     },
     "objectives": [
       {

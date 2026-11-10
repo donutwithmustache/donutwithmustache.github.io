@@ -47,7 +47,7 @@
     "ability": "cobraManeuver",
     "abilityCharges": 1,
     "maxAbilityCharges": 1,
-    "abilityRecharge": 25.0
+    "abilityRecharge": 25
   },
   "physics": {
     "mass": 16500,
@@ -55,7 +55,7 @@
     "accelAfterburner": 155,
     "airbrakeDecel": 95,
     "baseTurnRate": 2.7,
-    "turnResponse": 12.0,
+    "turnResponse": 12,
     "cornerSpeed": 275,
     "normalMinSpeed": 152.8,
     "forcedMinSpeed": 97.22,
@@ -63,19 +63,63 @@
     "cruiseSpeed": 320,
     "maxSpeed": 520,
     "compressionFactor": 0.48,
-    "maxG": 12.0,
+    "maxG": 12,
     "grip": 3.2,
     "highAlphaDrag": 75,
-    "inducedDragFactor": 12.0,
+    "inducedDragFactor": 12,
     "driftTolerance": 0.95,
-    "hasThrustVectoring": false,
     "engineCount": 2,
     "nozzleSpacing": 22,
     "wingspan": 88,
     "wingtipChord": -19,
     "length": 110,
-    "engineOffset": -48
+    "engineOffset": -48,
+    "scale": 1.05,
+    "nodes": {
+      "engines": [
+        {
+          "x": -11,
+          "y": -48
+        },
+        {
+          "x": 11,
+          "y": -48
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -43,
+          "y": -18
+        },
+        {
+          "x": 43,
+          "y": -18
+        }
+      ]
+    }
   },
-  "description": "Supreme maneuverability with thrust-vectoring agility. Equipped with QAAM/4AAM/HPAA and 36 flares."
+  "description": "Supreme maneuverability with thrust-vectoring agility. Equipped with QAAM/4AAM/HPAA and 36 flares.",
+  "scale": 1.05,
+  "nodes": {
+    "engines": [
+      {
+        "x": -11,
+        "y": -48
+      },
+      {
+        "x": 11,
+        "y": -48
+      }
+    ],
+    "wingtips": [
+      {
+        "x": -43,
+        "y": -18
+      },
+      {
+        "x": 43,
+        "y": -18
+      }
+    ]
+  }
 }
-

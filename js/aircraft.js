@@ -212,603 +212,982 @@ export const PLANE_ROLES = {
 // AIRCRAFT DEFINITIONS & UNIQUE LOADOUTS
 // ------------------------------------------
 export const AIRCRAFT_DATA = {
-  su27: {
-    id: 'su27',
-    name: 'Su-27 Flanker',
-    shortName: 'Su-27',
-    role: 'Air Superiority Fighter',
-    planeRole: 'FIGHTER',
-    tier: 5,
-    partSlots: 4,
-    cost: 220000,
-    sprite: './assets/planes/su27.png',
-    tags: ['AIR_SUPERIORITY', 'SUPERMANEUVERABLE', 'PSM', 'HEAVY_FIGHTER'],
-    
-    // Core stats (SPD is active maneuverability stat)
-    stats: {
-      spd: 92, // Maneuverability
-      def: 65,
-      air: 95,
-      gnd: 50,
-      stealth: 0
+  "su27": {
+    "id": "su27",
+    "name": "Su-27 Flanker",
+    "shortName": "Su-27",
+    "role": "Air Superiority Fighter",
+    "planeRole": "FIGHTER",
+    "tier": 5,
+    "partSlots": 4,
+    "cost": 220000,
+    "sprite": "./assets/planes/su27.png",
+    "tags": [
+      "AIR_SUPERIORITY",
+      "SUPERMANEUVERABLE",
+      "PSM",
+      "HEAVY_FIGHTER"
+    ],
+    "stats": {
+      "spd": 92,
+      "def": 65,
+      "air": 95,
+      "gnd": 50,
+      "stealth": 0
     },
-
-    // Weapons Loadout (Unique to Su-27)
-    weapons: {
-      gunAmmo: 600,             // 30mm GSh-30-1 internal cannon
-      maxGunAmmo: 600,
-      gunRpm: 1500,             // 1500 RPM heavy autocannon
-      gunDamage: 1.6,           // Balanced for ~1.5s sustained fire to kill a fighter
-      mslCount: 84,             // R-73 / Standard Missiles
-      maxMslCount: 84,
-      mslCooldown: 4.4,         // 4.4s slot recharge time (50% of previous rate)
-      flareCount: 36,           // Twin APP-50 countermeasure dispensers
-      maxFlareCount: 36,
-      flarePool: 2,             // 2 flare reload slots [||]
-      flareCooldown: 22.5,      // 22.5s slot recharge time (20% of previous rate)
-      
-      // 3 Special weapons available (only 1 equipped at a time)
-      specialWeapons: ['qaam', '4aam', 'hpaa'],
-      equippedSpecialWeapon: 'qaam',
-      spwAmmo: {
-        qaam: 24,
-        '4aam': 32,
-        hpaa: 18
+    "weapons": {
+      "gunAmmo": 600,
+      "maxGunAmmo": 600,
+      "gunRpm": 1500,
+      "gunDamage": 1.6,
+      "mslCount": 84,
+      "maxMslCount": 84,
+      "mslCooldown": 4.4,
+      "flareCount": 36,
+      "maxFlareCount": 36,
+      "flarePool": 2,
+      "flareCooldown": 22.5,
+      "specialWeapons": [
+        "qaam",
+        "4aam",
+        "hpaa"
+      ],
+      "equippedSpecialWeapon": "qaam",
+      "spwAmmo": {
+        "qaam": 24,
+        "4aam": 32,
+        "hpaa": 18
       },
-
-      // Aircraft tactical ability
-      ability: 'cobraManeuver',
-      abilityCharges: 1,
-      maxAbilityCharges: 1,
-      abilityRecharge: 25.0
+      "ability": "cobraManeuver",
+      "abilityCharges": 1,
+      "maxAbilityCharges": 1,
+      "abilityRecharge": 25
     },
-
-    // Aerodynamics & Physical Parameters
-    physics: {
-      mass: 16500,               // kg
-      accelCruise: 70,            // m/s^2 forward thrust acceleration
-      accelAfterburner: 155,      // m/s^2 punchy afterburner surge (accelerates easily through turns)
-      airbrakeDecel: 95,          // m/s^2 airbrake braking (crisp bleed into stall)
-      baseTurnRate: 2.7,          // rad/s (~155 deg/s pitch rate - supermaneuverable nose authority)
-      turnResponse: 12.0,         // Rotational agility
-      cornerSpeed: 275,           // m/s (~990 km/h physical, displays ~740 KPH)
-      normalMinSpeed: 152.8,      // m/s (550 km/h physical / 300 KPH displayed normal straight flight floor)
-      forcedMinSpeed: 97.22,      // m/s (350 km/h physical / 100 KPH displayed stall floor)
-      stallSpeed: 275,            // Displayed KPH stall threshold (readily entered upon holding airbrake)
-      cruiseSpeed: 320,           // m/s (~1152 km/h, displays ~902 KPH)
-      maxSpeed: 520,              // m/s (~1872 km/h physical, displays ~1622 KPH)
-      compressionFactor: 0.48,    // High-speed compression
-      maxG: 12.0,                 // Structural G limit
-      grip: 3.2,                  // Lateral drift decay rate at cruise
-      highAlphaDrag: 75,          // Heavy induced drag when turning without afterburner (bleeds speed into stall)
-      inducedDragFactor: 12.0,    // Low turn drag in afterburner: plane accelerates easily in turns
-      driftTolerance: 0.95,       // Outstanding high-alpha post-stall drift capability
-      engineCount: 2,
-      nozzleSpacing: 22,
-      wingspan: 88,
-      wingtipChord: -19,
-      length: 110,
-      engineOffset: -48
+    "physics": {
+      "mass": 16500,
+      "accelCruise": 70,
+      "accelAfterburner": 155,
+      "airbrakeDecel": 95,
+      "baseTurnRate": 2.7,
+      "turnResponse": 12,
+      "cornerSpeed": 275,
+      "normalMinSpeed": 152.8,
+      "forcedMinSpeed": 97.22,
+      "stallSpeed": 275,
+      "cruiseSpeed": 320,
+      "maxSpeed": 520,
+      "compressionFactor": 0.48,
+      "maxG": 12,
+      "grip": 3.2,
+      "highAlphaDrag": 75,
+      "inducedDragFactor": 12,
+      "driftTolerance": 0.95,
+      "engineCount": 2,
+      "nozzleSpacing": 22,
+      "wingspan": 88,
+      "wingtipChord": -19,
+      "length": 110,
+      "engineOffset": -48,
+      "scale": 1.05,
+      "nodes": {
+        "engines": [
+          {
+            "x": -11,
+            "y": -48
+          },
+          {
+            "x": 11,
+            "y": -48
+          }
+        ],
+        "wingtips": [
+          {
+            "x": -43,
+            "y": -18
+          },
+          {
+            "x": 43,
+            "y": -18
+          }
+        ]
+      }
     },
-    
-    description: 'Supreme maneuverability with thrust-vectoring agility. Equipped with QAAM/4AAM/HPAA and 36 flares.'
+    "description": "Supreme maneuverability with thrust-vectoring agility. Equipped with QAAM/4AAM/HPAA and 36 flares.",
+    "scale": 1.05,
+    "nodes": {
+      "engines": [
+        {
+          "x": -11,
+          "y": -48
+        },
+        {
+          "x": 11,
+          "y": -48
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -43,
+          "y": -18
+        },
+        {
+          "x": 43,
+          "y": -18
+        }
+      ]
+    }
   },
-
-  f15c: {
-    id: 'f15c',
-    name: 'F-15C Eagle',
-    shortName: 'F-15C',
-    role: 'All-Weather Air Superiority',
-    planeRole: 'FIGHTER',
-    tier: 4,
-    partSlots: 3,
-    cost: 180000,
-    sprite: './assets/planes/f15c.png',
-    tags: ['AIR_SUPERIORITY', 'HIGH_SPEED', 'SUPERCRUISE', 'HEAVY_FIGHTER'],
-    
-    // Core stats
-    stats: {
-      spd: 75, // Maneuverability
-      def: 75,
-      air: 90,
-      gnd: 40,
-      stealth: 0
+  "f15c": {
+    "id": "f15c",
+    "name": "F-15C Eagle",
+    "shortName": "F-15C",
+    "role": "All-Weather Air Superiority",
+    "planeRole": "FIGHTER",
+    "tier": 4,
+    "partSlots": 3,
+    "cost": 180000,
+    "sprite": "./assets/planes/f15c.png",
+    "tags": [
+      "AIR_SUPERIORITY",
+      "HIGH_SPEED",
+      "SUPERCRUISE",
+      "HEAVY_FIGHTER"
+    ],
+    "stats": {
+      "spd": 75,
+      "def": 75,
+      "air": 90,
+      "gnd": 40,
+      "stealth": 0
     },
-
-    // Weapons Loadout (Unique to F-15C Eagle benchmark)
-    weapons: {
-      gunAmmo: 940,             // 20mm M61A1 Vulcan cannon
-      maxGunAmmo: 940,
-      gunRpm: 4000,             // 4000 RPM high-rate rotary Gatling
-      gunDamage: 0.65,          // Balanced for ~1.4s sustained fire to kill a fighter
-      mslCount: 120,            // Standard Missiles
-      maxMslCount: 120,
-      mslCooldown: 4.4,         // 4.4s slot recharge time (50% of previous rate)
-      flareCount: 30,           // AN/ALE-45 Countermeasure Flares
-      maxFlareCount: 30,
-      flarePool: 2,             // 2 flare reload slots [||]
-      flareCooldown: 20.0,      // 20.0s slot recharge time (20% of previous rate)
-
-      // 3 Special weapons available (only 1 equipped at a time)
-      specialWeapons: ['4aam', 'saam', 'qaam'],
-      equippedSpecialWeapon: '4aam',
-      spwAmmo: {
-        '4aam': 36,
-        saam: 20,
-        qaam: 24
+    "weapons": {
+      "gunAmmo": 940,
+      "maxGunAmmo": 940,
+      "gunRpm": 4000,
+      "gunDamage": 0.65,
+      "mslCount": 120,
+      "maxMslCount": 120,
+      "mslCooldown": 4.4,
+      "flareCount": 30,
+      "maxFlareCount": 30,
+      "flarePool": 2,
+      "flareCooldown": 20,
+      "specialWeapons": [
+        "4aam",
+        "saam",
+        "qaam"
+      ],
+      "equippedSpecialWeapon": "4aam",
+      "spwAmmo": {
+        "4aam": 36,
+        "saam": 20,
+        "qaam": 24
       },
-
-      // Aircraft tactical ability
-      ability: 'emergencyAfterburner',
-      abilityCharges: 1,
-      maxAbilityCharges: 1,
-      abilityRecharge: 45.0
+      "ability": "emergencyAfterburner",
+      "abilityCharges": 1,
+      "maxAbilityCharges": 1,
+      "abilityRecharge": 45
     },
-
-    // Aerodynamics & Physical Parameters
-    physics: {
-      mass: 20200,               // kg
-      accelCruise: 62,            // m/s^2
-      accelAfterburner: 142,      // m/s^2
-      airbrakeDecel: 80,          // m/s^2
-      baseTurnRate: 2.1,          // rad/s (~120 deg/s pitch rate - balanced fighter turn radius)
-      turnResponse: 9.5,          // Crisp response
-      cornerSpeed: 290,           // m/s (~1044 km/h physical, displays ~794 KPH)
-      normalMinSpeed: 152.8,      // m/s (550 km/h physical / 300 KPH displayed normal straight flight floor)
-      forcedMinSpeed: 97.22,      // m/s (350 km/h physical / 100 KPH displayed stall floor)
-      stallSpeed: 280,            // Displayed KPH stall threshold
-      cruiseSpeed: 335,           // m/s (~1206 km/h, displays ~956 KPH)
-      maxSpeed: 541.7,            // m/s (~1950 km/h physical, displays as 1700 KPH top speed)
-      compressionFactor: 0.58,    // Noticeable compression
-      maxG: 11.5,                 // Structural G limit
-      grip: 3.0,                  // Balanced lateral grip
-      highAlphaDrag: 70,          // Heavy induced drag when turning without afterburner
-      inducedDragFactor: 10.0,    // Low turn drag in afterburner
-      driftTolerance: 0.70,
-      engineCount: 2,
-      nozzleSpacing: 20,
-      wingspan: 78,
-      wingtipChord: -16,
-      length: 104,
-      engineOffset: -46
+    "physics": {
+      "mass": 20200,
+      "accelCruise": 62,
+      "accelAfterburner": 142,
+      "airbrakeDecel": 80,
+      "baseTurnRate": 2.1,
+      "turnResponse": 9.5,
+      "cornerSpeed": 290,
+      "normalMinSpeed": 152.8,
+      "forcedMinSpeed": 97.22,
+      "stallSpeed": 280,
+      "cruiseSpeed": 335,
+      "maxSpeed": 541.7,
+      "compressionFactor": 0.58,
+      "maxG": 11.5,
+      "grip": 3,
+      "highAlphaDrag": 70,
+      "inducedDragFactor": 10,
+      "driftTolerance": 0.7,
+      "engineCount": 2,
+      "nozzleSpacing": 20,
+      "wingspan": 78,
+      "wingtipChord": -16,
+      "length": 104,
+      "engineOffset": -46,
+      "scale": 1,
+      "nodes": {
+        "engines": [
+          {
+            "x": -10,
+            "y": -46
+          },
+          {
+            "x": 10,
+            "y": -46
+          }
+        ],
+        "wingtips": [
+          {
+            "x": -42,
+            "y": -16
+          },
+          {
+            "x": 42,
+            "y": -16
+          }
+        ]
+      }
     },
-
-    description: 'The golden benchmark. Superb thrust-to-weight and energy retention. Equipped with 4AAM/SAAM/QAAM and 940 gun rounds.'
+    "description": "The golden benchmark. Superb thrust-to-weight and energy retention. Equipped with 4AAM/SAAM/QAAM and 940 gun rounds.",
+    "scale": 1,
+    "nodes": {
+      "engines": [
+        {
+          "x": -10,
+          "y": -46
+        },
+        {
+          "x": 10,
+          "y": -46
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -42,
+          "y": -16
+        },
+        {
+          "x": 42,
+          "y": -16
+        }
+      ]
+    }
   },
-
-  f111f: {
-    id: 'f111f',
-    name: 'F-111F Aardvark',
-    shortName: 'F-111F',
-    role: 'Heavy Strike Bomber / Interdictor',
-    planeRole: 'STRIKE',
-    tier: 2,
-    partSlots: 2,
-    cost: 75000,
-    sprite: './assets/planes/f111f.png',
-    tags: ['STRIKE', 'VARIABLE_GEOMETRY', 'TERRAIN_FOLLOWING', 'SUPERCRUISE'],
-    
-    // Core stats
-    stats: {
-      spd: 45, // Maneuverability
-      def: 90,
-      air: 35,
-      gnd: 98,
-      stealth: 0
+  "f111f": {
+    "id": "f111f",
+    "name": "F-111F Aardvark",
+    "shortName": "F-111F",
+    "role": "Heavy Strike Bomber / Interdictor",
+    "planeRole": "STRIKE",
+    "tier": 2,
+    "partSlots": 2,
+    "cost": 75000,
+    "sprite": "./assets/planes/f111f.png",
+    "tags": [
+      "STRIKE",
+      "VARIABLE_GEOMETRY",
+      "TERRAIN_FOLLOWING",
+      "SUPERCRUISE"
+    ],
+    "stats": {
+      "spd": 45,
+      "def": 90,
+      "air": 35,
+      "gnd": 98,
+      "stealth": 0
     },
-
-    // Weapons Loadout (Unique to F-111F Strike Interdictor)
-    weapons: {
-      gunAmmo: 1200,            // Heavy internal cannon drum
-      maxGunAmmo: 1200,
-      gunRpm: 3000,             // 3000 RPM strike strafing rate
-      gunDamage: 0.85,          // Balanced for ~1.4s sustained fire to kill a fighter
-      mslCount: 60,             // Dedicated strike bomber payload
-      maxMslCount: 60,
-      mslCooldown: 4.4,         // 4.4s slot recharge time (50% of previous rate)
-      flareCount: 48,           // Large dual dispenser pack
-      maxFlareCount: 48,
-      flarePool: 4,             // 4 flare reload slots [||||] for heavy strike bomber
-      flareCooldown: 17.5,      // 17.5s slot recharge time (20% of previous rate)
-
-      // 3 Special weapons available (only 1 equipped at a time)
-      specialWeapons: ['ugb', 'lasm', 'sffs'],
-      equippedSpecialWeapon: 'ugb',
-      spwAmmo: {
-        ugb: 44,
-        lasm: 24,
-        sffs: 32
+    "weapons": {
+      "gunAmmo": 1200,
+      "maxGunAmmo": 1200,
+      "gunRpm": 3000,
+      "gunDamage": 0.85,
+      "mslCount": 60,
+      "maxMslCount": 60,
+      "mslCooldown": 4.4,
+      "flareCount": 48,
+      "maxFlareCount": 48,
+      "flarePool": 4,
+      "flareCooldown": 17.5,
+      "specialWeapons": [
+        "ugb",
+        "lasm",
+        "sffs"
+      ],
+      "equippedSpecialWeapon": "ugb",
+      "spwAmmo": {
+        "ugb": 44,
+        "lasm": 24,
+        "sffs": 32
       },
-
-      // Aircraft tactical ability
-      ability: 'emDispenser',
-      abilityCharges: 1,
-      maxAbilityCharges: 1,
-      abilityRecharge: 35.0
+      "ability": "emDispenser",
+      "abilityCharges": 1,
+      "maxAbilityCharges": 1,
+      "abilityRecharge": 35
     },
-
-    // Aerodynamics & Physical Parameters
-    physics: {
-      mass: 38500,               // kg
-      accelCruise: 52,            // m/s^2
-      accelAfterburner: 125,      // m/s^2
-      airbrakeDecel: 85,          // m/s^2
-      baseTurnRate: 1.4,          // rad/s (~80 deg/s pitch rate - heavy bomber turn radius)
-      turnResponse: 4.8,          // Heavy rotational inertia
-      cornerSpeed: 320,           // m/s (~1152 km/h physical, displays ~902 KPH)
-      normalMinSpeed: 152.8,      // m/s (550 km/h physical / 300 KPH displayed normal straight flight floor)
-      forcedMinSpeed: 97.22,      // m/s (350 km/h physical / 100 KPH displayed stall floor)
-      stallSpeed: 260,            // Displayed KPH stall threshold
-      cruiseSpeed: 360,           // m/s (~1296 km/h, displays ~1046 KPH)
-      maxSpeed: 595.5,            // m/s (~2144 km/h physical, displays as 1894 KPH)
-      compressionFactor: 0.76,    // Heavy high-speed compression
-      maxG: 8.5,
-      grip: 1.6,                  // Heavy drift / skid
-      highAlphaDrag: 65,          // Heavy drag
-      inducedDragFactor: 8.0,
-      driftTolerance: 0.45,
-      engineCount: 2,
-      nozzleSpacing: 18,
-      wingspan: 58,
-      wingtipChord: -43,
-      length: 118,
-      engineOffset: -52
+    "physics": {
+      "mass": 38500,
+      "accelCruise": 52,
+      "accelAfterburner": 125,
+      "airbrakeDecel": 85,
+      "baseTurnRate": 1.4,
+      "turnResponse": 4.8,
+      "cornerSpeed": 320,
+      "normalMinSpeed": 152.8,
+      "forcedMinSpeed": 97.22,
+      "stallSpeed": 260,
+      "cruiseSpeed": 360,
+      "maxSpeed": 595.5,
+      "compressionFactor": 0.76,
+      "maxG": 8.5,
+      "grip": 1.6,
+      "highAlphaDrag": 65,
+      "inducedDragFactor": 8,
+      "driftTolerance": 0.45,
+      "engineCount": 2,
+      "nozzleSpacing": 18,
+      "wingspan": 58,
+      "wingtipChord": -43,
+      "length": 118,
+      "engineOffset": -52,
+      "scale": 1.15,
+      "nodes": {
+        "engines": [
+          {
+            "x": -9,
+            "y": -52
+          },
+          {
+            "x": 9,
+            "y": -52
+          }
+        ],
+        "wingtips": [
+          {
+            "x": -45,
+            "y": -22
+          },
+          {
+            "x": 45,
+            "y": -22
+          }
+        ]
+      }
     },
-
-    description: 'Heavy strike interdictor with massive surface strike payload. Equipped with UGB/LASM/SFFS and 48 flares.'
+    "description": "Heavy strike interdictor with massive surface strike payload. Equipped with UGB/LASM/SFFS and 48 flares.",
+    "scale": 1.15,
+    "nodes": {
+      "engines": [
+        {
+          "x": -9,
+          "y": -52
+        },
+        {
+          "x": 9,
+          "y": -52
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -45,
+          "y": -22
+        },
+        {
+          "x": 45,
+          "y": -22
+        }
+      ]
+    }
   },
-
-  su57: {
-    id: 'su57',
-    name: 'Su-57 Felon',
-    shortName: 'Su-57',
-    role: '5th Gen Stealth Multirole',
-    planeRole: 'MULTIROLE',
-    tier: 9,
-    partSlots: 5,
-    cost: 850000,
-    sprite: './assets/planes/su57.png',
-    tags: ['STEALTH', 'SUPERMANEUVERABLE', 'PSM', 'SUPERCRUISE', 'MULTIROLE'],
-
-    // Core stats
-    stats: {
-      spd: 96, // 3D Thrust-vectoring maneuverability
-      def: 70,
-      air: 98,
-      gnd: 65,
-      stealth: 3
+  "su57": {
+    "id": "su57",
+    "name": "Su-57 Felon",
+    "shortName": "Su-57",
+    "role": "5th Gen Stealth Multirole",
+    "planeRole": "MULTIROLE",
+    "tier": 9,
+    "partSlots": 5,
+    "cost": 850000,
+    "sprite": "./assets/planes/su57.png",
+    "tags": [
+      "STEALTH",
+      "SUPERMANEUVERABLE",
+      "PSM",
+      "SUPERCRUISE",
+      "MULTIROLE"
+    ],
+    "stats": {
+      "spd": 96,
+      "def": 70,
+      "air": 98,
+      "gnd": 65,
+      "stealth": 3
     },
-
-    // Weapons Loadout
-    weapons: {
-      gunAmmo: 700,             // 30mm 9A1-4071K internal cannon
-      maxGunAmmo: 700,
-      gunRpm: 1800,             // 1800 RPM modernized autocannon
-      gunDamage: 1.4,           // Balanced for ~1.4s sustained fire to kill a fighter
-      mslCount: 96,             // Internal tandem weapons bays
-      maxMslCount: 96,
-      mslCooldown: 4.4,         // 4.4s slot recharge time (50% of previous rate)
-      flareCount: 40,           // UV missile warning countermeasure dispensers
-      maxFlareCount: 40,
-      flarePool: 3,             // 3 flare reload slots [|||] for 5th-gen fighter
-      flareCooldown: 19.0,      // 19.0s slot recharge time (20% of previous rate)
-
-      // 3 Special weapons available (only 1 equipped at a time)
-      specialWeapons: ['qaam', '4aam', 'mpbm'],
-      equippedSpecialWeapon: 'qaam',
-      spwAmmo: {
-        qaam: 28,
-        '4aam': 36,
-        mpbm: 14
+    "weapons": {
+      "gunAmmo": 700,
+      "maxGunAmmo": 700,
+      "gunRpm": 1800,
+      "gunDamage": 1.4,
+      "mslCount": 96,
+      "maxMslCount": 96,
+      "mslCooldown": 4.4,
+      "flareCount": 40,
+      "maxFlareCount": 40,
+      "flarePool": 3,
+      "flareCooldown": 19,
+      "specialWeapons": [
+        "qaam",
+        "4aam",
+        "mpbm"
+      ],
+      "equippedSpecialWeapon": "qaam",
+      "spwAmmo": {
+        "qaam": 28,
+        "4aam": 36,
+        "mpbm": 14
       },
-
-      // Aircraft tactical ability
-      ability: 'aoaLimiter',
-      abilityCharges: 1,
-      maxAbilityCharges: 1,
-      abilityRecharge: 5.0
+      "ability": "aoaLimiter",
+      "abilityCharges": 1,
+      "maxAbilityCharges": 1,
+      "abilityRecharge": 5
     },
-
-    // Aerodynamics & Physical Parameters
-    physics: {
-      mass: 18500,               // kg
-      accelCruise: 76,            // m/s^2
-      accelAfterburner: 165,      // m/s^2 (Izdeliye 30 3D TVC engines)
-      airbrakeDecel: 85,          // m/s^2
-      baseTurnRate: 2.9,          // rad/s (~166 deg/s pitch rate - extreme nose authority)
-      turnResponse: 13.0,         // Ultra-crisp response
-      cornerSpeed: 285,           // m/s (~1026 km/h physical, displays ~776 KPH)
-      normalMinSpeed: 152.8,      // m/s (550 km/h physical / 300 KPH displayed normal straight flight floor)
-      forcedMinSpeed: 97.22,      // m/s (350 km/h physical / 100 KPH displayed stall floor)
-      stallSpeed: 260,            // Displayed KPH stall threshold
-      cruiseSpeed: 340,           // m/s (~1224 km/h, displays ~974 KPH)
-      maxSpeed: 565.0,            // m/s (~2034 km/h physical, displays ~1784 KPH)
-      compressionFactor: 0.42,    // High-speed compression resistance
-      maxG: 12.5,                 // Structural G limit
-      grip: 3.2,                  // Lateral grip
-      highAlphaDrag: 70,
-      inducedDragFactor: 9.5,
-      driftTolerance: 0.98,
-      hasThrustVectoring: true,   // RETAINS NOSE/STEERING AUTHORITY EVEN IN A STALL!
-      engineCount: 2,
-      nozzleSpacing: 26,
-      wingspan: 94,
-      wingtipChord: -22,
-      length: 114,
-      engineOffset: -50
+    "physics": {
+      "mass": 18500,
+      "accelCruise": 76,
+      "accelAfterburner": 165,
+      "airbrakeDecel": 85,
+      "baseTurnRate": 2.9,
+      "turnResponse": 13,
+      "cornerSpeed": 285,
+      "normalMinSpeed": 152.8,
+      "forcedMinSpeed": 97.22,
+      "stallSpeed": 260,
+      "cruiseSpeed": 340,
+      "maxSpeed": 565,
+      "compressionFactor": 0.42,
+      "maxG": 12.5,
+      "grip": 3.2,
+      "highAlphaDrag": 70,
+      "inducedDragFactor": 9.5,
+      "driftTolerance": 0.98,
+      "hasThrustVectoring": true,
+      "engineCount": 2,
+      "nozzleSpacing": 26,
+      "wingspan": 94,
+      "wingtipChord": -22,
+      "length": 114,
+      "engineOffset": -50,
+      "scale": 1.02,
+      "nodes": {
+        "engines": [
+          {
+            "x": -12,
+            "y": -46
+          },
+          {
+            "x": 12,
+            "y": -46
+          }
+        ],
+        "wingtips": [
+          {
+            "x": -44,
+            "y": -16
+          },
+          {
+            "x": 44,
+            "y": -16
+          }
+        ]
+      }
     },
-
-    description: 'Next-gen stealth fighter with 3D all-axis thrust vectoring. Retains full nose authority during stalls.'
+    "description": "Next-gen stealth fighter with 3D all-axis thrust vectoring. Retains full nose authority during stalls.",
+    "scale": 1.02,
+    "nodes": {
+      "engines": [
+        {
+          "x": -12,
+          "y": -46
+        },
+        {
+          "x": 12,
+          "y": -46
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -44,
+          "y": -16
+        },
+        {
+          "x": 44,
+          "y": -16
+        }
+      ]
+    }
   },
-
-  a4: {
-    id: 'a4',
-    name: 'A-4E Skyhawk',
-    shortName: 'A-4E',
-    role: 'Light Attack Strike Aircraft',
-    planeRole: 'STRIKE',
-    tier: 0,
-    partSlots: 1,
-    cost: 1000,
-    sprite: './assets/planes/a4e.png',
-    tags: ['STRIKE', 'CARRIER_CAPABLE', 'NAVAL'],
-    stats: {
-      spd: 48,
-      def: 50,
-      air: 40,
-      gnd: 72,
-      stealth: 0
+  "a4": {
+    "id": "a4",
+    "name": "A-4E Skyhawk",
+    "shortName": "A-4E",
+    "role": "Light Attack Strike Aircraft",
+    "planeRole": "STRIKE",
+    "tier": 0,
+    "partSlots": 1,
+    "cost": 1000,
+    "sprite": "./assets/planes/a4e.png",
+    "tags": [
+      "STRIKE",
+      "CARRIER_CAPABLE",
+      "NAVAL"
+    ],
+    "stats": {
+      "spd": 48,
+      "def": 50,
+      "air": 40,
+      "gnd": 72,
+      "stealth": 0
     },
-    weapons: {
-      gunAmmo: 400,
-      maxGunAmmo: 400,
-      gunRpm: 1200,
-      gunDamage: 1.1,
-      mslCount: 40,
-      maxMslCount: 40,
-      mslCooldown: 4.4,
-      flareCount: 20,
-      maxFlareCount: 20,
-      flarePool: 2,
-      flareCooldown: 22.0,
-      specialWeapons: ['ugb', 'lasm', 'saam'],
-      equippedSpecialWeapon: 'ugb',
-      spwAmmo: { ugb: 24, lasm: 14, saam: 12 },
-      ability: 'emergencyAfterburner',
-      abilityCharges: 1,
-      maxAbilityCharges: 1,
-      abilityRecharge: 45.0
+    "weapons": {
+      "gunAmmo": 400,
+      "maxGunAmmo": 400,
+      "gunRpm": 1200,
+      "gunDamage": 1.1,
+      "mslCount": 40,
+      "maxMslCount": 40,
+      "mslCooldown": 4.4,
+      "flareCount": 20,
+      "maxFlareCount": 20,
+      "flarePool": 2,
+      "flareCooldown": 22,
+      "specialWeapons": [
+        "ugb",
+        "lasm",
+        "saam"
+      ],
+      "equippedSpecialWeapon": "ugb",
+      "spwAmmo": {
+        "ugb": 24,
+        "lasm": 14,
+        "saam": 12
+      },
+      "ability": "emergencyAfterburner",
+      "abilityCharges": 1,
+      "maxAbilityCharges": 1,
+      "abilityRecharge": 45
     },
-    physics: {
-      mass: 8300,
-      accelCruise: 50,
-      accelAfterburner: 110,
-      airbrakeDecel: 75,
-      baseTurnRate: 1.9,
-      turnResponse: 8.5,
-      cornerSpeed: 240,
-      normalMinSpeed: 130,
-      forcedMinSpeed: 85,
-      stallSpeed: 230,
-      cruiseSpeed: 280,
-      maxSpeed: 440,
-      compressionFactor: 0.60,
-      maxG: 9.0,
-      grip: 2.8,
-      highAlphaDrag: 65,
-      inducedDragFactor: 11.0,
-      driftTolerance: 0.65,
-      engineCount: 1,
-      nozzleSpacing: 0,
-      wingspan: 60,
-      wingtipChord: -14,
-      length: 82,
-      engineOffset: -38
+    "physics": {
+      "mass": 8300,
+      "accelCruise": 50,
+      "accelAfterburner": 110,
+      "airbrakeDecel": 75,
+      "baseTurnRate": 1.9,
+      "turnResponse": 8.5,
+      "cornerSpeed": 240,
+      "normalMinSpeed": 130,
+      "forcedMinSpeed": 85,
+      "stallSpeed": 230,
+      "cruiseSpeed": 280,
+      "maxSpeed": 440,
+      "compressionFactor": 0.6,
+      "maxG": 9,
+      "grip": 2.8,
+      "highAlphaDrag": 65,
+      "inducedDragFactor": 11,
+      "driftTolerance": 0.65,
+      "engineCount": 1,
+      "nozzleSpacing": 0,
+      "wingspan": 60,
+      "wingtipChord": -14,
+      "length": 82,
+      "engineOffset": -38,
+      "scale": 0.8,
+      "nodes": {
+        "engines": [
+          {
+            "x": 0,
+            "y": -34
+          }
+        ],
+        "wingtips": [
+          {
+            "x": -28,
+            "y": -14
+          },
+          {
+            "x": 28,
+            "y": -14
+          }
+        ]
+      }
     },
-    description: 'Lightweight agile strike aircraft with dependable ground attack munitions and carrier capability.'
+    "description": "Lightweight agile strike aircraft with dependable ground attack munitions and carrier capability.",
+    "scale": 0.8,
+    "nodes": {
+      "engines": [
+        {
+          "x": 0,
+          "y": -34
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -28,
+          "y": -14
+        },
+        {
+          "x": 28,
+          "y": -14
+        }
+      ]
+    }
   },
-
-  etendard: {
-    id: 'etendard',
-    name: 'Super Étendard IV',
-    shortName: 'Étendard',
-    role: 'Carrier Strike Multirole',
-    planeRole: 'MULTIROLE',
-    tier: 0,
-    partSlots: 1,
-    cost: 1000,
-    sprite: './assets/planes/etendard_iv.png',
-    tags: ['MULTIROLE', 'CARRIER_CAPABLE', 'NAVAL'],
-    stats: {
-      spd: 52,
-      def: 54,
-      air: 52,
-      gnd: 62,
-      stealth: 0
+  "etendard": {
+    "id": "etendard",
+    "name": "Super \u00c9tendard IV",
+    "shortName": "\u00c9tendard",
+    "role": "Carrier Strike Multirole",
+    "planeRole": "MULTIROLE",
+    "tier": 0,
+    "partSlots": 1,
+    "cost": 1000,
+    "sprite": "./assets/planes/etendard_iv.png",
+    "tags": [
+      "MULTIROLE",
+      "CARRIER_CAPABLE",
+      "NAVAL"
+    ],
+    "stats": {
+      "spd": 52,
+      "def": 54,
+      "air": 52,
+      "gnd": 62,
+      "stealth": 0
     },
-    weapons: {
-      gunAmmo: 500,
-      maxGunAmmo: 500,
-      gunRpm: 1300,
-      gunDamage: 1.0,
-      mslCount: 44,
-      maxMslCount: 44,
-      mslCooldown: 4.4,
-      flareCount: 24,
-      maxFlareCount: 24,
-      flarePool: 2,
-      flareCooldown: 22.0,
-      specialWeapons: ['lasm', 'qaam', 'ugb'],
-      equippedSpecialWeapon: 'lasm',
-      spwAmmo: { lasm: 16, qaam: 16, ugb: 20 },
-      ability: 'emergencyAfterburner',
-      abilityCharges: 1,
-      maxAbilityCharges: 1,
-      abilityRecharge: 45.0
+    "weapons": {
+      "gunAmmo": 500,
+      "maxGunAmmo": 500,
+      "gunRpm": 1300,
+      "gunDamage": 1,
+      "mslCount": 44,
+      "maxMslCount": 44,
+      "mslCooldown": 4.4,
+      "flareCount": 24,
+      "maxFlareCount": 24,
+      "flarePool": 2,
+      "flareCooldown": 22,
+      "specialWeapons": [
+        "lasm",
+        "qaam",
+        "ugb"
+      ],
+      "equippedSpecialWeapon": "lasm",
+      "spwAmmo": {
+        "lasm": 16,
+        "qaam": 16,
+        "ugb": 20
+      },
+      "ability": "emergencyAfterburner",
+      "abilityCharges": 1,
+      "maxAbilityCharges": 1,
+      "abilityRecharge": 45
     },
-    physics: {
-      mass: 9200,
-      accelCruise: 52,
-      accelAfterburner: 118,
-      airbrakeDecel: 78,
-      baseTurnRate: 2.0,
-      turnResponse: 9.0,
-      cornerSpeed: 250,
-      normalMinSpeed: 135,
-      forcedMinSpeed: 88,
-      stallSpeed: 240,
-      cruiseSpeed: 290,
-      maxSpeed: 460,
-      compressionFactor: 0.58,
-      maxG: 9.5,
-      grip: 2.9,
-      highAlphaDrag: 68,
-      inducedDragFactor: 10.5,
-      driftTolerance: 0.70,
-      engineCount: 1,
-      nozzleSpacing: 0,
-      wingspan: 64,
-      wingtipChord: -15,
-      length: 88,
-      engineOffset: -40
+    "physics": {
+      "mass": 9200,
+      "accelCruise": 52,
+      "accelAfterburner": 118,
+      "airbrakeDecel": 78,
+      "baseTurnRate": 2,
+      "turnResponse": 9,
+      "cornerSpeed": 250,
+      "normalMinSpeed": 135,
+      "forcedMinSpeed": 88,
+      "stallSpeed": 240,
+      "cruiseSpeed": 290,
+      "maxSpeed": 460,
+      "compressionFactor": 0.58,
+      "maxG": 9.5,
+      "grip": 2.9,
+      "highAlphaDrag": 68,
+      "inducedDragFactor": 10.5,
+      "driftTolerance": 0.7,
+      "engineCount": 1,
+      "nozzleSpacing": 0,
+      "wingspan": 64,
+      "wingtipChord": -15,
+      "length": 88,
+      "engineOffset": -40,
+      "scale": 0.85,
+      "nodes": {
+        "engines": [
+          {
+            "x": 0,
+            "y": -36
+          }
+        ],
+        "wingtips": [
+          {
+            "x": -30,
+            "y": -15
+          },
+          {
+            "x": 30,
+            "y": -15
+          }
+        ]
+      }
     },
-    description: 'Versatile French carrier-borne multirole strike platform with deadly anti-ship and precision ordnance.'
+    "description": "Versatile French carrier-borne multirole strike platform with deadly anti-ship and precision ordnance.",
+    "scale": 0.85,
+    "nodes": {
+      "engines": [
+        {
+          "x": 0,
+          "y": -36
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -30,
+          "y": -15
+        },
+        {
+          "x": 30,
+          "y": -15
+        }
+      ]
+    }
   },
-
-  mig17: {
-    id: 'mig17',
-    name: 'MiG-17PF Fresco',
-    shortName: 'MiG-17PF',
-    role: 'Radar Interceptor Fighter',
-    planeRole: 'FIGHTER',
-    tier: 0,
-    partSlots: 1,
-    cost: 1000,
-    sprite: './assets/planes/mig17pf.png',
-    tags: ['AIR_SUPERIORITY', 'INTERCEPTOR'],
-    stats: {
-      spd: 60,
-      def: 45,
-      air: 65,
-      gnd: 35,
-      stealth: 0
+  "mig17": {
+    "id": "mig17",
+    "name": "MiG-17PF Fresco",
+    "shortName": "MiG-17PF",
+    "role": "Radar Interceptor Fighter",
+    "planeRole": "FIGHTER",
+    "tier": 0,
+    "partSlots": 1,
+    "cost": 1000,
+    "sprite": "./assets/planes/mig17pf.png",
+    "tags": [
+      "AIR_SUPERIORITY",
+      "INTERCEPTOR"
+    ],
+    "stats": {
+      "spd": 60,
+      "def": 45,
+      "air": 65,
+      "gnd": 35,
+      "stealth": 0
     },
-    weapons: {
-      gunAmmo: 350,
-      maxGunAmmo: 350,
-      gunRpm: 900,
-      gunDamage: 1.8,
-      mslCount: 36,
-      maxMslCount: 36,
-      mslCooldown: 4.4,
-      flareCount: 18,
-      maxFlareCount: 18,
-      flarePool: 2,
-      flareCooldown: 22.0,
-      specialWeapons: ['qaam', 'saam', '4aam'],
-      equippedSpecialWeapon: 'qaam',
-      spwAmmo: { qaam: 18, saam: 14, '4aam': 18 },
-      ability: 'emergencyAfterburner',
-      abilityCharges: 1,
-      maxAbilityCharges: 1,
-      abilityRecharge: 45.0
+    "weapons": {
+      "gunAmmo": 350,
+      "maxGunAmmo": 350,
+      "gunRpm": 900,
+      "gunDamage": 1.8,
+      "mslCount": 36,
+      "maxMslCount": 36,
+      "mslCooldown": 4.4,
+      "flareCount": 18,
+      "maxFlareCount": 18,
+      "flarePool": 2,
+      "flareCooldown": 22,
+      "specialWeapons": [
+        "qaam",
+        "saam",
+        "4aam"
+      ],
+      "equippedSpecialWeapon": "qaam",
+      "spwAmmo": {
+        "qaam": 18,
+        "saam": 14,
+        "4aam": 18
+      },
+      "ability": "emergencyAfterburner",
+      "abilityCharges": 1,
+      "maxAbilityCharges": 1,
+      "abilityRecharge": 45
     },
-    physics: {
-      mass: 6100,
-      accelCruise: 54,
-      accelAfterburner: 122,
-      airbrakeDecel: 80,
-      baseTurnRate: 2.3,
-      turnResponse: 10.0,
-      cornerSpeed: 245,
-      normalMinSpeed: 130,
-      forcedMinSpeed: 82,
-      stallSpeed: 235,
-      cruiseSpeed: 300,
-      maxSpeed: 470,
-      compressionFactor: 0.55,
-      maxG: 10.0,
-      grip: 3.0,
-      highAlphaDrag: 64,
-      inducedDragFactor: 10.0,
-      driftTolerance: 0.72,
-      engineCount: 1,
-      nozzleSpacing: 0,
-      wingspan: 58,
-      wingtipChord: -14,
-      length: 76,
-      engineOffset: -36
+    "physics": {
+      "mass": 6100,
+      "accelCruise": 54,
+      "accelAfterburner": 122,
+      "airbrakeDecel": 80,
+      "baseTurnRate": 2.3,
+      "turnResponse": 10,
+      "cornerSpeed": 245,
+      "normalMinSpeed": 130,
+      "forcedMinSpeed": 82,
+      "stallSpeed": 235,
+      "cruiseSpeed": 300,
+      "maxSpeed": 470,
+      "compressionFactor": 0.55,
+      "maxG": 10,
+      "grip": 3,
+      "highAlphaDrag": 64,
+      "inducedDragFactor": 10,
+      "driftTolerance": 0.72,
+      "engineCount": 1,
+      "nozzleSpacing": 0,
+      "wingspan": 58,
+      "wingtipChord": -14,
+      "length": 76,
+      "engineOffset": -36,
+      "scale": 0.78,
+      "nodes": {
+        "engines": [
+          {
+            "x": 0,
+            "y": -36
+          }
+        ],
+        "wingtips": [
+          {
+            "x": -29,
+            "y": -14
+          },
+          {
+            "x": 29,
+            "y": -14
+          }
+        ]
+      }
     },
-    description: 'High-turn-rate transonic interceptor equipped with radar-ranging avionics and heavy autocannons.'
+    "description": "High-turn-rate transonic interceptor equipped with radar-ranging avionics and heavy autocannons.",
+    "scale": 0.78,
+    "nodes": {
+      "engines": [
+        {
+          "x": 0,
+          "y": -36
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -29,
+          "y": -14
+        },
+        {
+          "x": 29,
+          "y": -14
+        }
+      ]
+    }
   },
-
-  f15manx: {
-    id: 'f15manx',
-    name: 'F-15 S/MTD Manx',
-    shortName: 'F-15 MANX',
-    role: 'Experimental 2D-TVC Fighter',
-    planeRole: 'FIGHTER',
-    tier: 7,
-    partSlots: 4,
-    cost: 320000,
-    sprite: './assets/planes/f15manx.png',
-    tags: ['EVO', 'AIR_SUPERIORITY', 'SUPERMANEUVERABLE', 'PSM', 'THRUST_VECTORING'],
-    evoBaseId: 'f15c',
-    stats: {
-      spd: 88,
-      def: 80,
-      air: 96,
-      gnd: 55,
-      stealth: 1
+  "f15manx": {
+    "id": "f15manx",
+    "name": "F-15 S/MTD Manx",
+    "shortName": "F-15 MANX",
+    "role": "Experimental 2D-TVC Fighter",
+    "planeRole": "FIGHTER",
+    "tier": 7,
+    "partSlots": 4,
+    "cost": 320000,
+    "sprite": "./assets/planes/f15manx.png",
+    "tags": [
+      "EVO",
+      "AIR_SUPERIORITY",
+      "SUPERMANEUVERABLE",
+      "PSM",
+      "THRUST_VECTORING"
+    ],
+    "evoBaseId": "f15c",
+    "stats": {
+      "spd": 88,
+      "def": 80,
+      "air": 96,
+      "gnd": 55,
+      "stealth": 1
     },
-    weapons: {
-      gunAmmo: 940,
-      maxGunAmmo: 940,
-      gunRpm: 4500,
-      gunDamage: 0.75,
-      mslCount: 130,
-      maxMslCount: 130,
-      mslCooldown: 4.0,
-      flareCount: 36,
-      maxFlareCount: 36,
-      flarePool: 3,
-      flareCooldown: 18.0,
-      specialWeapons: ['4aam', 'saam', 'qaam'],
-      equippedSpecialWeapon: '4aam',
-      spwAmmo: { '4aam': 44, saam: 26, qaam: 30 },
-      ability: 'emergencyAfterburner',
-      abilityCharges: 1,
-      maxAbilityCharges: 1,
-      abilityRecharge: 40.0
+    "weapons": {
+      "gunAmmo": 940,
+      "maxGunAmmo": 940,
+      "gunRpm": 4500,
+      "gunDamage": 0.75,
+      "mslCount": 130,
+      "maxMslCount": 130,
+      "mslCooldown": 4,
+      "flareCount": 36,
+      "maxFlareCount": 36,
+      "flarePool": 3,
+      "flareCooldown": 18,
+      "specialWeapons": [
+        "4aam",
+        "saam",
+        "qaam"
+      ],
+      "equippedSpecialWeapon": "4aam",
+      "spwAmmo": {
+        "4aam": 44,
+        "saam": 26,
+        "qaam": 30
+      },
+      "ability": "emergencyAfterburner",
+      "abilityCharges": 1,
+      "maxAbilityCharges": 1,
+      "abilityRecharge": 40
     },
-    physics: {
-      mass: 19800,
-      accelCruise: 70,
-      accelAfterburner: 160,
-      airbrakeDecel: 90,
-      baseTurnRate: 2.6,
-      turnResponse: 11.5,
-      cornerSpeed: 295,
-      normalMinSpeed: 140,
-      forcedMinSpeed: 90,
-      stallSpeed: 265,
-      cruiseSpeed: 345,
-      maxSpeed: 555,
-      compressionFactor: 0.45,
-      maxG: 12.0,
-      grip: 3.2,
-      highAlphaDrag: 68,
-      inducedDragFactor: 9.8,
-      driftTolerance: 0.90,
-      hasThrustVectoring: true,
-      engineCount: 2,
-      nozzleSpacing: 20,
-      wingspan: 80,
-      wingtipChord: -16,
-      length: 106,
-      engineOffset: -46
+    "physics": {
+      "mass": 19800,
+      "accelCruise": 70,
+      "accelAfterburner": 160,
+      "airbrakeDecel": 90,
+      "baseTurnRate": 2.6,
+      "turnResponse": 11.5,
+      "cornerSpeed": 295,
+      "normalMinSpeed": 140,
+      "forcedMinSpeed": 90,
+      "stallSpeed": 265,
+      "cruiseSpeed": 345,
+      "maxSpeed": 555,
+      "compressionFactor": 0.45,
+      "maxG": 12,
+      "grip": 3.2,
+      "highAlphaDrag": 68,
+      "inducedDragFactor": 9.8,
+      "driftTolerance": 0.9,
+      "hasThrustVectoring": true,
+      "engineCount": 2,
+      "nozzleSpacing": 20,
+      "wingspan": 80,
+      "wingtipChord": -16,
+      "length": 106,
+      "engineOffset": -46,
+      "scale": 1,
+      "nodes": {
+        "engines": [
+          {
+            "x": -10,
+            "y": -46
+          },
+          {
+            "x": 10,
+            "y": -46
+          }
+        ],
+        "wingtips": [
+          {
+            "x": -42,
+            "y": -16
+          },
+          {
+            "x": 42,
+            "y": -16
+          }
+        ]
+      }
     },
-    description: 'EVO Special Airframe: Active canards and rectangular 2D thrust-vectoring nozzles unlock extreme pitch agility.'
+    "description": "EVO Special Airframe: Active canards and rectangular 2D thrust-vectoring nozzles unlock extreme pitch agility.",
+    "scale": 1,
+    "nodes": {
+      "engines": [
+        {
+          "x": -10,
+          "y": -46
+        },
+        {
+          "x": 10,
+          "y": -46
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -42,
+          "y": -16
+        },
+        {
+          "x": 42,
+          "y": -16
+        }
+      ]
+    }
   }
 };
 

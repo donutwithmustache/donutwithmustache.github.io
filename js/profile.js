@@ -302,6 +302,38 @@ export class ProfileManager {
     return this.activeProfile.upgrades[planeId] || 1;
   }
 
+  // SP weapon unlock requirements: index 0 (Level 1), index 1 (Level 3), index 2 (Level 5)
+  getSpwRequiredLevel(planeId, spwId) {
+    if (typeof AIRCRAFT_DATA === 'undefined') return 1;
+    const plane = AIRCRAFT_DATA[planeId];
+    if (!plane || !plane.weapons || !Array.isArray(plane.weapons.specialWeapons)) return 1;
+    const idx = plane.weapons.specialWeapons.indexOf(spwId);
+    if (idx === 1) return 3;
+    if (idx === 2) return 5;
+    return 1;
+  }
+
+  isSpwUnlocked(planeId, spwId) {
+    const reqLevel = this.getSpwRequiredLevel(planeId, spwId);
+    const curLevel = this.getPlaneLevel(planeId);
+    return curLevel >= reqLevel;
+  }
+
+  getEquippedSpw(planeId) {
+    if (typeof AIRCRAFT_DATA === 'undefined') return 'qaam';
+    const plane = AIRCRAFT_DATA[planeId];
+    const availableSpw = (plane && plane.weapons && plane.weapons.specialWeapons) || ['qaam'];
+    const curEquipped = (this.activeProfile && this.activeProfile.equippedSpw && this.activeProfile.equippedSpw[planeId])
+      || (plane && plane.weapons && plane.weapons.equippedSpecialWeapon)
+      || availableSpw[0];
+
+    // If currently saved weapon is locked for current plane upgrade level, fallback to level 1 default (index 0)
+    if (!this.isSpwUnlocked(planeId, curEquipped)) {
+      return availableSpw[0];
+    }
+    return curEquipped;
+  }
+
   canUpgrade(planeId, baseCost) {
     if (!this.activeProfile) return { can: false, reason: 'NOT_LOGGED_IN' };
     const curLevel = this.getPlaneLevel(planeId);
@@ -376,10 +408,12 @@ export class ProfileManager {
   }
 
   setEquippedSpw(planeId, spwId) {
-    if (!this.activeProfile) return;
+    if (!this.activeProfile) return false;
+    if (!this.isSpwUnlocked(planeId, spwId)) return false;
     if (!this.activeProfile.equippedSpw) this.activeProfile.equippedSpw = {};
     this.activeProfile.equippedSpw[planeId] = spwId;
     this.saveProfiles();
+    return true;
   }
 
   setEquippedParts(planeId, partsArray) {

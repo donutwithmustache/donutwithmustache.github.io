@@ -1,0 +1,116 @@
+{
+  "id": "etendard",
+  "name": "Super Étendard IV",
+  "shortName": "Étendard",
+  "role": "Carrier Strike Multirole",
+  "planeRole": "MULTIROLE",
+  "tier": 0,
+  "partSlots": 1,
+  "cost": 1000,
+  "sprite": "./assets/planes/etendard_iv.png",
+  "tags": [
+    "MULTIROLE",
+    "CARRIER_CAPABLE",
+    "NAVAL"
+  ],
+  "stats": {
+    "spd": 52,
+    "def": 54,
+    "air": 52,
+    "gnd": 62,
+    "stealth": 0
+  },
+  "weapons": {
+    "gunAmmo": 500,
+    "maxGunAmmo": 500,
+    "gunRpm": 1300,
+    "gunDamage": 1,
+    "mslCount": 44,
+    "maxMslCount": 44,
+    "mslCooldown": 4.4,
+    "flareCount": 24,
+    "maxFlareCount": 24,
+    "flarePool": 2,
+    "flareCooldown": 22,
+    "specialWeapons": [
+      "lasm",
+      "qaam",
+      "ugb"
+    ],
+    "equippedSpecialWeapon": "lasm",
+    "spwAmmo": {
+      "lasm": 16,
+      "qaam": 16,
+      "ugb": 20
+    },
+    "ability": "emergencyAfterburner",
+    "abilityCharges": 1,
+    "maxAbilityCharges": 1,
+    "abilityRecharge": 45
+  },
+  "physics": {
+    "mass": 9200,
+    "accelCruise": 52,
+    "accelAfterburner": 118,
+    "airbrakeDecel": 78,
+    "baseTurnRate": 2,
+    "turnResponse": 9,
+    "cornerSpeed": 250,
+    "normalMinSpeed": 135,
+    "forcedMinSpeed": 88,
+    "stallSpeed": 240,
+    "cruiseSpeed": 290,
+    "maxSpeed": 460,
+    "compressionFactor": 0.58,
+    "maxG": 9.5,
+    "grip": 2.9,
+    "highAlphaDrag": 68,
+    "inducedDragFactor": 10.5,
+    "driftTolerance": 0.7,
+    "engineCount": 1,
+    "nozzleSpacing": 0,
+    "wingspan": 64,
+    "wingtipChord": -15,
+    "length": 88,
+    "engineOffset": -40,
+    "scale": 0.85,
+    "nodes": {
+      "engines": [
+        {
+          "x": 0,
+          "y": -36
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -30,
+          "y": -15
+        },
+        {
+          "x": 30,
+          "y": -15
+        }
+      ]
+    }
+  },
+  "description": "Versatile French carrier-borne multirole strike platform with deadly anti-ship and precision ordnance.",
+  "scale": 0.85,
+  "nodes": {
+    "engines": [
+      {
+        "x": 0,
+        "y": -36
+      }
+    ],
+    "wingtips": [
+      {
+        "x": -30,
+        "y": -15
+      },
+      {
+        "x": 30,
+        "y": -15
+      }
+    ]
+  }
+}

@@ -32,7 +32,7 @@
     "flareCount": 30,
     "maxFlareCount": 30,
     "flarePool": 2,
-    "flareCooldown": 20.0,
+    "flareCooldown": 20,
     "specialWeapons": [
       "4aam",
       "saam",
@@ -47,7 +47,7 @@
     "ability": "emergencyAfterburner",
     "abilityCharges": 1,
     "maxAbilityCharges": 1,
-    "abilityRecharge": 45.0
+    "abilityRecharge": 45
   },
   "physics": {
     "mass": 20200,
@@ -64,18 +64,62 @@
     "maxSpeed": 541.7,
     "compressionFactor": 0.58,
     "maxG": 11.5,
-    "grip": 3.0,
+    "grip": 3,
     "highAlphaDrag": 70,
-    "inducedDragFactor": 10.0,
-    "driftTolerance": 0.70,
-    "hasThrustVectoring": false,
+    "inducedDragFactor": 10,
+    "driftTolerance": 0.7,
     "engineCount": 2,
     "nozzleSpacing": 20,
     "wingspan": 78,
     "wingtipChord": -16,
     "length": 104,
-    "engineOffset": -46
+    "engineOffset": -46,
+    "scale": 1,
+    "nodes": {
+      "engines": [
+        {
+          "x": -10,
+          "y": -46
+        },
+        {
+          "x": 10,
+          "y": -46
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -42,
+          "y": -16
+        },
+        {
+          "x": 42,
+          "y": -16
+        }
+      ]
+    }
   },
-  "description": "The golden benchmark. Superb thrust-to-weight and energy retention. Equipped with 4AAM/SAAM/QAAM and 940 gun rounds."
+  "description": "The golden benchmark. Superb thrust-to-weight and energy retention. Equipped with 4AAM/SAAM/QAAM and 940 gun rounds.",
+  "scale": 1,
+  "nodes": {
+    "engines": [
+      {
+        "x": -10,
+        "y": -46
+      },
+      {
+        "x": 10,
+        "y": -46
+      }
+    ],
+    "wingtips": [
+      {
+        "x": -42,
+        "y": -16
+      },
+      {
+        "x": 42,
+        "y": -16
+      }
+    ]
+  }
 }
-

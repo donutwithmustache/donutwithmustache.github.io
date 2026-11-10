@@ -47,7 +47,7 @@
     "ability": "emDispenser",
     "abilityCharges": 1,
     "maxAbilityCharges": 1,
-    "abilityRecharge": 35.0
+    "abilityRecharge": 35
   },
   "physics": {
     "mass": 38500,
@@ -66,16 +66,60 @@
     "maxG": 8.5,
     "grip": 1.6,
     "highAlphaDrag": 65,
-    "inducedDragFactor": 8.0,
+    "inducedDragFactor": 8,
     "driftTolerance": 0.45,
-    "hasThrustVectoring": false,
     "engineCount": 2,
     "nozzleSpacing": 18,
     "wingspan": 58,
     "wingtipChord": -43,
     "length": 118,
-    "engineOffset": -52
+    "engineOffset": -52,
+    "scale": 1.15,
+    "nodes": {
+      "engines": [
+        {
+          "x": -9,
+          "y": -52
+        },
+        {
+          "x": 9,
+          "y": -52
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -45,
+          "y": -22
+        },
+        {
+          "x": 45,
+          "y": -22
+        }
+      ]
+    }
   },
-  "description": "Heavy strike interdictor with massive surface strike payload. Equipped with UGB/LASM/SFFS and 48 flares."
+  "description": "Heavy strike interdictor with massive surface strike payload. Equipped with UGB/LASM/SFFS and 48 flares.",
+  "scale": 1.15,
+  "nodes": {
+    "engines": [
+      {
+        "x": -9,
+        "y": -52
+      },
+      {
+        "x": 9,
+        "y": -52
+      }
+    ],
+    "wingtips": [
+      {
+        "x": -45,
+        "y": -22
+      },
+      {
+        "x": 45,
+        "y": -22
+      }
+    ]
+  }
 }
-

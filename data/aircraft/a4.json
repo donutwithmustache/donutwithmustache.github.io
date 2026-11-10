@@ -1,0 +1,116 @@
+{
+  "id": "a4",
+  "name": "A-4E Skyhawk",
+  "shortName": "A-4E",
+  "role": "Light Attack Strike Aircraft",
+  "planeRole": "STRIKE",
+  "tier": 0,
+  "partSlots": 1,
+  "cost": 1000,
+  "sprite": "./assets/planes/a4e.png",
+  "tags": [
+    "STRIKE",
+    "CARRIER_CAPABLE",
+    "NAVAL"
+  ],
+  "stats": {
+    "spd": 48,
+    "def": 50,
+    "air": 40,
+    "gnd": 72,
+    "stealth": 0
+  },
+  "weapons": {
+    "gunAmmo": 400,
+    "maxGunAmmo": 400,
+    "gunRpm": 1200,
+    "gunDamage": 1.1,
+    "mslCount": 40,
+    "maxMslCount": 40,
+    "mslCooldown": 4.4,
+    "flareCount": 20,
+    "maxFlareCount": 20,
+    "flarePool": 2,
+    "flareCooldown": 22,
+    "specialWeapons": [
+      "ugb",
+      "lasm",
+      "saam"
+    ],
+    "equippedSpecialWeapon": "ugb",
+    "spwAmmo": {
+      "ugb": 24,
+      "lasm": 14,
+      "saam": 12
+    },
+    "ability": "emergencyAfterburner",
+    "abilityCharges": 1,
+    "maxAbilityCharges": 1,
+    "abilityRecharge": 45
+  },
+  "physics": {
+    "mass": 8300,
+    "accelCruise": 50,
+    "accelAfterburner": 110,
+    "airbrakeDecel": 75,
+    "baseTurnRate": 1.9,
+    "turnResponse": 8.5,
+    "cornerSpeed": 240,
+    "normalMinSpeed": 130,
+    "forcedMinSpeed": 85,
+    "stallSpeed": 230,
+    "cruiseSpeed": 280,
+    "maxSpeed": 440,
+    "compressionFactor": 0.6,
+    "maxG": 9,
+    "grip": 2.8,
+    "highAlphaDrag": 65,
+    "inducedDragFactor": 11,
+    "driftTolerance": 0.65,
+    "engineCount": 1,
+    "nozzleSpacing": 0,
+    "wingspan": 60,
+    "wingtipChord": -14,
+    "length": 82,
+    "engineOffset": -38,
+    "scale": 0.8,
+    "nodes": {
+      "engines": [
+        {
+          "x": 0,
+          "y": -34
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -28,
+          "y": -14
+        },
+        {
+          "x": 28,
+          "y": -14
+        }
+      ]
+    }
+  },
+  "description": "Lightweight agile strike aircraft with dependable ground attack munitions and carrier capability.",
+  "scale": 0.8,
+  "nodes": {
+    "engines": [
+      {
+        "x": 0,
+        "y": -34
+      }
+    ],
+    "wingtips": [
+      {
+        "x": -28,
+        "y": -14
+      },
+      {
+        "x": 28,
+        "y": -14
+      }
+    ]
+  }
+}

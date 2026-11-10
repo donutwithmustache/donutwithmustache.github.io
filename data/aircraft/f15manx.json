@@ -1,0 +1,128 @@
+{
+  "id": "f15manx",
+  "name": "F-15 S/MTD Manx",
+  "shortName": "F-15 MANX",
+  "role": "Experimental 2D-TVC Fighter",
+  "planeRole": "FIGHTER",
+  "tier": 7,
+  "partSlots": 4,
+  "cost": 320000,
+  "sprite": "./assets/planes/f15manx.png",
+  "tags": [
+    "EVO",
+    "AIR_SUPERIORITY",
+    "SUPERMANEUVERABLE",
+    "PSM",
+    "THRUST_VECTORING"
+  ],
+  "evoBaseId": "f15c",
+  "stats": {
+    "spd": 88,
+    "def": 80,
+    "air": 96,
+    "gnd": 55,
+    "stealth": 1
+  },
+  "weapons": {
+    "gunAmmo": 940,
+    "maxGunAmmo": 940,
+    "gunRpm": 4500,
+    "gunDamage": 0.75,
+    "mslCount": 130,
+    "maxMslCount": 130,
+    "mslCooldown": 4,
+    "flareCount": 36,
+    "maxFlareCount": 36,
+    "flarePool": 3,
+    "flareCooldown": 18,
+    "specialWeapons": [
+      "4aam",
+      "saam",
+      "qaam"
+    ],
+    "equippedSpecialWeapon": "4aam",
+    "spwAmmo": {
+      "4aam": 44,
+      "saam": 26,
+      "qaam": 30
+    },
+    "ability": "emergencyAfterburner",
+    "abilityCharges": 1,
+    "maxAbilityCharges": 1,
+    "abilityRecharge": 40
+  },
+  "physics": {
+    "mass": 19800,
+    "accelCruise": 70,
+    "accelAfterburner": 160,
+    "airbrakeDecel": 90,
+    "baseTurnRate": 2.6,
+    "turnResponse": 11.5,
+    "cornerSpeed": 295,
+    "normalMinSpeed": 140,
+    "forcedMinSpeed": 90,
+    "stallSpeed": 265,
+    "cruiseSpeed": 345,
+    "maxSpeed": 555,
+    "compressionFactor": 0.45,
+    "maxG": 12,
+    "grip": 3.2,
+    "highAlphaDrag": 68,
+    "inducedDragFactor": 9.8,
+    "driftTolerance": 0.9,
+    "hasThrustVectoring": true,
+    "engineCount": 2,
+    "nozzleSpacing": 20,
+    "wingspan": 80,
+    "wingtipChord": -16,
+    "length": 106,
+    "engineOffset": -46,
+    "scale": 1,
+    "nodes": {
+      "engines": [
+        {
+          "x": -10,
+          "y": -46
+        },
+        {
+          "x": 10,
+          "y": -46
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -42,
+          "y": -16
+        },
+        {
+          "x": 42,
+          "y": -16
+        }
+      ]
+    }
+  },
+  "description": "EVO Special Airframe: Active canards and rectangular 2D thrust-vectoring nozzles unlock extreme pitch agility.",
+  "scale": 1,
+  "nodes": {
+    "engines": [
+      {
+        "x": -10,
+        "y": -46
+      },
+      {
+        "x": 10,
+        "y": -46
+      }
+    ],
+    "wingtips": [
+      {
+        "x": -42,
+        "y": -16
+      },
+      {
+        "x": 42,
+        "y": -16
+      }
+    ]
+  }
+}

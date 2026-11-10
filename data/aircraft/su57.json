@@ -33,7 +33,7 @@
     "flareCount": 40,
     "maxFlareCount": 40,
     "flarePool": 3,
-    "flareCooldown": 19.0,
+    "flareCooldown": 19,
     "specialWeapons": [
       "qaam",
       "4aam",
@@ -48,7 +48,7 @@
     "ability": "aoaLimiter",
     "abilityCharges": 1,
     "maxAbilityCharges": 1,
-    "abilityRecharge": 5.0
+    "abilityRecharge": 5
   },
   "physics": {
     "mass": 18500,
@@ -56,13 +56,13 @@
     "accelAfterburner": 165,
     "airbrakeDecel": 85,
     "baseTurnRate": 2.9,
-    "turnResponse": 13.0,
+    "turnResponse": 13,
     "cornerSpeed": 285,
     "normalMinSpeed": 152.8,
     "forcedMinSpeed": 97.22,
     "stallSpeed": 260,
     "cruiseSpeed": 340,
-    "maxSpeed": 565.0,
+    "maxSpeed": 565,
     "compressionFactor": 0.42,
     "maxG": 12.5,
     "grip": 3.2,
@@ -75,8 +75,53 @@
     "wingspan": 94,
     "wingtipChord": -22,
     "length": 114,
-    "engineOffset": -50
+    "engineOffset": -50,
+    "scale": 1.02,
+    "nodes": {
+      "engines": [
+        {
+          "x": -12,
+          "y": -46
+        },
+        {
+          "x": 12,
+          "y": -46
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -44,
+          "y": -16
+        },
+        {
+          "x": 44,
+          "y": -16
+        }
+      ]
+    }
   },
-  "description": "Next-gen stealth fighter with 3D all-axis thrust vectoring. Retains full nose authority during stalls."
+  "description": "Next-gen stealth fighter with 3D all-axis thrust vectoring. Retains full nose authority during stalls.",
+  "scale": 1.02,
+  "nodes": {
+    "engines": [
+      {
+        "x": -12,
+        "y": -46
+      },
+      {
+        "x": 12,
+        "y": -46
+      }
+    ],
+    "wingtips": [
+      {
+        "x": -44,
+        "y": -16
+      },
+      {
+        "x": 44,
+        "y": -16
+      }
+    ]
+  }
 }
-

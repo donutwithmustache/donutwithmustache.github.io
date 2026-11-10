@@ -123,9 +123,11 @@ export class HangarManager {
 
     // 1. Plane Sprite
     const spriteEl = document.getElementById('hangar-plane-img');
+    const planeScale = (plane.scale !== undefined) ? plane.scale : (plane.physics && plane.physics.scale !== undefined ? plane.physics.scale : 1.0);
     if (spriteEl) {
       spriteEl.src = plane.sprite || './assets/planes/f15c.png';
       spriteEl.alt = plane.name;
+      spriteEl.style.transform = `rotate(45deg) scale(${planeScale})`;
     }
 
     // 2. Plane Info Panel (Top-Right)
@@ -198,9 +200,7 @@ export class HangarManager {
     }
 
     // 4. Equipped Special Weapon (Bottom-Right)
-    const equippedSpwId = (profile && profile.equippedSpw && profile.equippedSpw[this.equippedPlaneId])
-      ? profile.equippedSpw[this.equippedPlaneId]
-      : (plane.weapons && plane.weapons.equippedSpecialWeapon) || 'qaam';
+    const equippedSpwId = profileManager.getEquippedSpw(this.equippedPlaneId);
 
     const spwDef = SPECIAL_WEAPONS[equippedSpwId] || SPECIAL_WEAPONS.qaam;
     const spwNameEl = document.getElementById('hangar-spw-name');
@@ -268,7 +268,7 @@ export class HangarManager {
 
     // Yellow taxiway line:
     // Vertical center line with T-bar stop at top, curving smoothly left & right at the bottom
-    const centerX = w * 0.53;
+    const centerX = Math.round(w * 0.50);
     const taxiColor = '#e5b324';
     const lineWidth = 9;
 
@@ -303,15 +303,15 @@ export class HangarManager {
     ctx.stroke();
   }
 
-  // Render 4-Axis Spider Radar Graph (DEF, AIR, AGILE, GRND)
+  // Render 4-Axis Spider Radar Graph (DEF, AIR, AGILE, GRND) - Strict 1:1 Aspect Ratio
   renderSpiderGraph() {
     if (!this.spiderCanvas || !this.spiderCtx) return;
     const canvas = this.spiderCanvas;
     const ctx = this.spiderCtx;
 
     const rect = canvas.getBoundingClientRect();
-    const w = rect.width || 320;
-    const h = rect.height || 170;
+    const w = rect.width || 260;
+    const h = rect.height || 260;
     canvas.width = w;
     canvas.height = h;
 
@@ -330,21 +330,21 @@ export class HangarManager {
     const agileVal = ((baseStats.spd / 100) * 2.5 * statMult).toFixed(1);
     const grndVal = ((baseStats.gnd / 100) * 2.5 * statMult).toFixed(1);
 
-    const cx = w * 0.52;
-    const cy = h * 0.50;
-    const radius = Math.min(w, h) * 0.36;
+    const cx = Math.round(w * 0.50);
+    const cy = Math.round(h * 0.50);
+    const radius = Math.min(w, h) * 0.34;
 
-    // Draw concentric diamond rings (gray grid lines)
+    // Draw concentric diamond rings (gray grid lines, strict 1:1 aspect ratio)
     ctx.strokeStyle = 'rgba(120, 120, 130, 0.45)';
     ctx.lineWidth = 1;
     const steps = 4;
     for (let i = 1; i <= steps; i++) {
       const r = (radius / steps) * i;
       ctx.beginPath();
-      ctx.moveTo(cx, cy - r);        // Top
-      ctx.lineTo(cx + r * 1.2, cy);  // Right
-      ctx.lineTo(cx, cy + r);        // Bottom
-      ctx.lineTo(cx - r * 1.2, cy);  // Left
+      ctx.moveTo(cx, cy - r);  // Top
+      ctx.lineTo(cx + r, cy);  // Right
+      ctx.lineTo(cx, cy + r);  // Bottom
+      ctx.lineTo(cx - r, cy);  // Left
       ctx.closePath();
       ctx.stroke();
     }
@@ -353,17 +353,17 @@ export class HangarManager {
     ctx.beginPath();
     ctx.moveTo(cx, cy - radius);
     ctx.lineTo(cx, cy + radius);
-    ctx.moveTo(cx - radius * 1.2, cy);
-    ctx.lineTo(cx + radius * 1.2, cy);
+    ctx.moveTo(cx - radius, cy);
+    ctx.lineTo(cx + radius, cy);
     ctx.stroke();
 
-    // Radar Data Polygon (Yellow with glowing border)
+    // Radar Data Polygon (Yellow with glowing border - strict 1:1)
     // Values normalized against 3.0 max
     const maxScale = 3.0;
     const dR = Math.min(1.0, parseFloat(defVal) / maxScale) * radius;
-    const aR = Math.min(1.0, parseFloat(airVal) / maxScale) * (radius * 1.2);
+    const aR = Math.min(1.0, parseFloat(airVal) / maxScale) * radius;
     const gR = Math.min(1.0, parseFloat(agileVal) / maxScale) * radius;
-    const grR = Math.min(1.0, parseFloat(grndVal) / maxScale) * (radius * 1.2);
+    const grR = Math.min(1.0, parseFloat(grndVal) / maxScale) * radius;
 
     ctx.fillStyle = 'rgba(235, 195, 45, 0.38)';
     ctx.strokeStyle = '#f5cb3b';
@@ -379,7 +379,7 @@ export class HangarManager {
     ctx.stroke();
 
     // Corner Labels
-    ctx.font = "bold 13px 'Quantico', sans-serif";
+    ctx.font = "bold 12px 'Quantico', sans-serif";
     ctx.fillStyle = '#ffffff';
 
     // Top: DEF
@@ -388,8 +388,8 @@ export class HangarManager {
 
     // Right: AIR
     ctx.textAlign = 'left';
-    ctx.fillText(`AIR`, cx + radius * 1.2 + 8, cy - 6);
-    ctx.fillText(`${airVal}`, cx + radius * 1.2 + 8, cy + 12);
+    ctx.fillText(`AIR`, cx + radius + 8, cy - 6);
+    ctx.fillText(`${airVal}`, cx + radius + 8, cy + 10);
 
     // Bottom: AGILE
     ctx.textAlign = 'center';
@@ -397,8 +397,8 @@ export class HangarManager {
 
     // Left: GRND
     ctx.textAlign = 'right';
-    ctx.fillText(`GRND`, cx - radius * 1.2 - 8, cy - 6);
-    ctx.fillText(`${grndVal}`, cx - radius * 1.2 - 8, cy + 12);
+    ctx.fillText(`GRND`, cx - radius - 8, cy - 6);
+    ctx.fillText(`${grndVal}`, cx - radius - 8, cy + 10);
   }
 
   // Open Special Weapon Selection Modal (Mockup 3)
@@ -410,31 +410,46 @@ export class HangarManager {
     list.innerHTML = '';
     const plane = AIRCRAFT_DATA[this.equippedPlaneId] || AIRCRAFT_DATA.f15c;
     const availableSpw = (plane.weapons && plane.weapons.specialWeapons) || ['qaam', '4aam', 'saam'];
-    const profile = profileManager.activeProfile;
-    const currentEquipped = (profile && profile.equippedSpw && profile.equippedSpw[this.equippedPlaneId]) || availableSpw[0];
+    const currentEquipped = profileManager.getEquippedSpw(this.equippedPlaneId);
 
-    availableSpw.forEach(spwId => {
+    availableSpw.forEach((spwId, idx) => {
       const def = SPECIAL_WEAPONS[spwId] || SPECIAL_WEAPONS.qaam;
       const isEquipped = (spwId === currentEquipped);
+      const reqLevel = (idx === 0) ? 1 : (idx === 1 ? 3 : 5);
+      const isUnlocked = profileManager.isSpwUnlocked(this.equippedPlaneId, spwId);
 
       const row = document.createElement('div');
-      row.className = 'spw-item-row';
+      row.className = `spw-item-row ${!isUnlocked ? 'locked' : ''}`;
+
+      const lockBadge = !isUnlocked
+        ? `<div class="spw-lock-badge">// LOCKED [REQ. LVL ${reqLevel}]</div>`
+        : '';
 
       row.innerHTML = `
-        <div class="spw-indicator-bar ${isEquipped ? 'equipped' : ''}"></div>
+        <div class="spw-indicator-bar ${isEquipped ? 'equipped' : ''} ${!isUnlocked ? 'locked' : ''}"></div>
         <div class="spw-code-col">
           <div class="spw-code-text">${(def.code || spwId).toUpperCase()}</div>
           <div class="spw-sub-label">${def.subName || def.name.toUpperCase()}</div>
+          ${lockBadge}
         </div>
         <div class="spw-desc-col">
           ${def.description.toUpperCase()}
         </div>
-        <div class="spw-preview-thumb">
+        <div class="spw-preview-thumb ${!isUnlocked ? 'locked' : ''}">
           <img src="${def.sprite || './assets/weapons/aim120.png'}" alt="${def.code}">
         </div>
       `;
 
       row.addEventListener('click', () => {
+        if (!isUnlocked) {
+          if (this.menu.audio && this.menu.audio.playErrorSound) {
+            this.menu.audio.playErrorSound();
+          } else if (this.menu.audio && this.menu.audio.playMenuBack) {
+            this.menu.audio.playMenuBack();
+          }
+          this.menu.showToast(`WEAPON LOCKED // REQUIRES AIRFRAME LEVEL ${reqLevel}`);
+          return;
+        }
         this.menu.audio.playMenuSelect();
         profileManager.setEquippedSpw(this.equippedPlaneId, spwId);
         this.closeModal('modal-spw-select');
@@ -526,9 +541,9 @@ export class HangarManager {
       const r = (radius / 3) * i;
       ctx.beginPath();
       ctx.moveTo(cx, cy - r);
-      ctx.lineTo(cx + r * 1.15, cy);
+      ctx.lineTo(cx + r, cy);
       ctx.lineTo(cx, cy + r);
-      ctx.lineTo(cx - r * 1.15, cy);
+      ctx.lineTo(cx - r, cy);
       ctx.closePath();
       ctx.stroke();
     }
@@ -547,9 +562,9 @@ export class HangarManager {
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(cx, cy - getCoord(base.def, nextMult));
-    ctx.lineTo(cx + getCoord(base.air, nextMult, 1.15), cy);
+    ctx.lineTo(cx + getCoord(base.air, nextMult), cy);
     ctx.lineTo(cx, cy + getCoord(base.spd, nextMult));
-    ctx.lineTo(cx - getCoord(base.gnd, nextMult, 1.15), cy);
+    ctx.lineTo(cx - getCoord(base.gnd, nextMult), cy);
     ctx.closePath();
     ctx.stroke();
 
@@ -559,9 +574,9 @@ export class HangarManager {
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(cx, cy - getCoord(base.def, curMult));
-    ctx.lineTo(cx + getCoord(base.air, curMult, 1.15), cy);
+    ctx.lineTo(cx + getCoord(base.air, curMult), cy);
     ctx.lineTo(cx, cy + getCoord(base.spd, curMult));
-    ctx.lineTo(cx - getCoord(base.gnd, curMult, 1.15), cy);
+    ctx.lineTo(cx - getCoord(base.gnd, curMult), cy);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();

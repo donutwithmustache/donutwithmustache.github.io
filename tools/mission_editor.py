@@ -1131,6 +1131,21 @@ class MissionEditorApp(tk.Tk):
         self.txt_dia_body = tk.Text(act_frame, height=3, width=38, bg="#132030", fg="#ffffff", font=("Consolas", 9))
         self.txt_dia_body.grid(row=4, column=1, columnspan=2, sticky="w", padx=4, pady=4)
 
+        # Radio Message Color selection
+        f_rad_col = tk.Frame(act_frame, bg="#0d1825")
+        f_rad_col.grid(row=4, column=3, sticky="nw", padx=4, pady=4)
+        tk.Label(f_rad_col, text="Radio Color:", bg="#0d1825", fg="#00ffee", font=("Consolas", 8, "bold")).pack(anchor="w")
+        self.cb_radio_color = ttk.Combobox(f_rad_col, values=[
+            "#00ffee (Cyan)",
+            "#00ff66 (Green)",
+            "#ffa502 (Amber)",
+            "#ff3344 (Red)",
+            "#ffffff (White)",
+            "#00a8ff (Blue)"
+        ], width=16)
+        self.cb_radio_color.pack(anchor="w", pady=2)
+        self.cb_radio_color.set("#00ffee (Cyan)")
+
         # Fade / Sector Transition fields
         tk.Label(act_frame, text="Sector Title:", bg="#0d1825", fg="#00e5ff", font=("Consolas", 9)).grid(row=5, column=0, sticky="w")
         self.ent_fade_title = ttk.Entry(act_frame, width=20)
@@ -2110,6 +2125,18 @@ class MissionEditorApp(tk.Tk):
         self.txt_dia_body.delete("1.0", tk.END)
         self.txt_dia_body.insert("1.0", str(d_source.get("text", "")))
 
+        # Populate Radio Message Color
+        col_val = d_source.get("color") or d_source.get("textColor") or "#00ffee"
+        col_matched = False
+        if hasattr(self, 'cb_radio_color'):
+            for opt in self.cb_radio_color["values"]:
+                if col_val.lower() in opt.lower():
+                    self.cb_radio_color.set(opt)
+                    col_matched = True
+                    break
+            if not col_matched:
+                self.cb_radio_color.set(col_val)
+
         self.ent_act_x.delete(0, tk.END)
         self.ent_act_x.insert(0, str(int(act.get("x", 0))))
         self.ent_act_y.delete(0, tk.END)
@@ -2261,6 +2288,9 @@ class MissionEditorApp(tk.Tk):
                     act["duration"] = float(self.ent_dia_dur.get().strip() or "4.0")
                 except ValueError:
                     act["duration"] = 4.0
+                if hasattr(self, 'cb_radio_color'):
+                    raw_col = self.cb_radio_color.get().strip()
+                    act["color"] = raw_col.split(" ")[0].strip() if raw_col else "#00ffee"
             elif act_type == "SCRIPTED_END":
                 act["title"] = self.ent_fade_title.get().strip() or "OPERATION CONCLUDED"
                 act["text"] = self.txt_dia_body.get("1.0", tk.END).strip() or "HQ // Tactical sortie objectives completed. RTB approved."

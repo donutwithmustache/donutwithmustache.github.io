@@ -105,6 +105,17 @@ DEFAULT_PLANE = {
         "length": 108,
         "engineOffset": -46
     },
+    "scale": 1.0,
+    "nodes": {
+        "engines": [
+            {"x": -10.0, "y": -46.0},
+            {"x": 10.0, "y": -46.0}
+        ],
+        "wingtips": [
+            {"x": -40.0, "y": -18.0},
+            {"x": 40.0, "y": -18.0}
+        ]
+    },
     "description": "High performance custom fighter platform."
 }
 
@@ -122,6 +133,16 @@ class AircraftEditorApp(tk.Tk):
         self.tag_vars = {}
         self.sprite_photo_main = None
         self.sprite_photo_sidebar = None
+
+        # Node Editor & Scale state
+        self.nodes_data = {"engines": [], "wingtips": []}
+        self.selected_node = None
+        self.node_tool_mode = tk.StringVar(value="select")
+        self.auto_symmetry_var = tk.BooleanVar(value=True)
+        self.drag_data = {"active": False, "node_type": None, "node_idx": None}
+        self.node_zoom = 2.8
+        self.node_canvas_center = (260, 260)
+        self.node_canvas_photo = None
 
         self.setup_styles()
         self.build_ui()
@@ -223,18 +244,21 @@ class AircraftEditorApp(tk.Tk):
         self.tab_stats = ttk.Frame(self.notebook)
         self.tab_weapons = ttk.Frame(self.notebook)
         self.tab_physics = ttk.Frame(self.notebook)
+        self.tab_nodes = ttk.Frame(self.notebook)
 
         self.notebook.add(self.tab_general, text="  1. General & Visuals  ")
         self.notebook.add(self.tab_tags, text="  2. Tags System  ")
         self.notebook.add(self.tab_stats, text="  3. Combat Stats  ")
         self.notebook.add(self.tab_weapons, text="  4. Weapons & Ability  ")
         self.notebook.add(self.tab_physics, text="  5. Flight Physics  ")
+        self.notebook.add(self.tab_nodes, text="  6. Nodes & Visual Scale  ")
 
         self.build_tab_general()
         self.build_tab_tags()
         self.build_tab_stats()
         self.build_tab_weapons()
         self.build_tab_physics()
+        self.build_tab_nodes()
 
         # Status Bar
         self.status_bar = tk.Label(self, text="Ready.", bg="#081018", fg="#88b0a0", 
@@ -263,6 +287,7 @@ class AircraftEditorApp(tk.Tk):
             ("shortName", "HUD / Radar Callout:", "Su-27"),
             ("role", "Military Designation:", "Air Superiority Fighter"),
             ("planeRole", "Combat Damage Role:", PLANE_ROLES),
+            ("scale", "Visual Scale Multiplier:", 1.0),
             ("tier", "Aircraft Tier (0-10):", 0),
             ("partSlots", "Upgrade Part Slots:", 3),
             ("cost", "Shop Purchase Cost ($):", 150000),
@@ -276,6 +301,19 @@ class AircraftEditorApp(tk.Tk):
                 cb = ttk.Combobox(form_frame, values=default, state="readonly", width=34)
                 cb.grid(row=i, column=1, sticky="w", padx=10, pady=5)
                 self.fields_gen[k] = cb
+            elif k == "scale":
+                sf = tk.Frame(form_frame, bg="#0b131e")
+                sf.grid(row=i, column=1, sticky="w", padx=10, pady=5)
+                sp = tk.Spinbox(sf, from_=0.30, to=2.50, increment=0.05, width=6, bg="#132030", fg="#00ffcc",
+                                buttonbackground="#183048", font=("Consolas", 10, "bold"),
+                                command=self.on_scale_changed_from_general)
+                sp.delete(0, tk.END)
+                sp.insert(0, "1.00")
+                sp.pack(side="left")
+                sp.bind("<KeyRelease>", lambda e: self.on_scale_changed_from_general())
+                self.fields_gen[k] = sp
+                tk.Label(sf, text="(e.g. 0.78 MiG-17, 1.00 standard, 1.15 F-111)", bg="#0b131e",
+                         fg="#88b0a0", font=("Consolas", 9), padx=8).pack(side="left")
             elif k == "tier":
                 tf = tk.Frame(form_frame, bg="#0b131e")
                 tf.grid(row=i, column=1, sticky="w", padx=10, pady=5)
@@ -753,6 +791,549 @@ class AircraftEditorApp(tk.Tk):
                                 font=("Consolas", 10, "bold"))
         cb_tvc.grid(row=(len(phys_params) // 2) + 1, column=0, columnspan=3, sticky="w", pady=10)
 
+    def on_scale_changed_from_general(self):
+        if not hasattr(self, "fields_gen") or "scale" not in self.fields_gen:
+            return
+        val_str = self.fields_gen["scale"].get().strip()
+        if hasattr(self, "node_scale_spin") and self.node_scale_spin.get().strip() != val_str:
+            self.node_scale_spin.delete(0, tk.END)
+            self.node_scale_spin.insert(0, val_str)
+        self.refresh_node_canvas(rebuild_sprite=True)
+
+    # ----------------------------------------------------
+    # TAB 6: NODES & VISUAL SCALE
+    # ----------------------------------------------------
+    def build_tab_nodes(self):
+        container = tk.Frame(self.tab_nodes, bg="#0b131e", padx=12, pady=12)
+        container.pack(fill="both", expand=True)
+
+        # Left / Center Area: Canvas & Controls
+        left_area = tk.Frame(container, bg="#0b131e")
+        left_area.pack(side="left", fill="both", expand=True, padx=(0, 10))
+
+        # Top Control Bar (Scale, Mode, Symmetry)
+        ctrl_bar = tk.Frame(left_area, bg="#101c2b", bd=1, relief="ridge", padx=10, pady=8)
+        ctrl_bar.pack(fill="x", pady=(0, 8))
+
+        # Scale Spinbox & Presets
+        scale_subframe = tk.Frame(ctrl_bar, bg="#101c2b")
+        scale_subframe.pack(side="top", fill="x", pady=(0, 6))
+
+        tk.Label(scale_subframe, text="AIRCRAFT SCALE:", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold")).pack(side="left", padx=(0, 6))
+        self.node_scale_spin = tk.Spinbox(scale_subframe, from_=0.30, to=2.50, increment=0.05, width=6,
+                                          bg="#132030", fg="#00ffcc", buttonbackground="#183048",
+                                          font=("Consolas", 10, "bold"), command=self.on_node_scale_spin_change)
+        self.node_scale_spin.delete(0, tk.END)
+        self.node_scale_spin.insert(0, "1.00")
+        self.node_scale_spin.pack(side="left", padx=(0, 10))
+        self.node_scale_spin.bind("<KeyRelease>", lambda e: self.on_node_scale_spin_change())
+
+        # Quick preset scale buttons
+        presets = [("0.78 Tiny (MiG-17)", 0.78), ("0.82 Light", 0.82), ("1.00 Standard", 1.00), ("1.15 Heavy", 1.15)]
+        for lbl, val in presets:
+            tk.Button(scale_subframe, text=lbl, bg="#183048", fg="#c0f0d0", font=("Consolas", 8),
+                      command=lambda v=val: self.set_scale_preset(v)).pack(side="left", padx=2)
+
+        # Tool Mode Row
+        mode_row = tk.Frame(ctrl_bar, bg="#101c2b")
+        mode_row.pack(side="top", fill="x")
+
+        tk.Label(mode_row, text="TOOL MODE:", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold")).pack(side="left", padx=(0, 6))
+
+        modes = [
+            ("Select / Move", "select"),
+            ("+ Engine Nozzle", "add_engine"),
+            ("+ Wingtip Trail", "add_wingtip")
+        ]
+        self.mode_radios = {}
+        for m_lbl, m_val in modes:
+            rb = tk.Radiobutton(mode_row, text=m_lbl, value=m_val, variable=self.node_tool_mode,
+                                indicatoron=False, bg="#152636", fg="#ffffff", selectcolor="#008855",
+                                activebackground="#203d58", font=("Consolas", 9, "bold"),
+                                padx=8, pady=3, command=self.on_tool_mode_changed)
+            rb.pack(side="left", padx=4)
+            self.mode_radios[m_val] = rb
+
+        # Auto-Symmetry Checkbox
+        cb_sym = tk.Checkbutton(mode_row, text="Auto-Symmetry (Mirror X)", variable=self.auto_symmetry_var,
+                                bg="#101c2b", fg="#00ffcc", selectcolor="#006633", font=("Consolas", 9, "bold"))
+        cb_sym.pack(side="right", padx=6)
+
+        # Canvas Frame
+        canvas_frame = tk.Frame(left_area, bg="#101c2b", bd=1, relief="ridge", padx=6, pady=6)
+        canvas_frame.pack(fill="both", expand=True)
+
+        self.node_canvas = tk.Canvas(canvas_frame, width=520, height=520, bg="#051015",
+                                     highlightthickness=1, highlightbackground="#00ff66")
+        self.node_canvas.pack(fill="both", expand=True)
+
+        # Canvas Bindings
+        self.node_canvas.bind("<Motion>", self.on_node_canvas_motion)
+        self.node_canvas.bind("<Button-1>", self.on_node_canvas_click)
+        self.node_canvas.bind("<B1-Motion>", self.on_node_canvas_drag)
+        self.node_canvas.bind("<ButtonRelease-1>", self.on_node_canvas_release)
+
+        # Bottom HUD Info Bar
+        self.node_hud_lbl = tk.Label(canvas_frame, text="Cursor: X: +0.0, Y: +0.0 | No node selected",
+                                     bg="#051015", fg="#88e0c0", font=("Consolas", 9), anchor="w", padx=6, pady=4)
+        self.node_hud_lbl.pack(fill="x")
+
+        # Right Area: Inspector & Action Sidebar
+        right_side = tk.Frame(container, bg="#101c2b", bd=1, relief="ridge", width=290, padx=10, pady=10)
+        right_side.pack(side="right", fill="both", expand=False)
+        right_side.pack_propagate(False)
+
+        tk.Label(right_side, text="// NODE INSPECTOR", bg="#101c2b", fg="#00ffcc",
+                 font=("Consolas", 11, "bold")).pack(anchor="w", pady=(0, 6))
+
+        # Node Listbox
+        self.node_listbox = tk.Listbox(right_side, bg="#07121b", fg="#c0f0d0", selectbackground="#008855",
+                                       selectforeground="#ffffff", font=("Consolas", 9), height=7, bd=0,
+                                       highlightthickness=1, highlightcolor="#00ff66")
+        self.node_listbox.pack(fill="x", pady=4)
+        self.node_listbox.bind("<<ListboxSelect>>", self.on_node_listbox_select)
+
+        # Numeric Edit Frame
+        edit_box = tk.LabelFrame(right_side, text=" [ Selected Node Coordinates ] ", bg="#101c2b", fg="#00ffcc",
+                                 font=("Consolas", 9, "bold"), padx=8, pady=8)
+        edit_box.pack(fill="x", pady=8)
+
+        tk.Label(edit_box, text="Lateral X (-Port / +Stbd):", bg="#101c2b", fg="#88e0c0", font=("Consolas", 9)).grid(row=0, column=0, sticky="w", pady=3)
+        self.node_x_spin = tk.Spinbox(edit_box, from_=-150, to=150, increment=1.0, width=8,
+                                      bg="#07121b", fg="#00ffcc", buttonbackground="#183048",
+                                      font=("Consolas", 9, "bold"), command=self.on_inspector_coord_change)
+        self.node_x_spin.grid(row=0, column=1, sticky="e", pady=3)
+        self.node_x_spin.bind("<KeyRelease>", lambda e: self.on_inspector_coord_change())
+
+        tk.Label(edit_box, text="Longitudinal Y (+Nose / -Tail):", bg="#101c2b", fg="#88e0c0", font=("Consolas", 9)).grid(row=1, column=0, sticky="w", pady=3)
+        self.node_y_spin = tk.Spinbox(edit_box, from_=-150, to=150, increment=1.0, width=8,
+                                      bg="#07121b", fg="#00ffcc", buttonbackground="#183048",
+                                      font=("Consolas", 9, "bold"), command=self.on_inspector_coord_change)
+        self.node_y_spin.grid(row=1, column=1, sticky="e", pady=3)
+        self.node_y_spin.bind("<KeyRelease>", lambda e: self.on_inspector_coord_change())
+
+        # Inspector Action Buttons
+        btn_box1 = tk.Frame(right_side, bg="#101c2b")
+        btn_box1.pack(fill="x", pady=4)
+
+        tk.Button(btn_box1, text="Mirror X", bg="#183048", fg="#00ffcc", font=("Consolas", 9, "bold"),
+                  command=self.mirror_selected_node).pack(side="left", expand=True, fill="x", padx=2)
+        tk.Button(btn_box1, text="Delete Node", bg="#4a1818", fg="#ff8888", font=("Consolas", 9, "bold"),
+                  command=self.delete_selected_node).pack(side="left", expand=True, fill="x", padx=2)
+
+        btn_box2 = tk.Frame(right_side, bg="#101c2b")
+        btn_box2.pack(fill="x", pady=4)
+        tk.Button(btn_box2, text="Reset to Airframe Defaults", bg="#183048", fg="#c0f0d0", font=("Consolas", 9),
+                  command=self.reset_nodes_to_defaults).pack(fill="x", pady=2)
+        tk.Button(btn_box2, text="Clear All Nodes", bg="#2a1a1a", fg="#ff9999", font=("Consolas", 9),
+                  command=self.clear_all_nodes).pack(fill="x", pady=2)
+
+        # Legend & Guide
+        legend = tk.LabelFrame(right_side, text=" [ Legend & Guide ] ", bg="#101c2b", fg="#00ffcc",
+                               font=("Consolas", 9, "bold"), padx=8, pady=8)
+        legend.pack(fill="both", expand=True, pady=(8, 0))
+
+        guide_text = (
+            "• Orange Marker [E]: Engine Nozzle\n"
+            "  Spawns afterburner plumes/exhaust.\n"
+            "  Single engine -> 1 plume on center.\n\n"
+            "• Cyan Marker [W]: Wingtip Trail\n"
+            "  Spawns condensation vapor trails\n"
+            "  during high-G / high-alpha turns.\n\n"
+            "• Coordinate System:\n"
+            "  X = 0: Centerline\n"
+            "  -X / +X: Left / Right Wings\n"
+            "  +Y: Nose / Forward\n"
+            "  -Y: Tail / Nozzle Exhaust\n\n"
+            "• Tips:\n"
+            "  Click & drag nodes directly on canvas.\n"
+            "  Auto-Symmetry keeps port & stbd even."
+        )
+        tk.Label(legend, text=guide_text, bg="#101c2b", fg="#88b8a8", font=("Consolas", 8),
+                 justify="left", anchor="nw").pack(fill="both", expand=True)
+
+    def on_node_scale_spin_change(self):
+        if not hasattr(self, "node_scale_spin"):
+            return
+        val_str = self.node_scale_spin.get().strip()
+        if hasattr(self, "fields_gen") and "scale" in self.fields_gen:
+            if self.fields_gen["scale"].get().strip() != val_str:
+                self.fields_gen["scale"].delete(0, tk.END)
+                self.fields_gen["scale"].insert(0, val_str)
+        self.refresh_node_canvas(rebuild_sprite=True)
+
+    def set_scale_preset(self, val):
+        val_str = f"{val:.2f}"
+        if hasattr(self, "node_scale_spin"):
+            self.node_scale_spin.delete(0, tk.END)
+            self.node_scale_spin.insert(0, val_str)
+        if hasattr(self, "fields_gen") and "scale" in self.fields_gen:
+            self.fields_gen["scale"].delete(0, tk.END)
+            self.fields_gen["scale"].insert(0, val_str)
+        self.refresh_node_canvas(rebuild_sprite=True)
+
+    def on_tool_mode_changed(self):
+        mode = self.node_tool_mode.get()
+        if mode != "select":
+            self.selected_node = None
+            self.refresh_node_inspector()
+            self.refresh_node_canvas(rebuild_sprite=False)
+
+    def get_aircraft_sprite_up(self, p_id, target_length, scale, canvas_size=520):
+        data = self.aircraft_cache.get(p_id, {})
+        clean_path = str(data.get("sprite", "")).strip().replace("\\", "/")
+        if not clean_path and hasattr(self, "fields_gen") and "sprite" in self.fields_gen:
+            clean_path = self.fields_gen["sprite"].get().strip().replace("\\", "/")
+
+        candidates = [
+            clean_path,
+            os.path.join(BASE_DIR, clean_path.lstrip("./\\")),
+            os.path.join(PLANES_DIR, os.path.basename(clean_path)),
+            os.path.join(BASE_DIR, "assets", "planes", os.path.basename(clean_path))
+        ]
+        found_path = None
+        for c in candidates:
+            if c and os.path.isfile(c):
+                found_path = os.path.abspath(c)
+                break
+        if not found_path:
+            return None
+
+        try:
+            pil_img = Image.open(found_path).convert("RGBA")
+            rot = pil_img.rotate(-45, expand=True, resample=Image.Resampling.BILINEAR)
+            target_size = max(16, int(target_length * scale * self.node_zoom))
+            scaled = rot.resize((target_size, target_size), Image.Resampling.LANCZOS)
+            return ImageTk.PhotoImage(scaled)
+        except Exception as e:
+            print(f"Error loading rotated sprite for {p_id}:", e)
+            return None
+
+    def refresh_node_canvas(self, rebuild_sprite=True):
+        if not hasattr(self, "node_canvas"):
+            return
+
+        cw = self.node_canvas.winfo_width()
+        ch = self.node_canvas.winfo_height()
+        if cw < 50 or ch < 50:
+            cw, ch = 520, 520
+        cx, cy = cw // 2, ch // 2
+        self.node_canvas_center = (cx, cy)
+
+        if rebuild_sprite:
+            self.node_canvas.delete("all")
+            self.draw_hud_grid(self.node_canvas, cw, ch, center_color="#006633", line_color="#002214")
+
+            length = 105.0
+            if hasattr(self, "fields_phys") and "length" in self.fields_phys:
+                try:
+                    length = float(self.fields_phys["length"].get() or 105)
+                except Exception:
+                    length = 105.0
+
+            scale = 1.0
+            if hasattr(self, "node_scale_spin"):
+                try:
+                    scale = float(self.node_scale_spin.get() or 1.0)
+                except Exception:
+                    scale = 1.0
+
+            self.node_canvas_photo = self.get_aircraft_sprite_up(self.current_id, length, scale, max(cw, ch))
+            if self.node_canvas_photo:
+                self.node_canvas.create_image(cx, cy, image=self.node_canvas_photo, anchor="center", tags="plane_sprite")
+
+            # Draw tactical axis guidelines
+            self.node_canvas.create_line(cx, 0, cx, ch, fill="#00aa55", dash=(4, 4), width=1, tags="axis_lines")
+            self.node_canvas.create_line(0, cy, cw, cy, fill="#005533", dash=(4, 4), width=1, tags="axis_lines")
+            self.node_canvas.create_text(cx + 6, 12, text="NOSE (+Y)", fill="#00ff66", anchor="nw", font=("Consolas", 8, "bold"), tags="axis_lines")
+            self.node_canvas.create_text(cx + 6, ch - 16, text="TAIL (-Y)", fill="#ff6644", anchor="nw", font=("Consolas", 8, "bold"), tags="axis_lines")
+            self.node_canvas.create_text(10, cy - 14, text="PORT (-X)", fill="#00e5ff", anchor="nw", font=("Consolas", 8, "bold"), tags="axis_lines")
+            self.node_canvas.create_text(cw - 80, cy - 14, text="STBD (+X)", fill="#00e5ff", anchor="nw", font=("Consolas", 8, "bold"), tags="axis_lines")
+        else:
+            self.node_canvas.delete("marker")
+
+        # Draw Engine Nodes
+        for i, en in enumerate(self.nodes_data.get("engines", [])):
+            nx = cx + (en["x"] * self.node_zoom)
+            ny = cy - (en["y"] * self.node_zoom)
+            is_sel = (self.selected_node == ("engines", i))
+
+            # Directional exhaust vector arrow pointing down (aft)
+            self.node_canvas.create_line(nx, ny + 4, nx, ny + 26, fill="#ff5500", width=2, arrow="last", tags="marker")
+
+            r = 8
+            self.node_canvas.create_oval(nx - r, ny - r, nx + r, ny + r, fill="#3a1400", outline="#ff7700", width=2, tags="marker")
+            self.node_canvas.create_oval(nx - 2, ny - 2, nx + 2, ny + 2, fill="#ffee44", outline="", tags="marker")
+            self.node_canvas.create_text(nx, ny - 13, text=f"E{i+1}", fill="#ffaa44", font=("Consolas", 9, "bold"), tags="marker")
+
+            if is_sel:
+                self.node_canvas.create_oval(nx - 13, ny - 13, nx + 13, ny + 13, outline="#ffff00", width=2, tags="marker")
+
+        # Draw Wingtip Nodes
+        for i, wt in enumerate(self.nodes_data.get("wingtips", [])):
+            nx = cx + (wt["x"] * self.node_zoom)
+            ny = cy - (wt["y"] * self.node_zoom)
+            is_sel = (self.selected_node == ("wingtips", i))
+
+            # Vapor trail streak extending aft
+            self.node_canvas.create_line(nx, ny + 4, nx, ny + 30, fill="#0099bb", dash=(3, 3), width=1.5, tags="marker")
+
+            r = 7
+            self.node_canvas.create_oval(nx - r, ny - r, nx + r, ny + r, fill="#002233", outline="#00e5ff", width=2, tags="marker")
+            self.node_canvas.create_oval(nx - 2, ny - 2, nx + 2, ny + 2, fill="#ffffff", outline="", tags="marker")
+            self.node_canvas.create_text(nx, ny - 12, text=f"W{i+1}", fill="#00ffcc", font=("Consolas", 9, "bold"), tags="marker")
+
+            if is_sel:
+                self.node_canvas.create_oval(nx - 12, ny - 12, nx + 12, ny + 12, outline="#ffff00", width=2, tags="marker")
+
+    def refresh_node_inspector(self):
+        if not hasattr(self, "node_listbox"):
+            return
+        self.node_listbox.delete(0, tk.END)
+
+        for i, en in enumerate(self.nodes_data.get("engines", [])):
+            x_val = en.get("x", 0.0)
+            y_val = en.get("y", 0.0)
+            self.node_listbox.insert(tk.END, f"[E{i+1}] Engine:  x: {x_val:+5.1f}, y: {y_val:+5.1f}")
+
+        for i, wt in enumerate(self.nodes_data.get("wingtips", [])):
+            x_val = wt.get("x", 0.0)
+            y_val = wt.get("y", 0.0)
+            side = "(Port)" if x_val < 0 else "(Stbd)" if x_val > 0 else "(Center)"
+            self.node_listbox.insert(tk.END, f"[W{i+1}] Wingtip: x: {x_val:+5.1f}, y: {y_val:+5.1f} {side}")
+
+        if self.selected_node:
+            ntype, nidx = self.selected_node
+            items = self.nodes_data.get(ntype, [])
+            if 0 <= nidx < len(items):
+                cur = items[nidx]
+                offset = 0 if ntype == "engines" else len(self.nodes_data.get("engines", []))
+                self.node_listbox.selection_clear(0, tk.END)
+                self.node_listbox.selection_set(offset + nidx)
+
+                self.node_x_spin.delete(0, tk.END)
+                self.node_x_spin.insert(0, f"{cur.get('x', 0.0):.1f}")
+                self.node_y_spin.delete(0, tk.END)
+                self.node_y_spin.insert(0, f"{cur.get('y', 0.0):.1f}")
+                return
+
+        self.node_x_spin.delete(0, tk.END)
+        self.node_y_spin.delete(0, tk.END)
+
+    def on_node_canvas_motion(self, event):
+        cx, cy = self.node_canvas_center
+        lx = round((event.x - cx) / self.node_zoom, 1)
+        ly = round(-(event.y - cy) / self.node_zoom, 1)
+
+        sel_str = "No node selected"
+        if self.selected_node:
+            ntype, nidx = self.selected_node
+            items = self.nodes_data.get(ntype, [])
+            if 0 <= nidx < len(items):
+                prefix = f"E{nidx+1}" if ntype == "engines" else f"W{nidx+1}"
+                sel_str = f"Selected: [{prefix}] (x: {items[nidx].get('x', 0):+.1f}, y: {items[nidx].get('y', 0):+.1f})"
+
+        self.node_hud_lbl.config(text=f"Cursor: X: {lx:+5.1f}, Y: {ly:+5.1f} | {sel_str}")
+
+        # Check hover distance to node
+        hovered = self.find_node_near(event.x, event.y, max_dist=12)
+        if hovered:
+            self.node_canvas.config(cursor="hand2")
+        elif self.node_tool_mode.get() != "select":
+            self.node_canvas.config(cursor="crosshair")
+        else:
+            self.node_canvas.config(cursor="")
+
+    def find_node_near(self, canvas_x, canvas_y, max_dist=12):
+        cx, cy = self.node_canvas_center
+        best = None
+        best_dist = max_dist
+
+        for i, en in enumerate(self.nodes_data.get("engines", [])):
+            nx = cx + (en["x"] * self.node_zoom)
+            ny = cy - (en["y"] * self.node_zoom)
+            d = ((canvas_x - nx) ** 2 + (canvas_y - ny) ** 2) ** 0.5
+            if d < best_dist:
+                best_dist = d
+                best = ("engines", i)
+
+        for i, wt in enumerate(self.nodes_data.get("wingtips", [])):
+            nx = cx + (wt["x"] * self.node_zoom)
+            ny = cy - (wt["y"] * self.node_zoom)
+            d = ((canvas_x - nx) ** 2 + (canvas_y - ny) ** 2) ** 0.5
+            if d < best_dist:
+                best_dist = d
+                best = ("wingtips", i)
+
+        return best
+
+    def on_node_canvas_click(self, event):
+        cx, cy = self.node_canvas_center
+        lx = round((event.x - cx) / self.node_zoom, 1)
+        ly = round(-(event.y - cy) / self.node_zoom, 1)
+
+        mode = self.node_tool_mode.get()
+
+        if mode == "select":
+            clicked = self.find_node_near(event.x, event.y, max_dist=14)
+            if clicked:
+                self.selected_node = clicked
+                self.drag_data = {"active": True, "node_type": clicked[0], "node_idx": clicked[1]}
+            else:
+                self.selected_node = None
+                self.drag_data = {"active": False, "node_type": None, "node_idx": None}
+            self.refresh_node_inspector()
+            self.refresh_node_canvas(rebuild_sprite=False)
+
+        elif mode == "add_engine":
+            self.nodes_data["engines"].append({"x": lx, "y": ly})
+            if self.auto_symmetry_var.get() and abs(lx) > 2.0:
+                self.nodes_data["engines"].append({"x": -lx, "y": ly})
+            self.node_tool_mode.set("select")
+            self.selected_node = ("engines", len(self.nodes_data["engines"]) - 1)
+            self.refresh_node_inspector()
+            self.refresh_node_canvas(rebuild_sprite=False)
+
+        elif mode == "add_wingtip":
+            self.nodes_data["wingtips"].append({"x": lx, "y": ly})
+            if self.auto_symmetry_var.get() and abs(lx) > 2.0:
+                self.nodes_data["wingtips"].append({"x": -lx, "y": ly})
+            self.node_tool_mode.set("select")
+            self.selected_node = ("wingtips", len(self.nodes_data["wingtips"]) - 1)
+            self.refresh_node_inspector()
+            self.refresh_node_canvas(rebuild_sprite=False)
+
+    def on_node_canvas_drag(self, event):
+        if not self.drag_data.get("active") or not self.selected_node:
+            return
+
+        ntype, nidx = self.selected_node
+        items = self.nodes_data.get(ntype, [])
+        if not (0 <= nidx < len(items)):
+            return
+
+        cx, cy = self.node_canvas_center
+        new_lx = round((event.x - cx) / self.node_zoom, 1)
+        new_ly = round(-(event.y - cy) / self.node_zoom, 1)
+
+        old_x = items[nidx]["x"]
+        items[nidx]["x"] = new_lx
+        items[nidx]["y"] = new_ly
+
+        # Auto-symmetry mirror counterpart
+        if self.auto_symmetry_var.get():
+            for j, other in enumerate(items):
+                if j != nidx and abs(other["x"] + old_x) < 4.0 and abs(other["y"] - items[nidx]["y"]) < 8.0:
+                    other["x"] = -new_lx
+                    other["y"] = new_ly
+                    break
+
+        if hasattr(self, "node_x_spin"):
+            self.node_x_spin.delete(0, tk.END)
+            self.node_x_spin.insert(0, f"{new_lx:.1f}")
+        if hasattr(self, "node_y_spin"):
+            self.node_y_spin.delete(0, tk.END)
+            self.node_y_spin.insert(0, f"{new_ly:.1f}")
+
+        self.refresh_node_canvas(rebuild_sprite=False)
+
+    def on_node_canvas_release(self, event):
+        self.drag_data = {"active": False, "node_type": None, "node_idx": None}
+        self.refresh_node_inspector()
+
+    def on_node_listbox_select(self, event):
+        sel = self.node_listbox.curselection()
+        if not sel:
+            return
+        idx = sel[0]
+        n_eng = len(self.nodes_data.get("engines", []))
+        if idx < n_eng:
+            self.selected_node = ("engines", idx)
+        else:
+            self.selected_node = ("wingtips", idx - n_eng)
+
+        self.refresh_node_inspector()
+        self.refresh_node_canvas(rebuild_sprite=False)
+
+    def on_inspector_coord_change(self):
+        if not self.selected_node:
+            return
+        ntype, nidx = self.selected_node
+        items = self.nodes_data.get(ntype, [])
+        if not (0 <= nidx < len(items)):
+            return
+
+        try:
+            val_x = round(float(self.node_x_spin.get()), 1)
+            val_y = round(float(self.node_y_spin.get()), 1)
+        except Exception:
+            return
+
+        items[nidx]["x"] = val_x
+        items[nidx]["y"] = val_y
+        self.refresh_node_canvas(rebuild_sprite=False)
+
+    def mirror_selected_node(self):
+        if not self.selected_node:
+            return
+        ntype, nidx = self.selected_node
+        items = self.nodes_data.get(ntype, [])
+        if 0 <= nidx < len(items):
+            items[nidx]["x"] = round(-items[nidx]["x"], 1)
+            self.refresh_node_inspector()
+            self.refresh_node_canvas(rebuild_sprite=False)
+
+    def delete_selected_node(self):
+        if not self.selected_node:
+            return
+        ntype, nidx = self.selected_node
+        items = self.nodes_data.get(ntype, [])
+        if 0 <= nidx < len(items):
+            items.pop(nidx)
+            self.selected_node = None
+            self.refresh_node_inspector()
+            self.refresh_node_canvas(rebuild_sprite=False)
+
+    def reset_nodes_to_defaults(self):
+        data = self.aircraft_cache.get(self.current_id, {})
+        def_nodes = self.generate_default_nodes(data)
+        self.nodes_data = {
+            "engines": [dict(en) for en in def_nodes.get("engines", [])],
+            "wingtips": [dict(wt) for wt in def_nodes.get("wingtips", [])]
+        }
+        self.selected_node = None
+        self.refresh_node_inspector()
+        self.refresh_node_canvas(rebuild_sprite=False)
+
+    def clear_all_nodes(self):
+        self.nodes_data = {"engines": [], "wingtips": []}
+        self.selected_node = None
+        self.refresh_node_inspector()
+        self.refresh_node_canvas(rebuild_sprite=False)
+
+    def generate_default_nodes(self, data):
+        phys = data.get("physics", {})
+        engine_count = int(phys.get("engineCount", 2) or 2)
+        engine_offset = float(phys.get("engineOffset", -46) or -46)
+        nozzle_spacing = float(phys.get("nozzleSpacing", 20) or 20)
+        wingspan = float(phys.get("wingspan", 80) or 80)
+        wingtip_chord = float(phys.get("wingtipChord", -16) or -16)
+
+        engines = []
+        if engine_count == 1:
+            engines.append({"x": 0.0, "y": round(engine_offset, 1)})
+        else:
+            half_sp = round(nozzle_spacing * 0.5, 1)
+            engines.append({"x": -half_sp, "y": round(engine_offset, 1)})
+            engines.append({"x": half_sp, "y": round(engine_offset, 1)})
+
+        half_span = round(wingspan * 0.5, 1)
+        wingtips = [
+            {"x": -half_span, "y": round(wingtip_chord, 1)},
+            {"x": half_span, "y": round(wingtip_chord, 1)}
+        ]
+        return {"engines": engines, "wingtips": wingtips}
+
     # ----------------------------------------------------
     # DATA LOADING & SELECTION
     # ----------------------------------------------------
@@ -905,6 +1486,28 @@ class AircraftEditorApp(tk.Tk):
             ent.insert(0, str(phys.get(k, "")))
         self.tvc_var.set(bool(phys.get("hasThrustVectoring", False)))
 
+        # Tab 6: Nodes & Visual Scale
+        plane_scale = float(data.get("scale", data.get("physics", {}).get("scale", 1.0)) or 1.0)
+        if "scale" in self.fields_gen:
+            self.fields_gen["scale"].delete(0, tk.END)
+            self.fields_gen["scale"].insert(0, f"{plane_scale:.2f}")
+
+        if hasattr(self, "node_scale_spin"):
+            self.node_scale_spin.delete(0, tk.END)
+            self.node_scale_spin.insert(0, f"{plane_scale:.2f}")
+
+        nodes_dict = data.get("nodes", data.get("physics", {}).get("nodes", None))
+        if not nodes_dict or not isinstance(nodes_dict, dict) or ("engines" not in nodes_dict and "wingtips" not in nodes_dict):
+            nodes_dict = self.generate_default_nodes(data)
+
+        self.nodes_data = {
+            "engines": [dict(en) for en in nodes_dict.get("engines", [])],
+            "wingtips": [dict(wt) for wt in nodes_dict.get("wingtips", [])]
+        }
+        self.selected_node = None
+        self.refresh_node_inspector()
+        self.refresh_node_canvas(rebuild_sprite=True)
+
         self.status_bar.config(text=f"Editing: {p_id} ({data.get('name', '')})")
 
     # ----------------------------------------------------
@@ -1052,12 +1655,23 @@ class AircraftEditorApp(tk.Tk):
         except Exception:
             cost_val = 0
 
+        try:
+            scale_val = round(float(self.node_scale_spin.get() if hasattr(self, "node_scale_spin") else (self.fields_gen.get("scale", None) and self.fields_gen["scale"].get()) or 1.0), 2)
+        except Exception:
+            scale_val = 1.0
+
+        nodes_clean = {
+            "engines": [{"x": round(float(e.get("x", 0)), 1), "y": round(float(e.get("y", 0)), 1)} for e in self.nodes_data.get("engines", [])],
+            "wingtips": [{"x": round(float(w.get("x", 0)), 1), "y": round(float(w.get("y", 0)), 1)} for w in self.nodes_data.get("wingtips", [])]
+        }
+
         data = {
             "id": p_id,
             "name": self.fields_gen["name"].get().strip(),
             "shortName": self.fields_gen["shortName"].get().strip(),
             "role": self.fields_gen["role"].get().strip(),
             "planeRole": self.fields_gen["planeRole"].get().strip(),
+            "scale": scale_val,
             "tier": tier_val,
             "partSlots": slots_val,
             "cost": cost_val,
@@ -1066,8 +1680,11 @@ class AircraftEditorApp(tk.Tk):
             "stats": stats,
             "weapons": weps,
             "physics": phys,
+            "nodes": nodes_clean,
             "description": self.fields_gen["description"].get("1.0", tk.END).strip()
         }
+        phys["scale"] = scale_val
+        phys["nodes"] = nodes_clean
         return data
 
     def save_current_aircraft(self):
@@ -1121,9 +1738,8 @@ class AircraftEditorApp(tk.Tk):
 
             pattern = r"(export const AIRCRAFT_DATA = )\{.*?\};(\r?\n\r?\n// -{10,})"
             js_dict = json.dumps(self.aircraft_cache, indent=2)
-            # Adjust indent to match JS export
-            replacement = r"\g<1>" + js_dict + r";\g<2>"
-            new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+            # Use lambda to avoid template backslash escape issues
+            new_content = re.sub(pattern, lambda m: m.group(1) + js_dict + ";" + m.group(2), content, flags=re.DOTALL)
 
             with open(JS_AIRCRAFT_FILE, "w", encoding="utf-8") as f:
                 f.write(new_content)

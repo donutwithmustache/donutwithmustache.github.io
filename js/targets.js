@@ -1,4 +1,5 @@
 // Targets Engine: Enemy MiG-21 Air Targets, Naval Gunboats, SAM Sites, and Missile Engagement
+import { AIRCRAFT_DATA } from './aircraft.js';
 
 export const STANDARD_MSL_DAMAGE = 32;
 
@@ -2107,40 +2108,61 @@ export class TargetManager {
   // Exhaust particle generator
   emitJetExhaust(tgt, particles) {
     if (!particles) return;
-    const isTwin = tgt.model === 'su27' || tgt.model === 'f22' || tgt.model === 'su57';
+    const modelId = tgt.model || 'mig21';
+    const planeCfg = (typeof AIRCRAFT_DATA !== 'undefined' && AIRCRAFT_DATA) ? AIRCRAFT_DATA[modelId] : null;
     const isAfterburning = tgt.speed > 290;
     const rate = isAfterburning ? 0.75 : 0.35;
     if (Math.random() >= rate) return;
 
     const cosH = Math.cos(tgt.heading);
     const sinH = Math.sin(tgt.heading);
+    const perpX = -sinH;
+    const perpY = cosH;
 
-    if (isTwin) {
-      const perpX = -sinH;
-      const perpY = cosH;
-      for (const noz of [-9, 9]) {
-        particles.particles.push({
-          x: tgt.x - cosH * 38 + perpX * noz,
-          y: tgt.y - sinH * 38 + perpY * noz,
-          vx: -cosH * (tgt.speed * 0.35 + 85) + (Math.random() - 0.5) * 15,
-          vy: -sinH * (tgt.speed * 0.35 + 85) + (Math.random() - 0.5) * 15,
-          life: 0.18,
-          maxLife: 0.18,
-          size: 5 + Math.random() * 3,
-          color: isAfterburning ? 'rgba(255, 120, 20, 0.85)' : 'rgba(255, 175, 60, 0.45)',
-          type: 'flame'
+    const planeScale = (planeCfg && planeCfg.scale !== undefined) ? planeCfg.scale : (planeCfg && planeCfg.physics && planeCfg.physics.scale !== undefined ? planeCfg.physics.scale : 1.0);
+
+    let nozzles = [];
+    if (planeCfg && planeCfg.nodes && Array.isArray(planeCfg.nodes.engines) && planeCfg.nodes.engines.length > 0) {
+      for (const en of planeCfg.nodes.engines) {
+        const lx = (en.x || 0) * planeScale;
+        const ly = (en.y || 0) * planeScale;
+        nozzles.push({
+          x: tgt.x + cosH * ly + perpX * lx,
+          y: tgt.y + sinH * ly + perpY * lx
         });
       }
     } else {
+      const isTwin = tgt.model === 'su27' || tgt.model === 'f22' || tgt.model === 'su57' || (planeCfg && planeCfg.physics && planeCfg.physics.engineCount > 1);
+      if (isTwin) {
+        const spacing = (planeCfg && planeCfg.physics && planeCfg.physics.nozzleSpacing ? planeCfg.physics.nozzleSpacing * 0.5 : 9) * planeScale;
+        const offset = (planeCfg && planeCfg.physics && planeCfg.physics.engineOffset ? planeCfg.physics.engineOffset : -38) * planeScale;
+        nozzles.push({
+          x: tgt.x + cosH * offset + perpX * spacing,
+          y: tgt.y + sinH * offset + perpY * spacing
+        });
+        nozzles.push({
+          x: tgt.x + cosH * offset - perpX * spacing,
+          y: tgt.y + sinH * offset - perpY * spacing
+        });
+      } else {
+        const offset = (planeCfg && planeCfg.physics && planeCfg.physics.engineOffset ? planeCfg.physics.engineOffset : -24) * planeScale;
+        nozzles.push({
+          x: tgt.x + cosH * offset,
+          y: tgt.y + sinH * offset
+        });
+      }
+    }
+
+    for (const nz of nozzles) {
       particles.particles.push({
-        x: tgt.x - cosH * 24,
-        y: tgt.y - sinH * 24,
-        vx: -cosH * 60 + (Math.random() - 0.5) * 15,
-        vy: -sinH * 60 + (Math.random() - 0.5) * 15,
+        x: nz.x,
+        y: nz.y,
+        vx: -cosH * (tgt.speed * 0.35 + 85) + (Math.random() - 0.5) * 15,
+        vy: -sinH * (tgt.speed * 0.35 + 85) + (Math.random() - 0.5) * 15,
         life: 0.18,
         maxLife: 0.18,
-        size: 4 + Math.random() * 3,
-        color: isAfterburning ? 'rgba(255, 130, 30, 0.75)' : 'rgba(255, 160, 50, 0.45)',
+        size: (5 + Math.random() * 3) * planeScale,
+        color: isAfterburning ? 'rgba(255, 120, 20, 0.85)' : 'rgba(255, 175, 60, 0.45)',
         type: 'flame'
       });
     }
@@ -2300,6 +2322,9 @@ export class TargetManager {
           ? Math.max(0.0, Math.min(1.0, tgt.altitude))
           : 1.0;
 
+        const planeCfg = (typeof AIRCRAFT_DATA !== 'undefined' && AIRCRAFT_DATA) ? AIRCRAFT_DATA[modelId] : null;
+        const planeScale = (planeCfg && planeCfg.scale !== undefined) ? planeCfg.scale : (planeCfg && planeCfg.physics && planeCfg.physics.scale !== undefined ? planeCfg.physics.scale : 1.0);
+
         // Ground/Ocean shadow: as plane falls towards surface, shadow closes in to (2, 3) directly underneath!
         const baseOffsetX = 35;
         const baseOffsetY = 48;
@@ -2307,7 +2332,7 @@ export class TargetManager {
         const shadowOffsetY = baseOffsetY * (0.08 + 0.92 * alt);
         const shadowScale = 0.72 + 0.28 * (1.0 - alt);
         const altScale = 0.75 + 0.25 * alt;
-        const size = baseSize * altScale;
+        const size = baseSize * altScale * planeScale;
         const shadowBlur = Math.max(1, Math.round(3.5 * alt));
         const shadowAlpha = 0.28 + 0.25 * (1.0 - alt);
 

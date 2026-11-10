@@ -127,7 +127,14 @@ class FlightGame {
 
   loadAircraftWeapons(config) {
     const w = (config && config.weapons) ? config.weapons : {};
-    const equippedSpwId = w.equippedSpecialWeapon || (w.specialWeapons && w.specialWeapons[0]) || 'qaam';
+    let equippedSpwId = null;
+    const planeId = config.id || this.currentAircraftId;
+    if (typeof profileManager !== 'undefined' && profileManager.getEquippedSpw) {
+      equippedSpwId = profileManager.getEquippedSpw(planeId);
+    }
+    if (!equippedSpwId || !SPECIAL_WEAPONS[equippedSpwId]) {
+      equippedSpwId = w.equippedSpecialWeapon || (w.specialWeapons && w.specialWeapons[0]) || 'qaam';
+    }
     const spwDef = SPECIAL_WEAPONS[equippedSpwId] || SPECIAL_WEAPONS.qaam;
     const spwAmmoCount = (w.spwAmmo && w.spwAmmo[equippedSpwId] !== undefined)
       ? w.spwAmmo[equippedSpwId]
@@ -233,13 +240,18 @@ class FlightGame {
     };
   }
 
-  equipSpecialWeapon(spwId) {
+  equipSpecialWeapon(spwId, isPermanent = false) {
     if (!SPECIAL_WEAPONS[spwId]) return;
     const spwDef = SPECIAL_WEAPONS[spwId];
     const w = (this.aircraftConfig && this.aircraftConfig.weapons) ? this.aircraftConfig.weapons : {};
 
-    // Update active equipped weapon
-    w.equippedSpecialWeapon = spwId;
+    // Update active equipped weapon. Only mutate template if permanent player choice (e.g. hangar)
+    if (isPermanent) {
+      w.equippedSpecialWeapon = spwId;
+      if (typeof profileManager !== 'undefined' && profileManager.setEquippedSpw && this.currentAircraftId) {
+        profileManager.setEquippedSpw(this.currentAircraftId, spwId);
+      }
+    }
     this.weapons.equippedSpwId = spwId;
     this.weapons.spwCode = spwDef.code;
     this.weapons.spwName = spwDef.name;
@@ -376,15 +388,24 @@ class FlightGame {
       this.selectAircraft(planeId, false);
     }
     if (loadout.specialWeapon && SPECIAL_WEAPONS[loadout.specialWeapon]) {
-      this.equipSpecialWeapon(loadout.specialWeapon);
+      this.equipSpecialWeapon(loadout.specialWeapon, false);
     }
   }
 
   // Restore player's equipped loadout (from hangar/selection) - used in Multiplayer & player-loadout SP
   restoreEquippedLoadout() {
-    const targetId = this.equippedAircraftId || 'f15c';
-    if (AIRCRAFT_DATA[targetId] && this.currentAircraftId !== targetId) {
-      this.selectAircraft(targetId, false);
+    const profile = (typeof profileManager !== 'undefined') ? profileManager.activeProfile : null;
+    const targetPlane = (profile && profile.equippedPlane) || this.equippedAircraftId || 'f15c';
+    if (AIRCRAFT_DATA[targetPlane]) {
+      if (this.currentAircraftId !== targetPlane) {
+        this.selectAircraft(targetPlane, false);
+      }
+    }
+    const targetSpw = (typeof profileManager !== 'undefined' && profileManager.getEquippedSpw)
+      ? profileManager.getEquippedSpw(this.currentAircraftId)
+      : (this.aircraftConfig?.weapons?.specialWeapons?.[0] || 'qaam');
+    if (targetSpw && SPECIAL_WEAPONS[targetSpw]) {
+      this.equipSpecialWeapon(targetSpw, false);
     }
   }
 
@@ -634,11 +655,7 @@ class FlightGame {
       this.selectAircraft(planeId, true);
     }
     if (spwId && SPECIAL_WEAPONS[spwId]) {
-      this.weapons.equippedSpecialWeapon = spwId;
-      const spwDef = SPECIAL_WEAPONS[spwId];
-      this.weapons.spwAmmo = (this.aircraftConfig.weapons?.spwAmmo && this.aircraftConfig.weapons.spwAmmo[spwId])
-        || spwDef.defaultAmmo || 24;
-      this.weapons.spwRechargeTime = spwDef.cooldown || 5.0;
+      this.equipSpecialWeapon(spwId, false);
     }
 
     // Reset physics & load modular mission
@@ -957,7 +974,8 @@ class FlightGame {
       return;
     }
 
-    // Show RTB transition loading screen
+    // Show RTB transition loading screen (using unified Red Military HUD theme)
+    const isCompleted = this.missionManager && this.missionManager.isCompleted && !this.missionManager.isFailed;
     const tagEl = document.getElementById('loading-header-tag');
     const titleEl = document.getElementById('loading-mission-title');
     const subEl = document.getElementById('loading-mission-subtitle');
@@ -967,29 +985,29 @@ class FlightGame {
     const pctText = document.getElementById('loading-progress-pct');
     const statusText = document.getElementById('loading-status-text');
 
-    if (tagEl) tagEl.textContent = '// SORTIE TERMINATED // RTB PROTOCOL';
-    if (titleEl) titleEl.textContent = 'RETURNING TO BASE';
-    if (subEl) subEl.textContent = 'DISENGAGING COMBAT SIMULATION // SECURING TELEMETRY';
+    if (tagEl) tagEl.textContent = isCompleted ? '// SORTIE COMPLETE // MISSION DEBRIEF' : '// SORTIE TERMINATED // RTB PROTOCOL';
+    if (titleEl) titleEl.textContent = isCompleted ? 'MISSION COMPLETE' : 'RETURNING TO BASE';
+    if (subEl) subEl.textContent = isCompleted ? 'SORTIE OBJECTIVES SECURED // RETURNING TO HANGAR' : 'DISENGAGING COMBAT SIMULATION // SECURING TELEMETRY';
     if (briefingBody) briefingBody.style.display = 'none';
     if (actionContainer) actionContainer.classList.add('hidden');
     if (bar) bar.style.width = '0%';
     if (pctText) pctText.textContent = '0%';
-    if (statusText) statusText.textContent = 'DISENGAGING COMBAT SYSTEMS...';
+    if (statusText) statusText.textContent = isCompleted ? 'SECURING COMBAT TELEMETRY & FLIGHT RECORDER...' : 'DISENGAGING COMBAT SYSTEMS...';
 
     screen.classList.remove('hidden');
 
     setTimeout(() => {
       if (bar) bar.style.width = '50%';
       if (pctText) pctText.textContent = '50%';
-      if (statusText) statusText.textContent = 'UNLOADING MAP & COMBAT UNITS...';
+      if (statusText) statusText.textContent = isCompleted ? 'RECORDING SORTIE STATS & UNLOCKS...' : 'UNLOADING MAP & COMBAT UNITS...';
       this.unloadLevel();
-    }, 150);
+    }, 200);
 
     setTimeout(() => {
       if (bar) bar.style.width = '100%';
       if (pctText) pctText.textContent = '100%';
-      if (statusText) statusText.textContent = 'TELEMETRY SECURED // DOCKING CARRIER';
-    }, 320);
+      if (statusText) statusText.textContent = 'SORTIE CONCLUDED // DOCKING CARRIER';
+    }, 450);
 
     setTimeout(() => {
       screen.classList.add('hidden');
@@ -998,7 +1016,7 @@ class FlightGame {
       if (this.menu) {
         this.menu.showScreen('main-menu');
       }
-    }, 480);
+    }, 700);
   }
 
   updateMouseWorldCoords() {
@@ -2044,20 +2062,40 @@ class FlightGame {
       ctx.strokeStyle = '#00ffee';
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 4]);
-      const lineCoord = returnLine.coordinate || 0;
-      if (returnLine.side === 'top' || returnLine.side === 'bottom') {
-        const ly = toCanvasY(lineCoord);
-        ctx.beginPath();
-        ctx.moveTo(padding, ly);
-        ctx.lineTo(width - padding, ly);
-        ctx.stroke();
-      } else {
-        const lx = toCanvasX(lineCoord);
-        ctx.beginPath();
-        ctx.moveTo(lx, padding);
-        ctx.lineTo(lx, height - padding);
-        ctx.stroke();
+
+      const side = (returnLine.side || 'bottom').toLowerCase();
+      const offset = (returnLine.offset !== undefined) ? returnLine.offset : 0.08;
+      let rlX1 = padding, rlY1 = padding, rlX2 = width - padding, rlY2 = padding;
+      let zoneX = padding, zoneY = padding, zoneW = drawW, zoneH = drawH;
+
+      if (side === 'top') {
+        const ly = padding + drawH * offset;
+        rlX1 = padding; rlY1 = ly; rlX2 = width - padding; rlY2 = ly;
+        zoneX = padding; zoneY = padding; zoneW = drawW; zoneH = drawH * offset;
+      } else if (side === 'bottom') {
+        const ly = padding + drawH * (1.0 - offset);
+        rlX1 = padding; rlY1 = ly; rlX2 = width - padding; rlY2 = ly;
+        zoneX = padding; zoneY = ly; zoneW = drawW; zoneH = drawH * offset;
+      } else if (side === 'left') {
+        const lx = padding + drawW * offset;
+        rlX1 = lx; rlY1 = padding; rlX2 = lx; rlY2 = height - padding;
+        zoneX = padding; zoneY = padding; zoneW = drawW * offset; zoneH = drawH;
+      } else if (side === 'right') {
+        const lx = padding + drawW * (1.0 - offset);
+        rlX1 = lx; rlY1 = padding; rlX2 = lx; rlY2 = height - padding;
+        zoneX = lx; zoneY = padding; zoneW = drawW * offset; zoneH = drawH;
       }
+
+      // Shaded resupply zone
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.12)';
+      ctx.fillRect(zoneX, zoneY, zoneW, zoneH);
+
+      // Dashed return line
+      ctx.beginPath();
+      ctx.moveTo(rlX1, rlY1);
+      ctx.lineTo(rlX2, rlY2);
+      ctx.stroke();
+
       ctx.restore();
     }
 
@@ -2530,7 +2568,7 @@ class FlightGame {
         flightState.speed,
         flightState.throttle,
         flightState.isAfterburning,
-        this.aircraftConfig.physics,
+        this.aircraftConfig,
         altitudeScale
       );
 
@@ -2539,7 +2577,7 @@ class FlightGame {
         flightState.y,
         flightState.heading,
         flightState,
-        this.aircraftConfig.physics,
+        this.aircraftConfig,
         altitudeScale
       );
     }
@@ -3059,8 +3097,9 @@ class FlightGame {
     const shadowOffsetY = baseOffsetY * (0.12 + 0.88 * alt);
 
     // As plane nears the ground, shadow becomes sharper, darker, and slightly larger
+    const planeScale = (this.aircraftConfig.scale !== undefined) ? this.aircraftConfig.scale : ((p && p.scale !== undefined) ? p.scale : 1.0);
     const shadowScale = 0.68 + 0.20 * (1.0 - alt);
-    const size = (p.length || 105) * shadowScale;
+    const size = (p.length || 105) * shadowScale * planeScale;
     const shadowBlur = Math.max(1, Math.round(3.5 * alt));
     const shadowAlpha = 0.26 + 0.22 * (1.0 - alt);
 
@@ -3100,8 +3139,9 @@ class FlightGame {
     const alt = Math.max(0.0, Math.min(1.0, this.altitude !== undefined ? this.altitude : 1.0));
 
     // Plane shrinks by ~22% as it falls away from camera toward the ocean surface
+    const planeScale = (this.aircraftConfig.scale !== undefined) ? this.aircraftConfig.scale : ((p && p.scale !== undefined) ? p.scale : 1.0);
     const altitudeScale = 0.78 + 0.22 * alt;
-    const size = (p.length || 105) * altitudeScale;
+    const size = (p.length || 105) * altitudeScale * planeScale;
 
     ctx.save();
     ctx.translate(flightState.x, flightState.y);

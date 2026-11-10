@@ -4,6 +4,7 @@ export class ParticleSystem {
   constructor() {
     this.particles = [];
     this.wingtipTrails = { left: [], right: [] };
+    this.nodeWingtipTrails = null;
     this.bullets = [];
     this.missiles = [];
     this.flares = [];
@@ -14,6 +15,7 @@ export class ParticleSystem {
     this.particles = [];
     this.wingtipTrails.left = [];
     this.wingtipTrails.right = [];
+    this.nodeWingtipTrails = null;
     this.bullets = [];
     this.missiles = [];
     this.flares = [];
@@ -27,20 +29,48 @@ export class ParticleSystem {
     const perpX = -sinH;
     const perpY = cosH;
 
-    const offsetDist = (pConfig.engineOffset || -46) * altScale;
-    const spacing = (pConfig.nozzleSpacing || 20) * 0.5 * altScale;
+    const phys = (pConfig && pConfig.physics) ? pConfig.physics : (pConfig || {});
+    const planeScale = (pConfig && pConfig.scale !== undefined) ? pConfig.scale : ((phys && phys.scale !== undefined) ? phys.scale : 1.0);
+    const totalScale = altScale * planeScale;
 
-    // Twin nozzles
-    const nozzles = [
-      {
-        x: x + cosH * offsetDist + perpX * spacing,
-        y: y + sinH * offsetDist + perpY * spacing
-      },
-      {
-        x: x + cosH * offsetDist - perpX * spacing,
-        y: y + sinH * offsetDist - perpY * spacing
+    // Check if custom engine nodes are provided
+    const nodes = (pConfig && pConfig.nodes) ? pConfig.nodes : (phys && phys.nodes ? phys.nodes : null);
+    let nozzles = [];
+
+    if (nodes && Array.isArray(nodes.engines) && nodes.engines.length > 0) {
+      // Use custom engine nodes defined in node editor
+      for (const en of nodes.engines) {
+        const lx = (en.x || 0) * totalScale;
+        const ly = (en.y || 0) * totalScale;
+        nozzles.push({
+          x: x + cosH * ly + perpX * lx,
+          y: y + sinH * ly + perpY * lx
+        });
       }
-    ];
+    } else {
+      // Fallback based on engineCount
+      const engineCount = (phys.engineCount !== undefined) ? phys.engineCount : 2;
+      const offsetDist = (phys.engineOffset !== undefined ? phys.engineOffset : -46) * totalScale;
+
+      if (engineCount === 1) {
+        // Single centerline nozzle (e.g. MiG-17, A-4, Etendard)
+        nozzles.push({
+          x: x + cosH * offsetDist,
+          y: y + sinH * offsetDist
+        });
+      } else {
+        // Multi/Twin nozzles
+        const spacing = (phys.nozzleSpacing !== undefined ? phys.nozzleSpacing : 20) * 0.5 * totalScale;
+        nozzles.push({
+          x: x + cosH * offsetDist + perpX * spacing,
+          y: y + sinH * offsetDist + perpY * spacing
+        });
+        nozzles.push({
+          x: x + cosH * offsetDist - perpX * spacing,
+          y: y + sinH * offsetDist - perpY * spacing
+        });
+      }
+    }
 
     const exhaustSpeed = (isAfterburning ? 280 : 160) + Math.random() * 40;
 
@@ -310,30 +340,57 @@ export class ParticleSystem {
     const perpX = -sinH;
     const perpY = cosH;
 
-    const span = (pConfig.wingspan || 84) * 0.5 * altScale;
-    const chord = (pConfig.wingtipChord !== undefined ? pConfig.wingtipChord : -16) * altScale;
+    const phys = (pConfig && pConfig.physics) ? pConfig.physics : (pConfig || {});
+    const planeScale = (pConfig && pConfig.scale !== undefined) ? pConfig.scale : ((phys && phys.scale !== undefined) ? phys.scale : 1.0);
+    const totalScale = altScale * planeScale;
 
-    const leftTip = {
-      x: x + cosH * chord - perpX * span,
-      y: y + sinH * chord - perpY * span
-    };
-    const rightTip = {
-      x: x + cosH * chord + perpX * span,
-      y: y + sinH * chord + perpY * span
-    };
+    const nodes = (pConfig && pConfig.nodes) ? pConfig.nodes : (phys && phys.nodes ? phys.nodes : null);
 
     // Wingtip vortices appear during high G (> 5.0) or high alpha drift
     const active = flightState.isHighG || (flightState.alphaDeg > 15 && flightState.speed > 80);
     const opacity = active ? Math.min(0.85, (flightState.gForce - 4.0) * 0.25 + flightState.alphaDeg * 0.02) : 0;
-
     const now = performance.now();
-    this.wingtipTrails.left.unshift({ ...leftTip, opacity, time: now });
-    this.wingtipTrails.right.unshift({ ...rightTip, opacity, time: now });
-
-    // Cull old points
     const maxTrailAge = 400; // ms
-    this.wingtipTrails.left = this.wingtipTrails.left.filter(p => now - p.time < maxTrailAge);
-    this.wingtipTrails.right = this.wingtipTrails.right.filter(p => now - p.time < maxTrailAge);
+
+    if (nodes && Array.isArray(nodes.wingtips) && nodes.wingtips.length > 0) {
+      if (!this.nodeWingtipTrails || this.nodeWingtipTrails.length !== nodes.wingtips.length) {
+        this.nodeWingtipTrails = nodes.wingtips.map(() => []);
+      }
+      for (let i = 0; i < nodes.wingtips.length; i++) {
+        const wt = nodes.wingtips[i];
+        const lx = (wt.x || 0) * totalScale;
+        const ly = (wt.y || 0) * totalScale;
+        const tipPos = {
+          x: x + cosH * ly + perpX * lx,
+          y: y + sinH * ly + perpY * lx,
+          opacity,
+          time: now
+        };
+        this.nodeWingtipTrails[i].unshift(tipPos);
+        this.nodeWingtipTrails[i] = this.nodeWingtipTrails[i].filter(p => now - p.time < maxTrailAge);
+      }
+      this.wingtipTrails.left = [];
+      this.wingtipTrails.right = [];
+    } else {
+      this.nodeWingtipTrails = null;
+      const span = (phys.wingspan || 84) * 0.5 * totalScale;
+      const chord = (phys.wingtipChord !== undefined ? phys.wingtipChord : -16) * totalScale;
+
+      const leftTip = {
+        x: x + cosH * chord - perpX * span,
+        y: y + sinH * chord - perpY * span
+      };
+      const rightTip = {
+        x: x + cosH * chord + perpX * span,
+        y: y + sinH * chord + perpY * span
+      };
+
+      this.wingtipTrails.left.unshift({ ...leftTip, opacity, time: now });
+      this.wingtipTrails.right.unshift({ ...rightTip, opacity, time: now });
+
+      this.wingtipTrails.left = this.wingtipTrails.left.filter(p => now - p.time < maxTrailAge);
+      this.wingtipTrails.right = this.wingtipTrails.right.filter(p => now - p.time < maxTrailAge);
+    }
   }
 
   // Gun fire
@@ -952,8 +1009,14 @@ export class ParticleSystem {
 
   draw(ctx) {
     // Draw wingtip condensation vapor trails
-    this.drawTrailRibbon(ctx, this.wingtipTrails.left);
-    this.drawTrailRibbon(ctx, this.wingtipTrails.right);
+    if (this.nodeWingtipTrails && this.nodeWingtipTrails.length > 0) {
+      for (const trail of this.nodeWingtipTrails) {
+        this.drawTrailRibbon(ctx, trail);
+      }
+    } else {
+      this.drawTrailRibbon(ctx, this.wingtipTrails.left);
+      this.drawTrailRibbon(ctx, this.wingtipTrails.right);
+    }
 
     // Draw sonic boom vapor cones
     for (const c of this.sonicCones) {

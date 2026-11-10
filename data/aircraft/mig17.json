@@ -1,0 +1,115 @@
+{
+  "id": "mig17",
+  "name": "MiG-17PF Fresco",
+  "shortName": "MiG-17PF",
+  "role": "Radar Interceptor Fighter",
+  "planeRole": "FIGHTER",
+  "tier": 0,
+  "partSlots": 1,
+  "cost": 1000,
+  "sprite": "./assets/planes/mig17pf.png",
+  "tags": [
+    "AIR_SUPERIORITY",
+    "INTERCEPTOR"
+  ],
+  "stats": {
+    "spd": 60,
+    "def": 45,
+    "air": 65,
+    "gnd": 35,
+    "stealth": 0
+  },
+  "weapons": {
+    "gunAmmo": 350,
+    "maxGunAmmo": 350,
+    "gunRpm": 900,
+    "gunDamage": 1.8,
+    "mslCount": 36,
+    "maxMslCount": 36,
+    "mslCooldown": 4.4,
+    "flareCount": 18,
+    "maxFlareCount": 18,
+    "flarePool": 2,
+    "flareCooldown": 22,
+    "specialWeapons": [
+      "qaam",
+      "saam",
+      "4aam"
+    ],
+    "equippedSpecialWeapon": "qaam",
+    "spwAmmo": {
+      "qaam": 18,
+      "saam": 14,
+      "4aam": 18
+    },
+    "ability": "emergencyAfterburner",
+    "abilityCharges": 1,
+    "maxAbilityCharges": 1,
+    "abilityRecharge": 45
+  },
+  "physics": {
+    "mass": 6100,
+    "accelCruise": 54,
+    "accelAfterburner": 122,
+    "airbrakeDecel": 80,
+    "baseTurnRate": 2.3,
+    "turnResponse": 10,
+    "cornerSpeed": 245,
+    "normalMinSpeed": 130,
+    "forcedMinSpeed": 82,
+    "stallSpeed": 235,
+    "cruiseSpeed": 300,
+    "maxSpeed": 470,
+    "compressionFactor": 0.55,
+    "maxG": 10,
+    "grip": 3,
+    "highAlphaDrag": 64,
+    "inducedDragFactor": 10,
+    "driftTolerance": 0.72,
+    "engineCount": 1,
+    "nozzleSpacing": 0,
+    "wingspan": 58,
+    "wingtipChord": -14,
+    "length": 76,
+    "engineOffset": -36,
+    "scale": 0.78,
+    "nodes": {
+      "engines": [
+        {
+          "x": 0,
+          "y": -36
+        }
+      ],
+      "wingtips": [
+        {
+          "x": -29,
+          "y": -14
+        },
+        {
+          "x": 29,
+          "y": -14
+        }
+      ]
+    }
+  },
+  "description": "High-turn-rate transonic interceptor equipped with radar-ranging avionics and heavy autocannons.",
+  "scale": 0.78,
+  "nodes": {
+    "engines": [
+      {
+        "x": 0,
+        "y": -36
+      }
+    ],
+    "wingtips": [
+      {
+        "x": -29,
+        "y": -14
+      },
+      {
+        "x": 29,
+        "y": -14
+      }
+    ]
+  }
+}

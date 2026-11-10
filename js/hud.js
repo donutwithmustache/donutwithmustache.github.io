@@ -54,7 +54,7 @@ export class FlightHUD {
     // 3. Tactical Center Warnings: HIGH-G, DRIFT, STALL, AO BOUNDARY, MISSILE INBOUND
     this.drawTacticalWarnings(ctx, centerX, centerY - 150, flightState, aircraftConfig, boundaryState, targeting, missionManager);
 
-    // 4. Target Destruction Kill Confirmations
+    // 4. Target Destruction Kill Confirmations (Reverted to full scale)
     if (targetManager && targetManager.destroyedNotifications && targetManager.destroyedNotifications.length > 0) {
       let notifY = 95;
       for (const n of targetManager.destroyedNotifications) {
@@ -71,42 +71,40 @@ export class FlightHUD {
       }
     }
 
-    // 4B. Mission Story & Tactical Radio Messages (200% scale)
+    // 4B. Mission Story & Tactical Radio Messages (Scaled down 30%, customizable color)
     if (missionManager && missionManager.radioMessages && missionManager.radioMessages.length > 0) {
-      let radioY = 140;
+      let radioY = 110;
       for (const m of missionManager.radioMessages) {
         if (!m || !m.text || m.life <= 0) continue;
         const alpha = Math.min(1.0, m.life);
+        const msgColor = m.color || '#00ffee';
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.font = "bold 30px 'Share Tech Mono', 'Courier New', monospace";
-        ctx.fillStyle = '#00ffee';
-        ctx.shadowColor = '#00ff88';
-        ctx.shadowBlur = 18;
+        ctx.font = "bold 21px 'Share Tech Mono', 'Courier New', monospace";
+        ctx.fillStyle = msgColor;
+        ctx.shadowColor = msgColor;
+        ctx.shadowBlur = 12;
         ctx.textAlign = 'center';
         const cleanRadio = (m.text || '').trim().replace(/^<<\s*/, '').replace(/\s*>>$/, '');
         ctx.fillText(`<< ${cleanRadio} >>`, centerX, radioY);
         ctx.restore();
-        radioY += 48;
+        radioY += 34;
       }
     }
 
-    // 5. Top Left: Aircraft Info & 4 Stats (Removed per test flight HUD cleanup)
-    // this.drawAircraftStatsCard(ctx, 24, 35, aircraftConfig, flightState, weapons);
+    // 5. Top Left: Heading Compass & Dynamic Mission Header (Reverted to full scale)
+    this.drawCompassTape(ctx, 30, 26, flightState.heading, missionManager);
 
-    // 6. Top Center: Heading Compass Tape (with dynamic mission header & mode)
-    this.drawCompassTape(ctx, centerX, 30, flightState.heading, missionManager);
-
-    // 7. Bottom-Left: 75% Scale Flight Telemetry & Weapons HUD Console (Perfect Ergonomic Scale)
-    const consoleX = 35;
-    const consoleY = canvasHeight - 225;
+    // 7. Bottom-Left: Flight Telemetry & Weapons HUD Console (Scaled down 30%)
+    const consoleX = 25;
+    const consoleY = canvasHeight - 165;
     this.drawCustomFlightConsole(ctx, consoleX, consoleY, flightState, aircraftConfig, weapons, boundaryState, abilityState);
 
-    // 8. Bottom-Right: 75% Scale Authentic Ace Combat Square Radar / Minimap (Expanded on [HOLD Z])
+    // 8. Bottom-Right: Authentic Ace Combat Square Radar / Minimap (Scaled down 30%, Expanded on [HOLD Z])
     const isExpanded = !!(input && input.z);
-    const radarHalfSize = isExpanded ? 198 : 132;
-    const radarX = canvasWidth - radarHalfSize - 35;
-    const radarY = canvasHeight - 42 - radarHalfSize;
+    const radarHalfSize = Math.round((isExpanded ? 198 : 132) * 0.70);
+    const radarX = canvasWidth - radarHalfSize - 25;
+    const radarY = canvasHeight - 25 - radarHalfSize;
     const returnLine = missionManager && missionManager.getReturnLine ? missionManager.getReturnLine() : null;
     this.drawRadarMinimap(ctx, radarX, radarY, radarHalfSize, flightState, world, particles, isExpanded, boundaryState, targets, targeting, returnLine, camera, canvasWidth, canvasHeight, sensorFusionActive);
 
@@ -903,20 +901,30 @@ export class FlightHUD {
     ctx.restore();
   }
 
-  // Top Compass Tape
-  drawCompassTape(ctx, cx, cy, heading, missionManager = null) {
+  // Top-Left Compass & Mission Telemetry (Reverted to full scale)
+  drawCompassTape(ctx, x, y, heading, missionManager = null) {
     ctx.save();
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left';
 
     let deg = Math.round((heading * 180 / Math.PI) + 360) % 360;
     const card = deg > 337 || deg <= 22 ? 'N' : deg > 22 && deg <= 67 ? 'NE' : deg > 67 && deg <= 112 ? 'E' : deg > 112 && deg <= 157 ? 'SE' : deg > 157 && deg <= 202 ? 'S' : deg > 202 && deg <= 247 ? 'SW' : deg > 247 && deg <= 292 ? 'W' : 'NW';
 
     ctx.fillStyle = this.hudColor;
-    ctx.font = 'bold 13px monospace';
-    ctx.fillText(`${deg}° [${card}]`, cx, cy);
+    ctx.font = 'bold 15px monospace';
+    ctx.fillText(`${deg}° [${card}]`, x, y);
 
-    ctx.font = 'bold 10px monospace';
-    ctx.fillStyle = 'rgba(0, 255, 102, 0.75)';
+    // Tactical divider line
+    ctx.strokeStyle = 'rgba(0, 255, 102, 0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 6);
+    ctx.lineTo(x + 130, y + 6);
+    ctx.moveTo(x, y + 6);
+    ctx.lineTo(x, y + 11);
+    ctx.stroke();
+
+    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = 'rgba(0, 255, 102, 0.8)';
 
     let missionText = 'MISSION: TEST FLIGHT [SP]';
     if (missionManager && missionManager.currentMission) {
@@ -926,15 +934,7 @@ export class FlightHUD {
       const tag = isMP ? `[MP // ${missionManager.playerCount || 2} PLAYERS]` : (missionManager.loadout && missionManager.loadout.mode === 'forced' ? `[SP // FORCED LOADOUT${noResp}]` : `[SP // PILOT LOADOUT${noResp}]`);
       missionText = `MISSION: ${mName.toUpperCase()} ${tag}`;
     }
-    ctx.fillText(missionText, cx, cy + 24);
-
-    ctx.strokeStyle = 'rgba(0, 255, 102, 0.4)';
-    ctx.beginPath();
-    ctx.moveTo(cx - 60, cy + 6);
-    ctx.lineTo(cx + 60, cy + 6);
-    ctx.moveTo(cx, cy + 6);
-    ctx.lineTo(cx, cy + 11);
-    ctx.stroke();
+    ctx.fillText(missionText, x, y + 22);
 
     ctx.restore();
   }
@@ -946,7 +946,7 @@ export class FlightHUD {
     const cy = canvasHeight * 0.38;
 
     ctx.save();
-    let title = 'MISSION ACCOMPLISHED';
+    let title = 'MISSION COMPLETE';
     let subtitle = 'ALL OBJECTIVES COMPLETED // RETURN TO BASE';
     let col = '#00ff66';
     let bgGrad = 'rgba(0, 30, 15, 0.88)';
@@ -957,10 +957,10 @@ export class FlightHUD {
       col = '#ff3333';
       bgGrad = 'rgba(40, 10, 10, 0.88)';
     } else if (missionManager.isScriptedEnding) {
-      title = missionManager.scriptedEndTitle || 'OPERATION CONCLUDED';
-      subtitle = missionManager.scriptedEndText || 'SCRIPTED SEQUENCE COMPLETE';
-      col = '#00e5ff';
-      bgGrad = 'rgba(0, 25, 35, 0.88)';
+      title = 'MISSION COMPLETE';
+      subtitle = (missionManager.scriptedEndText || 'TUTORIAL COMPLETE').toUpperCase();
+      col = '#00ff66';
+      bgGrad = 'rgba(0, 30, 15, 0.88)';
     }
 
     // High tech tactical bar
@@ -1005,6 +1005,10 @@ export class FlightHUD {
   // ==========================================
   drawCustomFlightConsole(ctx, x, y, flightState, aircraftConfig, weapons, boundaryState = null, abilityState = null) {
     ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(0.70, 0.70);
+    x = 0;
+    y = 0;
 
     // Speed calculation from flightState:
     const kph = flightState.displayedKph || Math.max(100, Math.round(flightState.speed * 3.6 - 250));
@@ -1584,13 +1588,13 @@ export class FlightHUD {
 
       // Cardinal Labels on Square Edges
       ctx.fillStyle = 'rgba(0, 255, 102, 0.85)';
-      ctx.font = 'bold 13px monospace';
+      ctx.font = 'bold 10px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('N', cx, top + 12);
-      ctx.fillText('S', cx, top + size - 12);
-      ctx.fillText('W', left + 12, cy);
-      ctx.fillText('E', left + size - 12, cy);
+      ctx.fillText('N', cx, top + 9);
+      ctx.fillText('S', cx, top + size - 9);
+      ctx.fillText('W', left + 9, cy);
+      ctx.fillText('E', left + size - 9, cy);
     } else {
       // Expanded Tactical Overview: Coordinate Grid
       ctx.strokeStyle = 'rgba(0, 255, 238, 0.16)';
@@ -1614,13 +1618,13 @@ export class FlightHUD {
 
       // Cardinal direction indicators
       ctx.fillStyle = 'rgba(0, 255, 238, 0.7)';
-      ctx.font = 'bold 12px monospace';
+      ctx.font = 'bold 9px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('N', cx, top + 14);
-      ctx.fillText('S', cx, top + size - 14);
-      ctx.fillText('W', left + 14, cy);
-      ctx.fillText('E', left + size - 14, cy);
+      ctx.fillText('N', cx, top + 10);
+      ctx.fillText('S', cx, top + size - 10);
+      ctx.fillText('W', left + 10, cy);
+      ctx.fillText('E', left + size - 10, cy);
     }
 
     // 5. Clip inside Square Screen
@@ -2019,35 +2023,35 @@ export class FlightHUD {
     // 6. Header & Range Readouts
     if (isExpanded) {
       ctx.fillStyle = '#00ffee';
-      ctx.font = 'bold 13px monospace';
+      ctx.font = 'bold 10px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText('TAC MAP // ENTIRE AO [30.1KM]', left, top - 8);
+      ctx.fillText('TAC MAP // ENTIRE AO [30.1KM]', left, top - 6);
 
       ctx.textAlign = 'right';
-      ctx.fillText('[HOLDING Z]', left + size, top - 8);
+      ctx.fillText('[HOLDING Z]', left + size, top - 6);
 
       let deg = Math.round((flightState.heading * 180 / Math.PI) + 360) % 360;
       ctx.textAlign = 'left';
       ctx.fillStyle = 'rgba(0, 255, 238, 0.85)';
-      ctx.fillText(`POS: ${Math.round(flightState.x)}, ${Math.round(flightState.y)}`, left, top + size + 18);
+      ctx.fillText(`POS: ${Math.round(flightState.x)}, ${Math.round(flightState.y)}`, left, top + size + 14);
 
       ctx.textAlign = 'right';
-      ctx.fillText(`HDG ${String(deg).padStart(3, '0')}°`, left + size, top + size + 18);
+      ctx.fillText(`HDG ${String(deg).padStart(3, '0')}°`, left + size, top + size + 14);
     } else {
       ctx.fillStyle = '#00ff66';
-      ctx.font = 'bold 13px monospace';
+      ctx.font = 'bold 10px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText('RDR 4.0KM', left, top + size + 18);
+      ctx.fillText('RDR 4.0KM', left, top + size + 14);
 
       let deg = Math.round((flightState.heading * 180 / Math.PI) + 360) % 360;
       ctx.textAlign = 'right';
-      ctx.fillText(`HDG ${String(deg).padStart(3, '0')}° [HOLD Z: MAP]`, left + size, top + size + 18);
+      ctx.fillText(`HDG ${String(deg).padStart(3, '0')}° [HOLD Z: MAP]`, left + size, top + size + 14);
     }
 
     ctx.restore();
   }
 
-  // Singleplayer Mission Dialogue Transmission (Ace Combat style top-right portrait & speech bubble - 200% Scale)
+  // Singleplayer Mission Dialogue Transmission (Ace Combat style top-right portrait & speech bubble - scaled 30% smaller)
   drawDialogueTransmission(ctx, canvasWidth, canvasHeight, dialogue) {
     if (!dialogue || !dialogue.text) return;
 
@@ -2061,17 +2065,17 @@ export class FlightHUD {
     if (dialogue.elapsed < introDuration) {
       const p = Math.max(0.001, dialogue.elapsed / introDuration);
       animAlpha = p;
-      slideOffset = (1.0 - Math.pow(p, 2)) * 80;
+      slideOffset = (1.0 - Math.pow(p, 2)) * 60;
     } else if (dialogue.timer < outroDuration) {
       animAlpha = Math.max(0, dialogue.timer / outroDuration);
-      slideOffset = (1.0 - animAlpha) * 60;
+      slideOffset = (1.0 - animAlpha) * 45;
     }
 
     ctx.globalAlpha = animAlpha;
 
-    // Portrait geometry (200% size: 172 x 184)
-    const portraitW = 172;
-    const portraitH = 184;
+    // Portrait geometry (scaled 30% smaller: 120 x 129)
+    const portraitW = 120;
+    const portraitH = 129;
 
     // Measure callsign / role / squadron metadata to guarantee long names never clip out of the screen edge
     const speakerStr = (dialogue.speaker || 'UNKNOWN').toUpperCase();
@@ -2079,25 +2083,26 @@ export class FlightHUD {
     const squadronStr = (dialogue.squadron || 'ALLIED FORCES').toUpperCase();
 
     ctx.save();
-    ctx.font = "bold 28px monospace";
+    ctx.font = "bold 20px monospace";
     const speakerW = ctx.measureText(speakerStr).width;
-    ctx.font = "20px monospace";
+    ctx.font = "14px monospace";
     const aircraftW = ctx.measureText(aircraftStr).width;
-    ctx.font = "18px monospace";
+    ctx.font = "12px monospace";
     const squadronW = ctx.measureText(squadronStr).width;
     ctx.restore();
 
     const maxMetaW = Math.max(portraitW, speakerW, aircraftW, squadronW);
     // Move transmission comfortably away from the edge so even long squadron names have breathing room
-    const edgeMargin = 50;
+    const edgeMargin = 35;
     const requiredRightSpace = Math.max(portraitW + edgeMargin, maxMetaW + edgeMargin);
     const portraitX = canvasWidth - requiredRightSpace + slideOffset;
-    const portraitY = 24;
+    // Anchor transmission ~1/3rd down from top of screen to guarantee radio comms are never obstructed
+    const portraitY = Math.max(140, Math.round(canvasHeight * 0.32));
 
-    // Speech bubble dynamic sizing based on text length & word wrapping at 200% scale
-    const fontStr = "bold 32px 'Share Tech Mono', 'Courier New', monospace";
+    // Speech bubble dynamic sizing based on text length & word wrapping
+    const fontStr = "bold 22px 'Share Tech Mono', 'Courier New', monospace";
     ctx.font = fontStr;
-    const maxAllowedW = Math.min(960, Math.max(380, portraitX - 50));
+    const maxAllowedW = Math.min(670, Math.max(270, portraitX - 35));
 
     // Calculate lines for full text to guarantee stable bubble dimensions while typing
     const fullWords = (dialogue.text || '').split(' ');
@@ -2107,7 +2112,7 @@ export class FlightHUD {
 
     for (const w of fullWords) {
       const candidate = curLine ? (curLine + ' ' + w) : w;
-      if (ctx.measureText(candidate).width <= maxAllowedW - 64) {
+      if (ctx.measureText(candidate).width <= maxAllowedW - 45) {
         curLine = candidate;
       } else {
         if (curLine) {
@@ -2123,11 +2128,11 @@ export class FlightHUD {
     }
     if (fullLines.length === 0) fullLines.push('');
 
-    const lineHeight = 40;
-    const bubbleW = Math.max(400, Math.min(maxAllowedW, maxMeasuredW + 72));
-    const bubbleH = Math.max(124, fullLines.length * lineHeight + 44);
-    const bubbleX = portraitX - bubbleW - 24;
-    const bubbleY = portraitY + 4;
+    const lineHeight = 28;
+    const bubbleW = Math.max(280, Math.min(maxAllowedW, maxMeasuredW + 50));
+    const bubbleH = Math.max(86, fullLines.length * lineHeight + 30);
+    const bubbleX = portraitX - bubbleW - 17;
+    const bubbleY = portraitY + 3;
 
     // Word wrap the currently displayed typewriter text within the bubble width
     const dispWords = (dialogue.displayedText || '').split(' ');
@@ -2135,7 +2140,7 @@ export class FlightHUD {
     let curDisp = '';
     for (const w of dispWords) {
       const candidate = curDisp ? (curDisp + ' ' + w) : w;
-      if (ctx.measureText(candidate).width <= bubbleW - 64) {
+      if (ctx.measureText(candidate).width <= bubbleW - 45) {
         curDisp = candidate;
       } else {
         if (curDisp) dispLines.push(curDisp);
@@ -2145,20 +2150,20 @@ export class FlightHUD {
     if (curDisp) dispLines.push(curDisp);
     if (dispLines.length === 0) dispLines.push('');
 
-    // 1. Draw Speech Bubble Frame & Connecting Arrow Pointer (200% scale)
+    // 1. Draw Speech Bubble Frame & Connecting Arrow Pointer
     ctx.fillStyle = 'rgba(8, 38, 18, 0.88)';
     ctx.strokeStyle = '#00ff66';
     ctx.shadowColor = '#00ff66';
-    ctx.shadowBlur = 16;
-    ctx.lineWidth = 4.0;
+    ctx.shadowBlur = 12;
+    ctx.lineWidth = 2.8;
 
-    const arrowY = bubbleY + Math.min(bubbleH * 0.45, 84);
+    const arrowY = bubbleY + Math.min(bubbleH * 0.45, 58);
     ctx.beginPath();
     ctx.moveTo(bubbleX, bubbleY);
     ctx.lineTo(bubbleX + bubbleW, bubbleY);
-    ctx.lineTo(bubbleX + bubbleW, arrowY - 16);
-    ctx.lineTo(portraitX - 4, arrowY); // Arrow tip towards portrait
-    ctx.lineTo(bubbleX + bubbleW, arrowY + 16);
+    ctx.lineTo(bubbleX + bubbleW, arrowY - 11);
+    ctx.lineTo(portraitX - 3, arrowY); // Arrow tip towards portrait
+    ctx.lineTo(bubbleX + bubbleW, arrowY + 11);
     ctx.lineTo(bubbleX + bubbleW, bubbleY + bubbleH);
     ctx.lineTo(bubbleX, bubbleY + bubbleH);
     ctx.closePath();
@@ -2170,7 +2175,7 @@ export class FlightHUD {
     ctx.font = fontStr;
     ctx.fillStyle = '#ffffff';
     ctx.shadowColor = '#00ff66';
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 6;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -2183,34 +2188,36 @@ export class FlightHUD {
     }
     ctx.restore();
 
-    // 3. Draw Portrait Outer Box & Glow (200% scale)
+    // 3. Draw Portrait Outer Box & Glow
     ctx.fillStyle = '#061a10';
     ctx.strokeStyle = '#00ff66';
     ctx.shadowColor = '#00ff66';
-    ctx.shadowBlur = 20;
-    ctx.lineWidth = 4.8;
+    ctx.shadowBlur = 14;
+    ctx.lineWidth = 3.4;
     ctx.fillRect(portraitX, portraitY, portraitW, portraitH);
     ctx.strokeRect(portraitX, portraitY, portraitW, portraitH);
 
-    // 4. Portrait Content (Custom Image or Authentic Tactical Pilot Silhouette at 200% scale)
+    // 4. Portrait Content (Custom Image or Authentic Tactical Pilot Silhouette)
     if (dialogue.portraitImage && dialogue.portraitImage.complete && dialogue.portraitImage.naturalWidth > 0) {
-      ctx.drawImage(dialogue.portraitImage, portraitX + 6, portraitY + 6, portraitW - 12, portraitH - 12);
+      ctx.drawImage(dialogue.portraitImage, portraitX + 4, portraitY + 4, portraitW - 8, portraitH - 8);
       ctx.fillStyle = 'rgba(0, 255, 102, 0.22)';
-      ctx.fillRect(portraitX + 6, portraitY + 6, portraitW - 12, portraitH - 12);
+      ctx.fillRect(portraitX + 4, portraitY + 4, portraitW - 8, portraitH - 8);
     } else {
-      // High-Tech Generic Pilot Silhouette Vector (200% scale)
+      // High-Tech Generic Pilot Silhouette Vector (Scaled 0.70)
       ctx.save();
       const pcX = portraitX + portraitW * 0.5;
-      const pcY = portraitY + 88;
+      const pcY = portraitY + portraitH * 0.48;
+      ctx.translate(pcX, pcY);
+      ctx.scale(0.70, 0.70);
 
       // Pilot helmet
       ctx.fillStyle = '#0f3822';
       ctx.strokeStyle = '#00ff66';
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(pcX, pcY - 12, 52, Math.PI, 0, false);
-      ctx.lineTo(pcX + 52, pcY + 32);
-      ctx.lineTo(pcX - 52, pcY + 32);
+      ctx.arc(0, -12, 52, Math.PI, 0, false);
+      ctx.lineTo(52, 32);
+      ctx.lineTo(-52, 32);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -2218,15 +2225,15 @@ export class FlightHUD {
       // Tinted flight visor
       ctx.fillStyle = '#00ff66';
       ctx.beginPath();
-      ctx.ellipse(pcX, pcY - 10, 40, 22, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, -10, 40, 22, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // Visor reflection
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2.4;
       ctx.beginPath();
-      ctx.moveTo(pcX - 20, pcY - 16);
-      ctx.lineTo(pcX - 4, pcY - 24);
+      ctx.moveTo(-20, -16);
+      ctx.lineTo(-4, -24);
       ctx.stroke();
 
       // Oxygen mask & boom microphone
@@ -2234,24 +2241,24 @@ export class FlightHUD {
       ctx.strokeStyle = '#00ff88';
       ctx.lineWidth = 3.0;
       ctx.beginPath();
-      ctx.arc(pcX, pcY + 24, 22, 0, Math.PI, false);
+      ctx.arc(0, 24, 22, 0, Math.PI, false);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
       // Mic boom
       ctx.beginPath();
-      ctx.moveTo(pcX - 36, pcY + 12);
-      ctx.lineTo(pcX - 10, pcY + 28);
+      ctx.moveTo(-36, 12);
+      ctx.lineTo(-10, 28);
       ctx.stroke();
 
       // Shoulders
       ctx.fillStyle = '#092215';
       ctx.beginPath();
-      ctx.moveTo(pcX - 76, portraitY + portraitH - 8);
-      ctx.lineTo(pcX - 48, pcY + 36);
-      ctx.lineTo(pcX + 48, pcY + 36);
-      ctx.lineTo(pcX + 76, portraitY + portraitH - 8);
+      ctx.moveTo(-76, 75);
+      ctx.lineTo(-48, 36);
+      ctx.lineTo(48, 36);
+      ctx.lineTo(76, 75);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -2259,50 +2266,50 @@ export class FlightHUD {
       ctx.restore();
     }
 
-    // CRT Scanlines across portrait (200% scale)
+    // CRT Scanlines across portrait
     ctx.save();
     ctx.fillStyle = 'rgba(0, 255, 102, 0.14)';
-    for (let sy = portraitY + 4; sy < portraitY + portraitH; sy += 6) {
-      ctx.fillRect(portraitX + 4, sy, portraitW - 8, 2);
+    for (let sy = portraitY + 3; sy < portraitY + portraitH; sy += 4) {
+      ctx.fillRect(portraitX + 3, sy, portraitW - 6, 1.5);
     }
     ctx.restore();
 
-    // 5. Callsign / Character Meta Info Under Portrait (200% scale)
+    // 5. Callsign / Character Meta Info Under Portrait
     ctx.save();
-    const metaX = portraitX + 4;
-    const metaY = portraitY + portraitH + 26;
+    const metaX = portraitX + 3;
+    const metaY = portraitY + portraitH + 18;
 
-    // Callsign (bold phosphor green - 28px)
-    ctx.font = 'bold 28px monospace';
+    // Callsign (bold phosphor green - 20px)
+    ctx.font = 'bold 20px monospace';
     ctx.fillStyle = '#00ff66';
     ctx.shadowColor = '#00ff66';
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 10;
     ctx.fillText(speakerStr, metaX, metaY);
 
-    // Aircraft / Role (20px)
-    ctx.font = '20px monospace';
+    // Aircraft / Role (14px)
+    ctx.font = '14px monospace';
     ctx.fillStyle = '#a0ffcc';
     ctx.shadowBlur = 0;
-    ctx.fillText(aircraftStr, metaX, metaY + 25);
+    ctx.fillText(aircraftStr, metaX, metaY + 18);
 
-    // Squadron / Affiliation (18px)
-    ctx.font = '18px monospace';
+    // Squadron / Affiliation (12px)
+    ctx.font = '12px monospace';
     ctx.fillStyle = '#60b080';
-    ctx.fillText(squadronStr, metaX, metaY + 48);
+    ctx.fillText(squadronStr, metaX, metaY + 34);
 
     ctx.restore();
 
-    // Holographic Entry Beaming sweep line effect (200% scale)
+    // Holographic Entry Beaming sweep line effect
     if (dialogue.elapsed < introDuration) {
-      const sweepY = portraitY + (dialogue.elapsed / introDuration) * (portraitH + 70);
+      const sweepY = portraitY + (dialogue.elapsed / introDuration) * (portraitH + 50);
       ctx.save();
       ctx.strokeStyle = '#ffffff';
       ctx.shadowColor = '#00ffcc';
-      ctx.shadowBlur = 25;
-      ctx.lineWidth = 5.0;
+      ctx.shadowBlur = 18;
+      ctx.lineWidth = 3.5;
       ctx.beginPath();
-      ctx.moveTo(bubbleX - 16, sweepY);
-      ctx.lineTo(portraitX + portraitW + 16, sweepY);
+      ctx.moveTo(bubbleX - 12, sweepY);
+      ctx.lineTo(portraitX + portraitW + 12, sweepY);
       ctx.stroke();
       ctx.restore();
     }
@@ -2357,8 +2364,8 @@ export class FlightHUD {
       ctx.fillRect(0, 0, canvasWidth, barH);
       ctx.fillRect(0, canvasHeight - barH, canvasWidth, barH);
 
-      // Letterbox border lines
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)';
+      // Letterbox border lines (Tactical Red)
+      ctx.strokeStyle = 'rgba(255, 51, 68, 0.45)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(0, barH); ctx.lineTo(canvasWidth, barH);
@@ -2371,13 +2378,13 @@ export class FlightHUD {
 
       ctx.font = "bold 26px 'Share Tech Mono', 'Courier New', monospace";
       ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = '#00f0ff';
+      ctx.shadowColor = '#ff3344';
       ctx.shadowBlur = 18;
       ctx.fillText(transition.title.toUpperCase(), cx, cy - 24);
 
       // High-tech divider line
-      ctx.strokeStyle = '#00f0ff';
-      ctx.shadowColor = '#00f0ff';
+      ctx.strokeStyle = '#ff3344';
+      ctx.shadowColor = '#ff3344';
       ctx.shadowBlur = 10;
       ctx.lineWidth = 2.0;
       ctx.beginPath();
@@ -2386,7 +2393,7 @@ export class FlightHUD {
       ctx.stroke();
 
       // Diamond marker in center of line
-      ctx.fillStyle = '#00f0ff';
+      ctx.fillStyle = '#ffa502';
       ctx.beginPath();
       ctx.moveTo(cx, cy - 5);
       ctx.lineTo(cx + 7, cy);
@@ -2398,24 +2405,24 @@ export class FlightHUD {
       // Subtitle (Time elapsed / unit movements)
       if (transition.subtitle) {
         ctx.font = "bold 14px 'Share Tech Mono', 'Courier New', monospace";
-        ctx.fillStyle = '#ffaa00';
-        ctx.shadowColor = '#ffaa00';
-        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#ffd0d5';
+        ctx.shadowColor = '#ff3344';
+        ctx.shadowBlur = 8;
         ctx.fillText(transition.subtitle.toUpperCase(), cx, cy + 28);
       }
 
       // Tactical loading pulse ring
       const pulsePhase = (performance.now() * 0.0035) % (Math.PI * 2);
-      ctx.strokeStyle = 'rgba(0, 255, 200, 0.7)';
+      ctx.strokeStyle = 'rgba(255, 51, 68, 0.75)';
       ctx.lineWidth = 2.0;
       ctx.beginPath();
       ctx.arc(cx, cy + 68, 14, pulsePhase, pulsePhase + 1.8);
       ctx.stroke();
 
       ctx.font = "11px monospace";
-      ctx.fillStyle = '#8ec5ff';
+      ctx.fillStyle = '#ff99a4';
       ctx.shadowBlur = 0;
-      ctx.fillText('ESTABLISHING TACTICAL DATALINK...', cx, cy + 96);
+      ctx.fillText('SYNCHRONIZING SORTIE DEBRIEF // RETURNING TO BASE...', cx, cy + 96);
     }
 
     ctx.restore();

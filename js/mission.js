@@ -398,6 +398,9 @@ export class MissionManager {
   }
 
   onMissionCompleted() {
+    if (this.missionCompletedHandled) return;
+    this.missionCompletedHandled = true;
+
     if (this.activeMissionId === 'tutorial') {
       profileManager.completeTutorial();
       profileManager.recordSortie(true, 5, 0);
@@ -409,6 +412,15 @@ export class MissionManager {
       }
     } else {
       profileManager.recordSortie(true, 2, 0);
+    }
+
+    // If mission wasn't already ending via scripted fade transition, schedule return to main menu
+    if (!this.isScriptedEnding) {
+      setTimeout(() => {
+        if (this.game && this.game.exitToMainMenu && !this.isFailed) {
+          this.game.exitToMainMenu();
+        }
+      }, 4500);
     }
   }
 
@@ -434,6 +446,14 @@ export class MissionManager {
     } else if (ft.state === 'HOLD_BLACK') {
       ft.alpha = 1.0;
       if (ft.timer >= ft.holdTime) {
+        // Mission end sequence: transition to debrief loading screen & return to main menu
+        if (ft.config && ft.config.isMissionEnd) {
+          this.fadeTransition = null;
+          if (this.game && this.game.exitToMainMenu) {
+            this.game.exitToMainMenu();
+          }
+          return;
+        }
         ft.state = 'FADING_IN';
         ft.timer = 0;
       }
@@ -844,24 +864,26 @@ export class MissionManager {
         this.spawnWave(act.units || []);
       } else if (act.type === 'RADIO_MESSAGE') {
         const dur = act.duration || act.life || act.time || 4.5;
-        this.postRadioMessage(act.text, dur);
+        const col = act.color || act.textColor || null;
+        this.postRadioMessage(act.text, dur, col);
       } else if (act.type === 'SET_AI_ORDER') {
         this.applyUnitOrder(act.unitId, act.order);
       } else if (act.type === 'SCRIPTED_END') {
         this.isScriptedEnding = true;
         this.isCompleted = true;
-        this.scriptedEndTitle = act.title || 'OPERATION CONCLUDED';
-        this.scriptedEndText = act.text || 'MISSION UPDATE // SCRIPTED SEQUENCE TRIGGERED';
-        this.postRadioMessage(`MISSION UPDATE // ${this.scriptedEndTitle.toUpperCase()}`, 5.0);
+        this.scriptedEndTitle = act.title || 'MISSION COMPLETE';
+        this.scriptedEndText = act.text || 'TUTORIAL COMPLETE';
+        this.postRadioMessage(`MISSION UPDATE // ${this.scriptedEndTitle.toUpperCase()}`, 5.0, '#00ff66');
         for (const obj of this.objectives) {
           obj.isCompleted = true;
         }
         this.onMissionCompleted();
         this.startFadeTransition({
-          title: this.scriptedEndTitle,
-          subtitle: this.scriptedEndText,
+          title: 'MISSION COMPLETE',
+          subtitle: (this.scriptedEndText || 'TUTORIAL COMPLETE').toUpperCase(),
           fadeTime: act.fadeTime || 2.0,
-          holdTime: 3.0
+          holdTime: 2.8,
+          isMissionEnd: true
         });
       } else if (act.type === 'COMPLETE_OBJECTIVE') {
         const targetId = act.objectiveId || act.text || act.title;
@@ -897,8 +919,8 @@ export class MissionManager {
     unit.orders = Object.assign({}, unit.orders, order);
   }
 
-  postRadioMessage(text, life = 4.5) {
-    this.radioMessages.push({ text, life, maxLife: life });
+  postRadioMessage(text, life = 4.5, color = null) {
+    this.radioMessages.push({ text, life, maxLife: life, color });
     if (this.game && this.game.audio && this.game.audio.playRadioChirp) {
       this.game.audio.playRadioChirp();
     }

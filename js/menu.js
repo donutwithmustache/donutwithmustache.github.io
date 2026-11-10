@@ -439,9 +439,7 @@ export class MenuManager {
   launchMission(missionId) {
     const profile = profileManager.activeProfile;
     const planeId = (profile && profile.equippedPlane) ? profile.equippedPlane : 'f15c';
-    const spwId = (profile && profile.equippedSpw && profile.equippedSpw[planeId])
-      ? profile.equippedSpw[planeId]
-      : (AIRCRAFT_DATA[planeId]?.weapons?.equippedSpecialWeapon || '4aam');
+    const spwId = profileManager.getEquippedSpw(planeId);
 
     this.game.startMissionFlow(missionId, planeId, spwId);
   }

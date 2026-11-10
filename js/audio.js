@@ -496,6 +496,115 @@ export class SoundEngine {
     osc.stop(t + 0.1);
   }
 
+  // Tactical Menu Navigation SFX: Cursor movement tick
+  playMenuMove() {
+    if (!this.initialized || !this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(850, t);
+    osc.frequency.exponentialRampToValueAtTime(620, t + 0.04);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.08, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.05);
+  }
+
+  // Tactical Menu Navigation SFX: Item selection / confirm chime
+  playMenuSelect() {
+    if (!this.initialized || !this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    osc1.type = 'sine';
+    osc2.type = 'sine';
+
+    osc1.frequency.setValueAtTime(1180, t);
+    osc1.frequency.setValueAtTime(1760, t + 0.04);
+    osc2.frequency.setValueAtTime(2360, t + 0.04);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.15, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc1.start(t);
+    osc2.start(t + 0.04);
+    osc1.stop(t + 0.15);
+    osc2.stop(t + 0.15);
+  }
+
+  // Tactical Menu Navigation SFX: Cancel / back tone
+  playMenuBack() {
+    if (!this.initialized || !this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(940, t);
+    osc.frequency.exponentialRampToValueAtTime(520, t + 0.08);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.12, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.1);
+  }
+
+  // Tactical Menu Navigation SFX: Denied / Error buzzer
+  playMenuError() {
+    if (!this.initialized || !this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, t);
+    osc.frequency.setValueAtTime(140, t + 0.06);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.14, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.16);
+  }
+
+  // Tactical Hangar SFX: Upgrade completed fanfare / power surge
+  playUpgradeSound() {
+    if (!this.initialized || !this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+    const freqs = [587.33, 739.99, 880.00, 1174.66]; // D-maj arpeggio
+    freqs.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t + idx * 0.06);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.12, t + idx * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.06 + 0.22);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(t + idx * 0.06);
+      osc.stop(t + idx * 0.06 + 0.24);
+    });
+  }
+
   // Target designation blip (RMB)
   playTargetDesignateSound() {
     if (!this.initialized || !this.ctx || this.isMuted) return;

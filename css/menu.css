@@ -1,0 +1,1087 @@
+/* ==========================================================================
+   CODENAME: LEGION - TACTICAL MENU & HANGAR STYLESHEET
+   Typography: Quantico (Google Fonts)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Quantico:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+:root {
+  --font-tactical: 'Quantico', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+  
+  --red-deep-bg: #140306;
+  --red-mid-bg: #24050a;
+  --red-accent: #ff3344;
+  --red-crimson: #c71b2e;
+  --red-soft: #ff4d5a;
+  --red-border: rgba(255, 60, 75, 0.45);
+  --red-border-bright: #ff4757;
+  
+  --gold-accent: #f5cb3b;
+  --gold-glow: rgba(245, 203, 59, 0.5);
+  --selector-yellow: #fff37a;
+  
+  --hangar-bg: #3a3a3c;
+  --hangar-tarmac: #444448;
+  --hangar-taxi: #e5b324;
+  --hangar-panel: #262628;
+  --hangar-btn: #323235;
+  --hangar-btn-border: #4a4a4e;
+  
+  --green-indicator: #2ecc71;
+  --red-indicator: #e74c3c;
+  --blue-badge: #1e6091;
+  
+  --text-white: #ffffff;
+  --text-dim: #b0b0b8;
+  --text-muted: #72727a;
+}
+
+/* Base resets & typography */
+.tactical-font {
+  font-family: var(--font-tactical);
+  letter-spacing: 1px;
+}
+
+/* Master Menu Containers */
+#menu-system {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 50;
+  pointer-events: none;
+  overflow: hidden;
+  font-family: var(--font-tactical);
+}
+
+.menu-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform: scale(0.99);
+  box-sizing: border-box;
+}
+
+.menu-screen.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+/* ==========================================================================
+   CRT WAVEFORM & SCANLINE OVERLAY
+   (Active on Login, Main Menu, Submenus - STRICTLY DISABLED in Hangar/Game)
+   ========================================================================== */
+.crt-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 99;
+  background: 
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.28) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 3px, 6px 100%;
+  animation: crtWave 4s infinite ease-in-out;
+}
+
+.crt-overlay::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 0%, rgba(255, 50, 70, 0.04) 50%, rgba(18, 16, 16, 0) 100%);
+  opacity: 0.8;
+  height: 18%;
+  animation: crtScanbar 7s linear infinite;
+}
+
+@keyframes crtWave {
+  0% { opacity: 0.94; }
+  50% { opacity: 1.0; }
+  100% { opacity: 0.94; }
+}
+
+@keyframes crtScanbar {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(600%); }
+}
+
+/* ==========================================================================
+   SCREEN 1: LOGIN SCREEN (Mockup 1)
+   ========================================================================== */
+#screen-login {
+  background: radial-gradient(circle at 25% 45%, #3d070e 0%, #170205 60%, #0d0103 100%);
+  color: var(--red-soft);
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+}
+
+.login-title {
+  font-size: 58px;
+  font-weight: 700;
+  letter-spacing: 5px;
+  color: #ff4757;
+  text-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+  margin-bottom: 38px;
+  text-transform: uppercase;
+}
+
+.login-box {
+  width: 440px;
+  border: 2px solid #ff4757;
+  padding: 24px 22px;
+  background: rgba(26, 4, 8, 0.75);
+  box-shadow: 0 0 25px rgba(255, 71, 87, 0.2), inset 0 0 15px rgba(255, 71, 87, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-field {
+  width: 100%;
+  height: 44px;
+  background: rgba(14, 2, 4, 0.85);
+  border: 1px solid #ff4757;
+  color: #ff6b7b;
+  font-family: var(--font-tactical);
+  font-size: 16px;
+  letter-spacing: 2px;
+  padding: 0 14px;
+  outline: none;
+  box-sizing: border-box;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+}
+
+.login-field:focus {
+  border-color: #ffffff;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+}
+
+.login-field::placeholder {
+  color: rgba(255, 80, 95, 0.45);
+}
+
+.login-btn-primary {
+  width: 100%;
+  height: 44px;
+  background: rgba(20, 2, 5, 0.9);
+  border: 1px solid #ff4757;
+  color: #ff4757;
+  font-family: var(--font-tactical);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-btn-primary:hover {
+  background: #ff4757;
+  color: #120205;
+  box-shadow: 0 0 18px rgba(255, 71, 87, 0.6);
+}
+
+.login-btn-row {
+  display: flex;
+  gap: 12px;
+}
+
+.login-btn-secondary {
+  flex: 1;
+  height: 40px;
+  background: rgba(20, 2, 5, 0.85);
+  border: 1px solid #ff4757;
+  color: #ff4757;
+  font-family: var(--font-tactical);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-btn-secondary:hover {
+  background: rgba(255, 71, 87, 0.25);
+  color: #ffffff;
+}
+
+.login-remember-row {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: #ff4757;
+  font-size: 15px;
+  letter-spacing: 2px;
+}
+
+.login-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #ff4757;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.login-checkbox.checked::after {
+  content: '■';
+  font-size: 14px;
+  color: #ff4757;
+}
+
+.login-footer-info {
+  position: absolute;
+  bottom: 24px;
+  right: 32px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: rgba(255, 71, 87, 0.65);
+}
+
+/* ==========================================================================
+   SCREEN 2: MAIN MENU & SUBMENUS (Mockup 2)
+   ========================================================================== */
+#screen-main-menu, #screen-sub-menu {
+  background: radial-gradient(circle at 20% 40%, #3a060d 0%, #1a0307 65%, #0d0103 100%);
+  user-select: none;
+  flex-direction: column;
+  padding: 80px 0 0 100px;
+  box-sizing: border-box;
+}
+
+.menu-vertical-accent {
+  position: absolute;
+  top: 0;
+  left: 90px;
+  width: 12px;
+  height: 100%;
+  border-left: 2px solid rgba(255, 60, 75, 0.7);
+  border-right: 1px solid rgba(255, 60, 75, 0.35);
+  pointer-events: none;
+}
+
+.menu-header-title {
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #ff4757;
+  margin-bottom: 46px;
+  text-shadow: 0 0 15px rgba(255, 71, 87, 0.4);
+}
+
+.menu-items-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 380px;
+}
+
+/* Glowing Yellow Selector Bar */
+.menu-selector-cursor {
+  position: absolute;
+  left: -12px;
+  width: 340px;
+  height: 38px;
+  background: linear-gradient(90deg, #fffbe0 0%, rgba(255, 238, 140, 0.95) 20%, rgba(255, 205, 50, 0.4) 65%, rgba(255, 200, 50, 0) 100%);
+  box-shadow: 0 0 20px rgba(255, 238, 140, 0.6), 0 0 35px rgba(255, 190, 40, 0.3);
+  pointer-events: none;
+  border-left: 5px solid #ffffff;
+  transition: top 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.15s ease;
+  z-index: 1;
+}
+
+.menu-nav-item {
+  position: relative;
+  z-index: 2;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #ff5e6e;
+  padding: 6px 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: color 0.12s ease, transform 0.12s ease;
+}
+
+.menu-nav-item.selected {
+  color: #1a0508;
+  font-weight: 900;
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.8);
+  transform: translateX(4px);
+}
+
+.menu-footer-status {
+  position: absolute;
+  bottom: 24px;
+  right: 32px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: rgba(255, 71, 87, 0.7);
+}
+
+/* ==========================================================================
+   SCREEN 3: HANGAR SCREEN (Mockup 4)
+   (NO CRT WAVEFORM EFFECT)
+   ========================================================================== */
+#screen-hangar {
+  background-color: var(--hangar-tarmac);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Asphalt Tarmac Taxi Canvas Background */
+#hangar-tarmac-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Top-Down Aircraft View in Center */
+.hangar-center-stage {
+  position: absolute;
+  top: 48%;
+  left: 53%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.hangar-plane-sprite {
+  max-width: 290px;
+  max-height: 290px;
+  object-fit: contain;
+  filter: drop-shadow(0 28px 32px rgba(0, 0, 0, 0.8));
+  transition: transform 0.3s ease;
+}
+
+/* Top-Left Title & Action Buttons */
+.hangar-top-left {
+  position: absolute;
+  top: 32px;
+  left: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 10;
+}
+
+.hangar-title {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: 5px;
+  color: #ffffff;
+  margin-bottom: 6px;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+.hangar-action-btn {
+  width: 260px;
+  background: rgba(36, 36, 40, 0.92);
+  border: 1px solid rgba(130, 130, 138, 0.45);
+  border-left: 3px solid #8e9297;
+  color: #ffffff;
+  font-family: var(--font-tactical);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 12px 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.hangar-action-btn:hover {
+  background: rgba(58, 58, 65, 0.95);
+  border-color: #ffffff;
+  border-left-color: var(--gold-accent);
+  box-shadow: 0 0 15px rgba(245, 203, 59, 0.35);
+  padding-left: 22px;
+}
+
+/* Bottom-Left Player Bar */
+.hangar-bottom-left {
+  position: absolute;
+  bottom: 28px;
+  left: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 10;
+}
+
+.hangar-user-callsign {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 1.5px;
+}
+
+.hangar-user-credits {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gold-accent);
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.hangar-sub-btn {
+  width: 260px;
+  background: rgba(30, 30, 32, 0.9);
+  border: 1px solid rgba(110, 110, 118, 0.4);
+  color: #d0d0d5;
+  font-family: var(--font-tactical);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 10px 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hangar-sub-btn:hover {
+  background: rgba(50, 50, 56, 0.95);
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+/* Top-Right Aircraft Data Spec Sheet */
+.hangar-top-right {
+  position: absolute;
+  top: 32px;
+  right: 36px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10;
+  background: rgba(28, 28, 30, 0.88);
+  border: 1px solid rgba(90, 90, 98, 0.4);
+  padding: 18px 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.plane-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.plane-name-large {
+  font-size: 32px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 3px;
+}
+
+.plane-tier-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c4c4cc;
+  letter-spacing: 1.5px;
+}
+
+.plane-role-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.plane-role-badge {
+  background: var(--blue-badge);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 3px 8px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.plane-slots-count {
+  font-size: 12px;
+  color: #c4c4cc;
+  letter-spacing: 1px;
+}
+
+.plane-desc-text {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #9e9ea6;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.plane-ability-box {
+  background: rgba(18, 18, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ability-tag {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: #a0a0a8;
+}
+
+.ability-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+.ability-desc {
+  font-size: 10px;
+  line-height: 1.35;
+  color: #8c8c94;
+}
+
+.ability-cd {
+  font-size: 9px;
+  color: var(--gold-accent);
+  text-align: right;
+  margin-top: 2px;
+}
+
+/* Mid-Right Spider Radar Graph */
+.hangar-radar-container {
+  position: absolute;
+  right: 36px;
+  bottom: 140px;
+  width: 320px;
+  height: 170px;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(28, 28, 30, 0.88);
+  border: 1px solid rgba(90, 90, 98, 0.4);
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+#hangar-spider-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Bottom-Center Part Slots */
+.hangar-bottom-center {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 10;
+}
+
+.hangar-part-slot {
+  width: 58px;
+  height: 58px;
+  background: rgba(24, 24, 26, 0.9);
+  border: 1px solid rgba(120, 120, 130, 0.5);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.hangar-part-slot:hover {
+  border-color: #ffffff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+}
+
+.hangar-part-slot img {
+  max-width: 80%;
+  max-height: 80%;
+  object-fit: contain;
+}
+
+/* Bottom-Right Equipped SP Weapon Box */
+.hangar-bottom-right {
+  position: absolute;
+  bottom: 24px;
+  right: 36px;
+  width: 320px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(28, 28, 30, 0.92);
+  border: 1px solid rgba(90, 90, 98, 0.45);
+  padding: 12px 18px;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.15s ease;
+}
+
+.hangar-bottom-right:hover {
+  border-color: var(--gold-accent);
+  box-shadow: 0 0 18px rgba(245, 203, 59, 0.3);
+}
+
+.spw-meta-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spw-equipped-tag {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: #9e9ea6;
+}
+
+.spw-name-display {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 2px;
+}
+
+.spw-thumb-box {
+  width: 68px;
+  height: 52px;
+  background: rgba(14, 14, 16, 0.85);
+  border: 1px solid rgba(120, 120, 130, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.spw-thumb-box img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  transform: rotate(-35deg);
+}
+
+/* ==========================================================================
+   MODAL DIALOGS (SP Weapon Select, Upgrade Confirmation, Shop, etc.)
+   ========================================================================== */
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(8, 8, 10, 0.78);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.modal-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* SP Weapon Modal (Mockup 3) */
+.spw-select-panel {
+  width: 600px;
+  background: #46464a;
+  border: 2px solid #6b6b72;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.spw-modal-header {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #ffffff;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 10px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.spw-modal-close-btn {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 22px;
+  cursor: pointer;
+  font-family: var(--font-tactical);
+}
+
+.spw-item-row {
+  display: flex;
+  align-items: center;
+  background: #36363a;
+  border: 1px solid rgba(90, 90, 100, 0.6);
+  padding: 10px 14px;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.spw-item-row:hover {
+  background: #424248;
+  border-color: #ffffff;
+}
+
+.spw-indicator-bar {
+  width: 8px;
+  align-self: stretch;
+  background: var(--red-indicator);
+  margin-left: -6px;
+}
+
+.spw-indicator-bar.equipped {
+  background: var(--green-indicator);
+  box-shadow: 0 0 10px var(--green-indicator);
+}
+
+.spw-code-col {
+  width: 100px;
+  display: flex;
+  flex-direction: column;
+}
+
+.spw-code-text {
+  font-size: 24px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+.spw-sub-label {
+  font-size: 9px;
+  color: #b0b0b8;
+  letter-spacing: 1px;
+}
+
+.spw-desc-col {
+  flex: 1;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #dcdce0;
+  letter-spacing: 0.8px;
+}
+
+.spw-preview-thumb {
+  width: 60px;
+  height: 48px;
+  background: #242426;
+  border: 1px solid #505058;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.spw-preview-thumb img {
+  max-width: 85%;
+  max-height: 85%;
+  object-fit: contain;
+  transform: rotate(-35deg);
+}
+
+/* Upgrade Confirmation Modal (Mockup 5) */
+.upgrade-panel {
+  width: 580px;
+  background: #46464a;
+  border: 2px solid #707078;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.upgrade-header-title {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #ffffff;
+}
+
+.upgrade-subtitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e5b324;
+  letter-spacing: 2px;
+}
+
+.upgrade-unlock-info {
+  font-size: 13px;
+  color: #2ecc71;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.upgrade-body-layout {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.upgrade-details-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upgrade-finance-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+.upgrade-btn-item {
+  display: flex;
+  align-items: center;
+  background: #323236;
+  border: 1px solid #585860;
+  color: #ffffff;
+  font-family: var(--font-tactical);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  gap: 12px;
+}
+
+.upgrade-btn-item:hover {
+  background: #424248;
+  border-color: #ffffff;
+}
+
+.upgrade-btn-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.upgrade-btn-indicator {
+  width: 6px;
+  height: 22px;
+  background: var(--green-indicator);
+}
+
+.upgrade-btn-indicator.cancel {
+  background: var(--red-indicator);
+}
+
+.upgrade-radar-col {
+  width: 220px;
+  height: 180px;
+  background: #2a2a2e;
+  border: 1px solid #505058;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#upgrade-spider-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Generic Tactical Window (Credits, Settings, Profile, Shop, etc.) */
+.tactical-modal-window {
+  max-width: 680px;
+  width: 90vw;
+  background: rgba(22, 22, 26, 0.96);
+  border: 1px solid rgba(255, 71, 87, 0.5);
+  box-shadow: 0 0 35px rgba(255, 71, 87, 0.25);
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+}
+
+.tactical-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 71, 87, 0.3);
+  padding-bottom: 12px;
+}
+
+.tactical-modal-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: #ff4757;
+  letter-spacing: 3px;
+}
+
+.tactical-close-x {
+  background: none;
+  border: none;
+  color: #ff4757;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-tactical);
+}
+
+.tactical-modal-content {
+  color: #d0d0d8;
+  font-size: 14px;
+  line-height: 1.6;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* Plane Shop Grid */
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.shop-plane-card {
+  background: rgba(32, 32, 36, 0.9);
+  border: 1px solid #4a4a52;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.shop-plane-card:hover {
+  border-color: var(--gold-accent);
+  box-shadow: 0 0 15px rgba(245, 203, 59, 0.3);
+  transform: translateY(-2px);
+}
+
+.shop-plane-img {
+  width: 100%;
+  height: 120px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.7));
+}
+
+.shop-plane-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.shop-plane-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold-accent);
+}
+
+.shop-plane-buy-btn {
+  background: #ff4757;
+  border: none;
+  color: #ffffff;
+  font-family: var(--font-tactical);
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 8px 12px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.shop-plane-buy-btn:hover {
+  background: #ffffff;
+  color: #120205;
+}
+
+/* Toast Notifications */
+#toast-container {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.tactical-toast {
+  background: rgba(18, 4, 8, 0.94);
+  border: 1px solid #ff4757;
+  box-shadow: 0 0 20px rgba(255, 71, 87, 0.4);
+  color: #ffffff;
+  font-family: var(--font-tactical);
+  font-size: 14px;
+  letter-spacing: 2px;
+  padding: 12px 24px;
+  text-align: center;
+  animation: toastFadeIn 0.3s ease;
+}
+
+@keyframes toastFadeIn {
+  0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+

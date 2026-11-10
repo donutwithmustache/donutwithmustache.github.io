@@ -8,6 +8,8 @@ import { World } from './world.js';
 import { FlightHUD } from './hud.js';
 import { TargetManager } from './targets.js';
 import { MissionManager } from './mission.js';
+import { MenuManager } from './menu.js';
+import { profileManager } from './profile.js';
 
 class FlightGame {
   constructor() {
@@ -100,7 +102,11 @@ class FlightGame {
     this.setupEventListeners();
     this.physics.reset(0, 0, -Math.PI * 0.25, 335);
     this.flightState = this.physics.update(0.016, this.input);
-    this.missionManager.loadMission('test_flight');
+
+    // Tactical Menu & Profile System
+    this.menu = new MenuManager(this);
+    this.menu.init();
+    this.isPaused = (this.menu.activeScreen !== 'game');
 
     // Start loop
     requestAnimationFrame(this.loop.bind(this));
@@ -462,9 +468,39 @@ class FlightGame {
       });
     }
     document.getElementById('btn-pause-exit')?.addEventListener('click', () => {
-      // Exit button (reserved / no-op for now as requested)
-      console.log('Exit mission clicked');
+      this.exitToMainMenu();
     });
+  }
+
+  // Tactical Mission Deployment Flow (Invoked from Menus)
+  startMissionFlow(missionId, planeId, spwId) {
+    if (planeId && AIRCRAFT_DATA[planeId]) {
+      this.selectAircraft(planeId, true);
+    }
+    if (spwId && SPECIAL_WEAPONS[spwId]) {
+      this.weapons.equippedSpecialWeapon = spwId;
+      const spwDef = SPECIAL_WEAPONS[spwId];
+      this.weapons.spwAmmo = (this.aircraftConfig.weapons?.spwAmmo && this.aircraftConfig.weapons.spwAmmo[spwId])
+        || spwDef.defaultAmmo || 24;
+      this.weapons.spwRechargeTime = spwDef.cooldown || 5.0;
+    }
+
+    // Reset physics & load modular mission
+    this.physics.reset(0, 0, -Math.PI * 0.25, 335);
+    this.flightState = this.physics.update(0.016, this.input);
+    this.missionManager.loadMission(missionId || 'test_flight');
+
+    // Unpause game
+    this.isPaused = false;
+    this.togglePause(false);
+  }
+
+  exitToMainMenu() {
+    this.isPaused = true;
+    this.togglePause(false);
+    if (this.menu) {
+      this.menu.showScreen('main-menu');
+    }
   }
 
   updateMouseWorldCoords() {

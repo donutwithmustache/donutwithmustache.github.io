@@ -7,7 +7,8 @@
   <title>Web Legion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Quantico:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/menu.css">
   <style>
     * {
       box-sizing: border-box;
@@ -291,6 +292,217 @@
 
       <div class="pause-footer">
         [ESC] TOGGLE PAUSE // [1-4] SWITCH AIRCRAFT // [C] CYCLE SPW
+      </div>
+    </div>
+  </div>
+
+  <!-- Tactical Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Tactical Menu & UI System -->
+  <div id="menu-system">
+    <!-- CRT Waveform Scanline Overlay (Login, Main Menu, Submenus) -->
+    <div id="crt-overlay" class="crt-overlay"></div>
+
+    <!-- SCREEN 1: LOGIN SCREEN (Mockup 1) -->
+    <div id="screen-login" class="menu-screen active">
+      <h1 class="login-title">CODENAME: LEGION</h1>
+
+      <div class="login-box">
+        <input type="text" id="login-username" class="login-field" placeholder="USERNAME" autocomplete="off" spellcheck="false">
+        <input type="password" id="login-password" class="login-field" placeholder="PASSWORD" autocomplete="off">
+        <input type="email" id="login-email" class="login-field" placeholder="EMAIL ADDRESS" autocomplete="off" style="display: none;">
+
+        <button id="btn-login-submit" class="login-btn-primary">LOG IN</button>
+
+        <div class="login-btn-row">
+          <button id="btn-login-recover" class="login-btn-secondary">RECOVER</button>
+          <button id="btn-toggle-register" class="login-btn-secondary">REGISTER</button>
+        </div>
+      </div>
+
+      <div class="login-remember-row">
+        <div id="login-remember-box" class="login-checkbox"></div>
+        <label for="login-remember-box">REMEMBER ME</label>
+      </div>
+
+      <div class="login-footer-info">
+        DDI PLANEMONITOR 3.6 // AWAITING CONNECTION
+      </div>
+    </div>
+
+    <!-- SCREEN 2: MAIN MENU (Mockup 2) -->
+    <div id="screen-main-menu" class="menu-screen">
+      <div class="menu-vertical-accent"></div>
+      <h2 class="menu-header-title">MAIN MENU</h2>
+
+      <div class="menu-items-list" id="main-menu-items">
+        <div id="main-menu-cursor" class="menu-selector-cursor"></div>
+        <div class="menu-nav-item" data-action="hangar">HANGAR</div>
+        <div class="menu-nav-item" data-action="shop">SHOP</div>
+        <div class="menu-nav-item" data-action="multiplayer">MULTIPLAYER</div>
+        <div class="menu-nav-item" data-action="singleplayer">SINGLEPLAYER</div>
+        <div class="menu-nav-item" data-action="legion-mode">LEGION MODE</div>
+        <div class="menu-nav-item" data-action="profile-data">PROFILE DATA</div>
+        <div class="menu-nav-item" data-action="settings">SETTINGS</div>
+        <div class="menu-nav-item" data-action="credits">CREDITS &amp; DISCLOSURES</div>
+        <div class="menu-nav-item" data-action="sign-out">SIGN OUT</div>
+      </div>
+
+      <div class="menu-footer-status">
+        DDI PLANEMONITOR 3.6 // CONNECTED
+      </div>
+    </div>
+
+    <!-- SCREEN 2B: SINGLEPLAYER SUBMENU -->
+    <div id="screen-sub-menu" class="menu-screen">
+      <div class="menu-vertical-accent"></div>
+      <h2 class="menu-header-title">SINGLEPLAYER</h2>
+
+      <div class="menu-items-list" id="sub-menu-items">
+        <div id="sub-menu-cursor" class="menu-selector-cursor"></div>
+        <div class="menu-nav-item" data-action="campaigns">CAMPAIGNS</div>
+        <div class="menu-nav-item" data-action="single-missions">SINGLE MISSIONS</div>
+        <div class="menu-nav-item" data-action="tutorial">TUTORIAL</div>
+        <div class="menu-nav-item" data-action="test-flight">TEST FLIGHT</div>
+        <div class="menu-nav-item" data-action="back">&lt; BACK TO MAIN MENU</div>
+      </div>
+
+      <div class="menu-footer-status">
+        DDI PLANEMONITOR 3.6 // CONNECTED
+      </div>
+    </div>
+
+    <!-- SCREEN 3: HANGAR SCREEN (Mockup 4 - STRICTLY NO CRT EFFECT) -->
+    <div id="screen-hangar" class="menu-screen">
+      <!-- Tarmac Taxi Canvas -->
+      <canvas id="hangar-tarmac-canvas"></canvas>
+
+      <!-- Center Stage: Top-Down Aircraft View -->
+      <div class="hangar-center-stage">
+        <img id="hangar-plane-img" class="hangar-plane-sprite" src="./assets/planes/f15c.png" alt="Current Aircraft">
+      </div>
+
+      <!-- Top-Left Action Buttons -->
+      <div class="hangar-top-left">
+        <h2 class="hangar-title">HANGAR</h2>
+        <button id="btn-hangar-select-plane" class="hangar-action-btn">SELECT AIRCRAFT</button>
+        <button id="btn-hangar-upgrade" class="hangar-action-btn">UPGRADE AIRCRAFT</button>
+        <button id="btn-hangar-inventory" class="hangar-action-btn">INVENTORY</button>
+      </div>
+
+      <!-- Bottom-Left Player Dossier & Nav -->
+      <div class="hangar-bottom-left">
+        <div id="hangar-user-callsign" class="hangar-user-callsign">UsernameGoesHere54</div>
+        <div id="hangar-user-credits" class="hangar-user-credits">₡ 1,000</div>
+        <button id="btn-hangar-save-loadout" class="hangar-sub-btn">SAVE LOADOUT</button>
+        <button id="btn-hangar-back" class="hangar-sub-btn">BACK TO MENU</button>
+      </div>
+
+      <!-- Top-Right Aircraft Spec Sheet -->
+      <div class="hangar-top-right">
+        <div class="plane-header-row">
+          <div id="hangar-plane-name" class="plane-name-large">F-15C</div>
+        </div>
+        <div class="plane-tier-row">
+          <span id="hangar-plane-tier">TIER 6</span>
+          <span id="hangar-plane-level">LEVEL 3</span>
+        </div>
+        <div class="plane-role-row">
+          <div id="hangar-plane-role-badge" class="plane-role-badge">FIGHTER</div>
+          <span id="hangar-plane-slots" class="plane-slots-count">2 PART SLOTS</span>
+        </div>
+        <div id="hangar-plane-desc" class="plane-desc-text">
+          Air superiority fighter with supreme thrust-to-weight and energy retention.
+        </div>
+        <div class="plane-ability-box">
+          <span class="ability-tag">// TACTICAL ABILITY</span>
+          <span id="hangar-ability-name" class="ability-title">EMERGENCY AFTERBURNER</span>
+          <span id="hangar-ability-desc" class="ability-desc">Engages chemical emergency overdrive for 4 seconds, boosting acceleration and top speed.</span>
+          <span id="hangar-ability-cd" class="ability-cd">45s cooldown</span>
+        </div>
+      </div>
+
+      <!-- Mid-Right Spider Radar Graph Canvas -->
+      <div class="hangar-radar-container">
+        <canvas id="hangar-spider-canvas"></canvas>
+      </div>
+
+      <!-- Bottom-Center Part Slots -->
+      <div id="hangar-parts-container" class="hangar-bottom-center">
+        <!-- Dynamically injected part slots -->
+      </div>
+
+      <!-- Bottom-Right Equipped SP Weapon Box -->
+      <div id="hangar-spw-box" class="hangar-bottom-right" title="CLICK TO CHANGE SPECIAL WEAPON">
+        <div class="spw-meta-col">
+          <span class="spw-equipped-tag">EQUIPPED WEAPON</span>
+          <span id="hangar-spw-name" class="spw-name-display">4AAM</span>
+        </div>
+        <div class="spw-thumb-box">
+          <img id="hangar-spw-thumb" src="./assets/weapons/aim120.png" alt="Weapon">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SP WEAPON SELECT (Mockup 3) -->
+  <div id="modal-spw-select" class="modal-backdrop">
+    <div class="spw-select-panel">
+      <div class="spw-modal-header">
+        <span>SELECT SPECIAL WEAPON</span>
+        <button id="btn-close-spw-modal" class="spw-modal-close-btn">&times;</button>
+      </div>
+      <div id="spw-modal-list" style="display:flex; flex-direction:column; gap:10px;">
+        <!-- Dynamically injected special weapons -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: UPGRADE CONFIRMATION (Mockup 5) -->
+  <div id="modal-upgrade-confirm" class="modal-backdrop">
+    <div class="upgrade-panel">
+      <div class="upgrade-header-title">UPGRADE CONFIRMATION</div>
+      <div id="upgrade-modal-subtitle" class="upgrade-subtitle">UPGRADE TO LEVEL 5</div>
+      <div id="upgrade-modal-unlock-info" class="upgrade-unlock-info">- NEW SP WEAPON UNLOCKED: QAAM</div>
+
+      <div class="upgrade-body-layout">
+        <div class="upgrade-details-col">
+          <div class="upgrade-finance-row">
+            <span id="upgrade-have-credits">Have: ₡ 123,456</span>
+            <span id="upgrade-cost-credits">Cost: ₡ 95,000</span>
+          </div>
+
+          <button id="btn-upgrade-confirm" class="upgrade-btn-item">
+            <div class="upgrade-btn-indicator"></div>
+            <span>UPGRADE</span>
+          </button>
+          <button id="btn-upgrade-form" class="upgrade-btn-item">
+            <div class="upgrade-btn-indicator"></div>
+            <span>USE FORM</span>
+          </button>
+          <button id="btn-upgrade-cancel" class="upgrade-btn-item">
+            <div class="upgrade-btn-indicator cancel"></div>
+            <span>CANCEL</span>
+          </button>
+        </div>
+
+        <div class="upgrade-radar-col">
+          <canvas id="upgrade-spider-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GENERIC TACTICAL MODAL (Shop, Credits, Settings, Profile, Onboarding) -->
+  <div id="modal-tactical-generic" class="modal-backdrop">
+    <div class="tactical-modal-window">
+      <div class="tactical-modal-header">
+        <span id="tactical-modal-title" class="tactical-modal-title">TITLE</span>
+        <button id="btn-close-tactical-modal" class="tactical-close-x">&times;</button>
+      </div>
+      <div id="tactical-modal-content" class="tactical-modal-content">
+        <!-- Injected Content -->
       </div>
     </div>
   </div>

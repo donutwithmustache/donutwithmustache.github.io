@@ -6,6 +6,7 @@
 // ==========================================
 
 import { getAIPlaneHealth } from './targets.js';
+import { profileManager } from './profile.js';
 
 export class MissionManager {
   constructor(game) {
@@ -313,6 +314,7 @@ export class MissionManager {
           if (destroyed >= this.winConditions.requiredKills) {
             this.isCompleted = true;
             this.postRadioMessage('MISSION ACCOMPLISHED // TARGET QUOTA SECURED', 5.0);
+            this.onMissionCompleted();
           }
         }
         if (this.winConditions.allPrimaryComplete && this.objectives.length > 0) {
@@ -320,9 +322,25 @@ export class MissionManager {
           if (allPrimDone && !this.isCompleted) {
             this.isCompleted = true;
             this.postRadioMessage('MISSION ACCOMPLISHED // ALL PRIMARY OBJECTIVES SECURED', 5.0);
+            this.onMissionCompleted();
           }
         }
       }
+    }
+  }
+
+  onMissionCompleted() {
+    if (this.activeMissionId === 'tutorial') {
+      profileManager.completeTutorial();
+      profileManager.recordSortie(true, 5, 0);
+      if (this.game.hud && this.game.hud.notifications) {
+        this.game.hud.notifications.push({
+          text: 'TUTORIAL COMPLETED // COMBAT HANGAR ACCESS UNLOCKED!',
+          life: 8.0
+        });
+      }
+    } else {
+      profileManager.recordSortie(true, 2, 0);
     }
   }
 
@@ -767,6 +785,7 @@ export class MissionManager {
       } else if (act.type === 'MISSION_COMPLETE') {
         this.isCompleted = true;
         this.postRadioMessage('MISSION ACCOMPLISHED // ALL OBJECTIVES SECURED', 4.0);
+        this.onMissionCompleted();
       } else if (act.type === 'MISSION_FAILED') {
         this.isFailed = true;
         this.postRadioMessage('MISSION FAILED // CRITICAL ASSETS COMPROMISED', 4.0);

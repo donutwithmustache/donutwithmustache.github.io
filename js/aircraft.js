@@ -9,28 +9,33 @@ export const SPECIAL_WEAPONS = {
   qaam: {
     id: 'qaam',
     name: 'Quick Air-to-Air Missile',
+    subName: 'QUICK-MANEUVER AAM',
     code: 'QAAM',
     type: 'air',
     pool: 2,
     cooldown: 4.5,            // Recharge time per slot in seconds (variable per weapon)
     rechargeTime: 4.5,
     defaultAmmo: 24,
-    description: 'High-agility air-to-air missile with supreme tracking capabilities.'
+    sprite: './assets/weapons/r73.png',
+    description: 'HIGHLY MANEUVERABLE MISSILE FOR HITTING VERY AGILE TARGETS'
   },
   saam: {
     id: 'saam',
     name: 'Semi-Active Air-to-Air Missile',
+    subName: 'SEMI-ACTIVE AAM',
     code: 'SAAM',
     type: 'air',
     pool: 2,
     cooldown: 5.5,            // Recharge time per slot in seconds
     rechargeTime: 5.5,
     defaultAmmo: 20,
-    description: 'Long-range radar-guided missile with extended flight envelope and high velocity.'
+    sprite: './assets/weapons/aim7.png',
+    description: 'SEMI-ACTIVE GUIDANCE REQUIRES MAINTAINING BORESIGHT RADAR LOCK'
   },
   '4aam': {
     id: '4aam',
     name: '4-Target Air-to-Air Missile',
+    subName: '4x AIR-AIR MISSILE',
     code: '4AAM',
     type: 'air',
     isMultiLock: true,
@@ -39,62 +44,73 @@ export const SPECIAL_WEAPONS = {
     cooldown: 7.0,            // Recharge time per slot in seconds
     rechargeTime: 7.0,
     defaultAmmo: 36,
-    description: 'Multi-lock air-to-air missile system: locks and fires on up to 4 airborne targets in vicinity.'
+    sprite: './assets/weapons/aim120.png',
+    description: 'ACTIVE RADAR GUIDANCE TARGETS 4 DIFFERENT PLANES AT ONCE'
   },
   hpaa: {
     id: 'hpaa',
     name: 'High-Power Air-to-Air Missile',
+    subName: 'HEAVY IMPACT AAM',
     code: 'HPAA',
     type: 'air',
     pool: 2,
     cooldown: 5.0,            // Recharge time per slot in seconds
     rechargeTime: 5.0,
     defaultAmmo: 18,
-    description: 'Heavy missile with massive kinetic and explosive payload for high-damage strikes.'
+    sprite: './assets/weapons/aim54.png',
+    description: 'HEAVY MISSILE WITH MASSIVE KINETIC & EXPLOSIVE HITBOX'
   },
   ugb: {
     id: 'ugb',
     name: 'Unguided Heavy Bomb',
+    subName: 'FREE-FALL BOMB',
     code: 'UGB',
     type: 'ground',
     pool: 2,
     cooldown: 3.5,            // Recharge time per slot in seconds
     rechargeTime: 3.5,
     defaultAmmo: 44,
-    description: 'Heavy free-fall high-explosive bomb with wide surface blast shockwave.'
+    sprite: './assets/weapons/mk84.png',
+    description: 'HEAVY FREE-FALL HIGH-EXPLOSIVE BOMB WITH WIDE SHOCKWAVE'
   },
   lasm: {
     id: 'lasm',
     name: 'Long-Range Anti-Surface Missile',
+    subName: 'ANTI-SURFACE MISSILE',
     code: 'LASM',
     type: 'ground',
     pool: 2,
     cooldown: 6.0,            // Recharge time per slot in seconds
     rechargeTime: 6.0,
     defaultAmmo: 24,
-    description: 'High-velocity sea-skimming cruise missile specialized for naval and hardened ground targets.'
+    sprite: './assets/weapons/agm88.png',
+    description: 'HIGH-VELOCITY SEA-SKIMMING CRUISE STRIKE MISSILE'
   },
   sffs: {
     id: 'sffs',
     name: 'Submunition Cluster Dispenser',
+    subName: 'CLUSTER BOMB',
     code: 'SFFS',
     type: 'ground',
     pool: 2,
     cooldown: 4.8,            // Recharge time per slot in seconds
     rechargeTime: 4.8,
     defaultAmmo: 32,
-    description: 'Dispenses a wide carpet of explosive bomblets across a broad surface area.'
+    sprite: './assets/weapons/cbu.png',
+    description: 'WIDE CARPET OF EXPLOSIVE SUBMUNITIONS ACROSS BROAD AREA'
   },
   mpbm: {
     id: 'mpbm',
     name: 'Multi-Purpose Burst Missile',
+    subName: 'BURST MISSILE',
     code: 'MPBM',
     type: 'all',
     pool: 1,
     cooldown: 9.0,            // Recharge time per slot in seconds
     rechargeTime: 9.0,
     defaultAmmo: 12,
-    description: 'Tactical warhead that detonates a massive expanding thermal burst sphere.'
+    sprite: './assets/weapons/mpbm.png',
+    description: 'TACTICAL EXPANDING THERMOBARIC BURST SPHERE DETONATION'
   }
 };
 
@@ -523,6 +539,276 @@ export const AIRCRAFT_DATA = {
     },
 
     description: 'Next-gen stealth fighter with 3D all-axis thrust vectoring. Retains full nose authority during stalls.'
+  },
+
+  a4: {
+    id: 'a4',
+    name: 'A-4E Skyhawk',
+    shortName: 'A-4E',
+    role: 'Light Attack Strike Aircraft',
+    planeRole: 'STRIKE',
+    tier: 0,
+    partSlots: 1,
+    cost: 1000,
+    sprite: './assets/planes/a4e.png',
+    tags: ['STRIKE', 'CARRIER_CAPABLE', 'NAVAL'],
+    stats: {
+      spd: 48,
+      def: 50,
+      air: 40,
+      gnd: 72,
+      stealth: 0
+    },
+    weapons: {
+      gunAmmo: 400,
+      maxGunAmmo: 400,
+      gunRpm: 1200,
+      gunDamage: 1.1,
+      mslCount: 40,
+      maxMslCount: 40,
+      mslCooldown: 4.4,
+      flareCount: 20,
+      maxFlareCount: 20,
+      flarePool: 2,
+      flareCooldown: 22.0,
+      specialWeapons: ['ugb', 'lasm', 'saam'],
+      equippedSpecialWeapon: 'ugb',
+      spwAmmo: { ugb: 24, lasm: 14, saam: 12 },
+      ability: 'emergencyAfterburner',
+      abilityCharges: 1,
+      maxAbilityCharges: 1,
+      abilityRecharge: 45.0
+    },
+    physics: {
+      mass: 8300,
+      accelCruise: 50,
+      accelAfterburner: 110,
+      airbrakeDecel: 75,
+      baseTurnRate: 1.9,
+      turnResponse: 8.5,
+      cornerSpeed: 240,
+      normalMinSpeed: 130,
+      forcedMinSpeed: 85,
+      stallSpeed: 230,
+      cruiseSpeed: 280,
+      maxSpeed: 440,
+      compressionFactor: 0.60,
+      maxG: 9.0,
+      grip: 2.8,
+      highAlphaDrag: 65,
+      inducedDragFactor: 11.0,
+      driftTolerance: 0.65,
+      engineCount: 1,
+      nozzleSpacing: 0,
+      wingspan: 60,
+      wingtipChord: -14,
+      length: 82,
+      engineOffset: -38
+    },
+    description: 'Lightweight agile strike aircraft with dependable ground attack munitions and carrier capability.'
+  },
+
+  etendard: {
+    id: 'etendard',
+    name: 'Super Étendard IV',
+    shortName: 'Étendard',
+    role: 'Carrier Strike Multirole',
+    planeRole: 'MULTIROLE',
+    tier: 0,
+    partSlots: 1,
+    cost: 1000,
+    sprite: './assets/planes/etendard_iv.png',
+    tags: ['MULTIROLE', 'CARRIER_CAPABLE', 'NAVAL'],
+    stats: {
+      spd: 52,
+      def: 54,
+      air: 52,
+      gnd: 62,
+      stealth: 0
+    },
+    weapons: {
+      gunAmmo: 500,
+      maxGunAmmo: 500,
+      gunRpm: 1300,
+      gunDamage: 1.0,
+      mslCount: 44,
+      maxMslCount: 44,
+      mslCooldown: 4.4,
+      flareCount: 24,
+      maxFlareCount: 24,
+      flarePool: 2,
+      flareCooldown: 22.0,
+      specialWeapons: ['lasm', 'qaam', 'ugb'],
+      equippedSpecialWeapon: 'lasm',
+      spwAmmo: { lasm: 16, qaam: 16, ugb: 20 },
+      ability: 'emergencyAfterburner',
+      abilityCharges: 1,
+      maxAbilityCharges: 1,
+      abilityRecharge: 45.0
+    },
+    physics: {
+      mass: 9200,
+      accelCruise: 52,
+      accelAfterburner: 118,
+      airbrakeDecel: 78,
+      baseTurnRate: 2.0,
+      turnResponse: 9.0,
+      cornerSpeed: 250,
+      normalMinSpeed: 135,
+      forcedMinSpeed: 88,
+      stallSpeed: 240,
+      cruiseSpeed: 290,
+      maxSpeed: 460,
+      compressionFactor: 0.58,
+      maxG: 9.5,
+      grip: 2.9,
+      highAlphaDrag: 68,
+      inducedDragFactor: 10.5,
+      driftTolerance: 0.70,
+      engineCount: 1,
+      nozzleSpacing: 0,
+      wingspan: 64,
+      wingtipChord: -15,
+      length: 88,
+      engineOffset: -40
+    },
+    description: 'Versatile French carrier-borne multirole strike platform with deadly anti-ship and precision ordnance.'
+  },
+
+  mig17: {
+    id: 'mig17',
+    name: 'MiG-17PF Fresco',
+    shortName: 'MiG-17PF',
+    role: 'Radar Interceptor Fighter',
+    planeRole: 'FIGHTER',
+    tier: 0,
+    partSlots: 1,
+    cost: 1000,
+    sprite: './assets/planes/mig17pf.png',
+    tags: ['AIR_SUPERIORITY', 'INTERCEPTOR'],
+    stats: {
+      spd: 60,
+      def: 45,
+      air: 65,
+      gnd: 35,
+      stealth: 0
+    },
+    weapons: {
+      gunAmmo: 350,
+      maxGunAmmo: 350,
+      gunRpm: 900,
+      gunDamage: 1.8,
+      mslCount: 36,
+      maxMslCount: 36,
+      mslCooldown: 4.4,
+      flareCount: 18,
+      maxFlareCount: 18,
+      flarePool: 2,
+      flareCooldown: 22.0,
+      specialWeapons: ['qaam', 'saam', '4aam'],
+      equippedSpecialWeapon: 'qaam',
+      spwAmmo: { qaam: 18, saam: 14, '4aam': 18 },
+      ability: 'emergencyAfterburner',
+      abilityCharges: 1,
+      maxAbilityCharges: 1,
+      abilityRecharge: 45.0
+    },
+    physics: {
+      mass: 6100,
+      accelCruise: 54,
+      accelAfterburner: 122,
+      airbrakeDecel: 80,
+      baseTurnRate: 2.3,
+      turnResponse: 10.0,
+      cornerSpeed: 245,
+      normalMinSpeed: 130,
+      forcedMinSpeed: 82,
+      stallSpeed: 235,
+      cruiseSpeed: 300,
+      maxSpeed: 470,
+      compressionFactor: 0.55,
+      maxG: 10.0,
+      grip: 3.0,
+      highAlphaDrag: 64,
+      inducedDragFactor: 10.0,
+      driftTolerance: 0.72,
+      engineCount: 1,
+      nozzleSpacing: 0,
+      wingspan: 58,
+      wingtipChord: -14,
+      length: 76,
+      engineOffset: -36
+    },
+    description: 'High-turn-rate transonic interceptor equipped with radar-ranging avionics and heavy autocannons.'
+  },
+
+  f15manx: {
+    id: 'f15manx',
+    name: 'F-15 S/MTD Manx',
+    shortName: 'F-15 MANX',
+    role: 'Experimental 2D-TVC Fighter',
+    planeRole: 'FIGHTER',
+    tier: 7,
+    partSlots: 4,
+    cost: 320000,
+    sprite: './assets/planes/f15manx.png',
+    tags: ['EVO', 'AIR_SUPERIORITY', 'SUPERMANEUVERABLE', 'PSM', 'THRUST_VECTORING'],
+    evoBaseId: 'f15c',
+    stats: {
+      spd: 88,
+      def: 80,
+      air: 96,
+      gnd: 55,
+      stealth: 1
+    },
+    weapons: {
+      gunAmmo: 940,
+      maxGunAmmo: 940,
+      gunRpm: 4500,
+      gunDamage: 0.75,
+      mslCount: 130,
+      maxMslCount: 130,
+      mslCooldown: 4.0,
+      flareCount: 36,
+      maxFlareCount: 36,
+      flarePool: 3,
+      flareCooldown: 18.0,
+      specialWeapons: ['4aam', 'saam', 'qaam'],
+      equippedSpecialWeapon: '4aam',
+      spwAmmo: { '4aam': 44, saam: 26, qaam: 30 },
+      ability: 'emergencyAfterburner',
+      abilityCharges: 1,
+      maxAbilityCharges: 1,
+      abilityRecharge: 40.0
+    },
+    physics: {
+      mass: 19800,
+      accelCruise: 70,
+      accelAfterburner: 160,
+      airbrakeDecel: 90,
+      baseTurnRate: 2.6,
+      turnResponse: 11.5,
+      cornerSpeed: 295,
+      normalMinSpeed: 140,
+      forcedMinSpeed: 90,
+      stallSpeed: 265,
+      cruiseSpeed: 345,
+      maxSpeed: 555,
+      compressionFactor: 0.45,
+      maxG: 12.0,
+      grip: 3.2,
+      highAlphaDrag: 68,
+      inducedDragFactor: 9.8,
+      driftTolerance: 0.90,
+      hasThrustVectoring: true,
+      engineCount: 2,
+      nozzleSpacing: 20,
+      wingspan: 80,
+      wingtipChord: -16,
+      length: 106,
+      engineOffset: -46
+    },
+    description: 'EVO Special Airframe: Active canards and rectangular 2D thrust-vectoring nozzles unlock extreme pitch agility.'
   }
 };
 
@@ -547,8 +833,34 @@ export const AIRCRAFT_TAGS = [
   'TERRAIN_FOLLOWING',     // Low-altitude strike radar
   'HIGH_SPEED',            // Mach 2.3+ high-velocity flight
   'GUNSHIP',               // Heavy sustained cannon armament
-  'DRONE'                  // Unmanned autonomous combat aircraft
+  'DRONE',                 // Unmanned autonomous combat aircraft
+  'HIDDEN',                // Excluded from standard shop listings
+  'SECRET',                // Secret unlock / prototype
+  'EVO'                    // Evolution variant - obtainable only via Lv.5 upgrade
 ];
+
+// Helper: Calculate upgrade cost from base plane cost and current level (levels 1 -> 5)
+export function getUpgradeCost(baseCost, currentLevel) {
+  const lvl = Math.max(1, Math.min(5, Number(currentLevel) || 1));
+  const cost = Number(baseCost) || 1000;
+  return Math.floor(cost * 0.12 * Math.pow(lvl, 1.5));
+}
+
+// Helper: Calculate stat multiplier based on upgrade level (+4% per level above 1)
+export function getUpgradeStatMultiplier(level) {
+  const lvl = Math.max(1, Math.min(5, Number(level) || 1));
+  return 1 + (lvl - 1) * 0.04;
+}
+
+// Helper: Check if an aircraft is permitted to appear in the shop
+// (Aircraft with HIDDEN, SECRET, or EVO never appear in the shop)
+export function isAircraftInShop(aircraftOrId) {
+  const plane = typeof aircraftOrId === 'string' ? AIRCRAFT_DATA[aircraftOrId] : aircraftOrId;
+  if (!plane) return false;
+  if (!Array.isArray(plane.tags)) return true;
+  const upperTags = plane.tags.map(t => String(t).toUpperCase());
+  return !upperTags.includes('HIDDEN') && !upperTags.includes('SECRET') && !upperTags.includes('EVO');
+}
 
 // Helper: Check if an aircraft possesses a specific tag
 export function hasTag(aircraftOrId, tag) {

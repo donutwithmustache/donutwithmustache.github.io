@@ -4,11 +4,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Web Legion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Quantico:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./css/menu.css">
+  <link rel="stylesheet" href="./css/menu.css?v=2.6">
   <style>
     * {
       box-sizing: border-box;
@@ -38,14 +41,14 @@
       cursor: crosshair;
     }
 
-    /* Pause Menu Overlay */
+    /* Ace Combat Style Pause Menu Overlay */
     .pause-overlay {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(3, 10, 15, 0.78);
+      background: rgba(8, 2, 4, 0.82);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       display: flex;
@@ -62,189 +65,318 @@
     }
 
     .pause-panel {
-      width: 440px;
-      max-width: 90vw;
-      background: rgba(6, 20, 28, 0.94);
-      border: 1px solid rgba(0, 255, 102, 0.55);
-      box-shadow: 0 0 35px rgba(0, 255, 102, 0.2), inset 0 0 20px rgba(0, 255, 102, 0.08);
-      padding: 32px 36px;
+      width: 880px;
+      max-width: 94vw;
+      background: rgba(18, 3, 6, 0.94);
+      border: 1px solid rgba(255, 51, 68, 0.6);
+      box-shadow: 0 0 45px rgba(255, 30, 50, 0.3), inset 0 0 25px rgba(255, 51, 68, 0.08);
+      padding: 24px 28px;
       position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
     .pause-panel::before {
       content: '';
       position: absolute;
-      top: -1px;
-      left: -1px;
-      width: 16px;
-      height: 16px;
-      border-top: 3px solid #00ff66;
-      border-left: 3px solid #00ff66;
+      top: -2px;
+      left: -2px;
+      width: 20px;
+      height: 20px;
+      border-top: 3px solid #ff3344;
+      border-left: 3px solid #ff3344;
     }
 
     .pause-panel::after {
       content: '';
       position: absolute;
-      bottom: -1px;
-      right: -1px;
-      width: 16px;
-      height: 16px;
-      border-bottom: 3px solid #00ff66;
-      border-right: 3px solid #00ff66;
+      bottom: -2px;
+      right: -2px;
+      width: 20px;
+      height: 20px;
+      border-bottom: 3px solid #ff3344;
+      border-right: 3px solid #ff3344;
+    }
+
+    .pause-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.95fr;
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    /* Left Column */
+    .pause-left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
 
     .pause-header {
-      margin-bottom: 26px;
-      border-bottom: 1px solid rgba(0, 255, 102, 0.25);
-      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 51, 68, 0.3);
+      padding-bottom: 10px;
     }
 
     .pause-tag {
       font-size: 11px;
       letter-spacing: 2px;
-      color: #00ffee;
-      opacity: 0.85;
-      margin-bottom: 4px;
+      color: #ff7788;
+      opacity: 0.9;
+      margin-bottom: 3px;
+      font-weight: bold;
     }
 
     .pause-title {
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 900;
-      letter-spacing: 4px;
+      letter-spacing: 3px;
       color: #ffffff;
-      text-shadow: 0 0 10px rgba(0, 255, 102, 0.6);
-      margin-bottom: 4px;
+      text-shadow: 0 0 12px rgba(255, 51, 68, 0.65);
+      margin-bottom: 2px;
     }
 
     .pause-subtitle {
-      font-size: 11px;
-      color: rgba(0, 255, 102, 0.7);
+      font-size: 10px;
+      color: rgba(255, 120, 130, 0.75);
       letter-spacing: 1.5px;
     }
 
     .pause-menu-items {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 8px;
     }
 
     .pause-btn {
-      background: rgba(4, 28, 20, 0.6);
-      border: 1px solid rgba(0, 255, 102, 0.4);
-      color: #00ff66;
+      background: rgba(35, 6, 12, 0.6);
+      border: 1px solid rgba(255, 51, 68, 0.35);
+      color: #ff99a4;
       font-family: inherit;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: bold;
       letter-spacing: 2px;
-      padding: 13px 18px;
+      padding: 10px 14px;
       cursor: pointer;
       text-align: left;
       transition: all 0.15s ease;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 10px;
     }
 
-    .pause-btn:hover {
-      background: rgba(0, 255, 102, 0.22);
-      border-color: #00ff66;
+    .pause-btn-bullet {
+      color: #ffa502;
+      font-weight: 900;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .pause-btn:hover, .pause-btn.selected {
+      background: linear-gradient(90deg, rgba(255, 165, 2, 0.3) 0%, rgba(255, 51, 68, 0.22) 75%, transparent 100%);
+      border-color: #ffa502;
       color: #ffffff;
-      box-shadow: 0 0 15px rgba(0, 255, 102, 0.35);
-      padding-left: 24px;
+      box-shadow: 0 0 16px rgba(255, 51, 68, 0.35);
+      padding-left: 20px;
+    }
+
+    .pause-btn:hover .pause-btn-bullet, .pause-btn.selected .pause-btn-bullet {
+      opacity: 1;
     }
 
     .pause-btn.btn-exit {
-      color: #ffaa55;
-      border-color: rgba(255, 170, 85, 0.4);
-      background: rgba(30, 20, 10, 0.5);
+      color: #ff7788;
     }
 
     .pause-btn.btn-exit:hover {
-      background: rgba(255, 100, 50, 0.22);
-      border-color: #ff6633;
-      color: #ffffff;
-      box-shadow: 0 0 15px rgba(255, 100, 50, 0.35);
+      background: linear-gradient(90deg, rgba(255, 60, 60, 0.35) 0%, rgba(200, 20, 30, 0.25) 75%, transparent 100%);
+      border-color: #ff3344;
+      box-shadow: 0 0 16px rgba(255, 51, 68, 0.45);
     }
 
+    .pause-hint-text {
+      font-size: 11px;
+      color: #ffb8b8;
+      letter-spacing: 1px;
+      min-height: 18px;
+      padding-left: 4px;
+    }
+
+    /* Pause System Settings */
     .pause-settings-box {
-      margin-top: 6px;
-      margin-bottom: 6px;
-      padding: 16px;
-      background: rgba(2, 14, 20, 0.7);
-      border: 1px solid rgba(0, 255, 102, 0.25);
+      padding: 10px 14px;
+      background: rgba(28, 4, 8, 0.7);
+      border: 1px solid rgba(255, 51, 68, 0.25);
     }
 
     .settings-title {
-      font-size: 11px;
+      font-size: 10px;
       letter-spacing: 2px;
-      color: #00ffee;
-      margin-bottom: 12px;
+      color: #ffa502;
+      margin-bottom: 8px;
       font-weight: bold;
     }
 
     .setting-row {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
 
     .setting-label-row {
       display: flex;
       justify-content: space-between;
-      font-size: 12px;
+      font-size: 11px;
       letter-spacing: 1px;
+      color: #ffd0d5;
     }
 
     .slider-wrapper {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
 
     .volume-slider {
       flex: 1;
       -webkit-appearance: none;
       appearance: none;
-      height: 6px;
-      background: rgba(0, 255, 102, 0.2);
+      height: 5px;
+      background: rgba(255, 51, 68, 0.25);
       outline: none;
-      border: 1px solid rgba(0, 255, 102, 0.4);
+      border: 1px solid rgba(255, 51, 68, 0.4);
     }
 
     .volume-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 14px;
-      height: 18px;
-      background: #00ff66;
+      width: 12px;
+      height: 16px;
+      background: #ff3344;
       border: 1px solid #ffffff;
       cursor: pointer;
-      box-shadow: 0 0 8px #00ff66;
+      box-shadow: 0 0 8px #ff3344;
     }
 
     .volume-slider::-moz-range-thumb {
-      width: 14px;
-      height: 18px;
-      background: #00ff66;
+      width: 12px;
+      height: 16px;
+      background: #ff3344;
       border: 1px solid #ffffff;
       cursor: pointer;
-      box-shadow: 0 0 8px #00ff66;
+      box-shadow: 0 0 8px #ff3344;
     }
 
     .volume-value {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: bold;
-      color: #00ffee;
-      min-width: 44px;
+      color: #ffa502;
+      min-width: 38px;
       text-align: right;
     }
 
+    /* Pause Objectives Section */
+    .pause-objectives-section {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .pause-objectives-header {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: #ff7788;
+      font-weight: bold;
+    }
+
+    .pause-objectives-box {
+      background: rgba(24, 4, 8, 0.7);
+      border-left: 3px solid #ff3344;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #fce4e6;
+      line-height: 1.45;
+      letter-spacing: 0.8px;
+      max-height: 110px;
+      overflow-y: auto;
+    }
+
+    /* Right Column - Ace Combat Vector Theater Map */
+    .pause-right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pause-map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #ff7788;
+      letter-spacing: 1.5px;
+      font-weight: bold;
+    }
+
+    .pause-map-canvas-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: #04080c;
+      border: 1px solid rgba(255, 51, 68, 0.55);
+      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.85), 0 0 15px rgba(255, 51, 68, 0.2);
+    }
+
+    #pause-map-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .pause-map-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #d19298;
+      padding: 0 4px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      display: inline-block;
+    }
+
+    .dot-player {
+      background: #00ff66;
+      box-shadow: 0 0 6px #00ff66;
+    }
+
+    .dot-target {
+      background: #ff3344;
+      box-shadow: 0 0 6px #ff3344;
+    }
+
+    .dot-rl {
+      background: #00ffff;
+      box-shadow: 0 0 6px #00ffff;
+    }
+
     .pause-footer {
-      margin-top: 22px;
+      border-top: 1px solid rgba(255, 51, 68, 0.25);
+      padding-top: 10px;
       text-align: center;
       font-size: 11px;
       letter-spacing: 2px;
-      color: rgba(0, 255, 102, 0.55);
+      color: rgba(255, 120, 130, 0.65);
     }
   </style>
 </head>
@@ -252,46 +384,75 @@
 <body>
   <canvas id="gameCanvas"></canvas>
 
-  <!-- Tactical Pause Menu (ESC) -->
+  <!-- Tactical Pause Menu (ESC - Ace Combat Layout) -->
   <div id="pause-menu" class="pause-overlay hidden">
     <div class="pause-panel">
-      <div class="pause-header">
-        <div class="pause-tag">// SYSTEM PAUSED</div>
-        <h2 class="pause-title">TEST FLIGHT</h2>
-        <div class="pause-subtitle">TACTICAL SIMULATION SUSPENDED</div>
-      </div>
+      <div class="pause-grid">
+        <!-- Left Column: Menu Options, Hint & Objectives -->
+        <div class="pause-left-col">
+          <div class="pause-header">
+            <div class="pause-tag">[ PAUSE MENU ]</div>
+            <h2 id="pause-mission-title" class="pause-title">COMBAT SORTIE</h2>
+            <div id="pause-mission-subtitle" class="pause-subtitle">TACTICAL SIMULATION SUSPENDED</div>
+          </div>
 
-      <div class="pause-menu-items">
-        <button id="btn-pause-resume" class="pause-btn">
-          <span>RESUME MISSION</span>
-          <span>&gt;</span>
-        </button>
-        <button id="btn-pause-restart" class="pause-btn">
-          <span>RESTART TEST FLIGHT</span>
-          <span>&gt;</span>
-        </button>
+          <div class="pause-menu-items">
+            <button id="btn-pause-resume" class="pause-btn selected" data-hint="Resume the active sortie.">
+              <span class="pause-btn-bullet">&gt;</span>
+              <span class="pause-btn-text">RETURN TO MISSION</span>
+            </button>
+            <button id="btn-pause-restart" class="pause-btn" data-hint="Restart the mission from the beginning.">
+              <span class="pause-btn-bullet">&gt;</span>
+              <span class="pause-btn-text">RESTART MISSION</span>
+            </button>
+            <button id="btn-pause-exit" class="pause-btn btn-exit" data-hint="Abort current sortie and return to main menu.">
+              <span class="pause-btn-bullet">&gt;</span>
+              <span class="pause-btn-text">QUIT MISSION</span>
+            </button>
+          </div>
 
-        <div class="pause-settings-box">
-          <div class="settings-title">// SYSTEM SETTINGS</div>
-          <div class="setting-row">
-            <div class="setting-label-row">
-              <label for="volume-slider">MASTER VOLUME</label>
-              <span id="volume-val" class="volume-value">70%</span>
+          <div id="pause-btn-hint" class="pause-hint-text">Resume the active sortie.</div>
+
+          <div class="pause-settings-box">
+            <div class="settings-title">// SYSTEM AUDIO</div>
+            <div class="setting-row">
+              <div class="setting-label-row">
+                <label for="volume-slider">MASTER VOLUME</label>
+                <span id="volume-val" class="volume-value">70%</span>
+              </div>
+              <div class="slider-wrapper">
+                <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="70">
+              </div>
             </div>
-            <div class="slider-wrapper">
-              <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="70">
+          </div>
+
+          <div class="pause-objectives-section">
+            <div class="pause-objectives-header">[ MISSION OBJECTIVES ]</div>
+            <div id="pause-objectives-content" class="pause-objectives-box">
+              Destroy all active hostiles and secure the operational sector.
             </div>
           </div>
         </div>
 
-        <button id="btn-pause-exit" class="pause-btn btn-exit">
-          <span>EXIT MISSION</span>
-          <span>&gt;</span>
-        </button>
+        <!-- Right Column: Ace Combat Vector Tactical Map -->
+        <div class="pause-right-col">
+          <div class="pause-map-header">
+            <span class="map-tag">// THEATER AIRSPACE</span>
+            <span id="pause-map-location" class="map-loc">OPERATIONAL AO</span>
+          </div>
+          <div class="pause-map-canvas-wrapper">
+            <canvas id="pause-map-canvas" width="380" height="380"></canvas>
+          </div>
+          <div class="pause-map-legend">
+            <span class="legend-item"><span class="legend-dot dot-player"></span> ALLIED</span>
+            <span class="legend-item"><span class="legend-dot dot-target"></span> HOSTILE</span>
+            <span class="legend-item"><span class="legend-dot dot-rl"></span> RETURN LINE</span>
+          </div>
+        </div>
       </div>
 
       <div class="pause-footer">
-        [ESC] TOGGLE PAUSE // [X] SWITCH WEAPON // [SPACE] FIRE MISSILE
+        [ESC] RESUME SORTIE // [MOUSE / CLICK] SELECT OPTION
       </div>
     </div>
   </div>
@@ -582,7 +743,7 @@
     </div>
   </div>
 
-  <script type="module" src="./js/game.js"></script>
+  <script type="module" src="./js/game.js?v=2.6"></script>
 </body>
 
 </html>

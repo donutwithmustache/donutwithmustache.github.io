@@ -19,10 +19,7 @@ console.log("PASS: Pre-mission loading screen matches main menu palette (crimson
 
 // 2. Verify Game Loading Screen Objective Logic in js/game.js
 const gameJs = fs.readFileSync('js/game.js', 'utf8');
-assert(gameJs.includes('briefing-param-tag'), "js/game.js must generate briefing-param-tag for objective parameters");
-assert(gameJs.includes('DESTROY_NAMED_TARGET'), "js/game.js must support DESTROY_NAMED_TARGET");
-assert(gameJs.includes('REACH_AREA'), "js/game.js must support REACH_AREA");
-assert(gameJs.includes('SURVIVE_TIME'), "js/game.js must support SURVIVE_TIME");
+assert(!gameJs.includes('briefing-param-tag'), "js/game.js must not generate briefing-param-tag for objective status");
 assert(gameJs.includes('drawLoadingTheaterMap'), "js/game.js must draw tactical theater vector map");
 assert(gameJs.includes('isForced'), "js/game.js must support forced loadout display");
 console.log("PASS: Pre-mission loading screen objective and condition logic verified.");

@@ -71,15 +71,15 @@ export class FlightHUD {
       }
     }
 
-    // 4B. Mission Story & Tactical Radio Messages (175% scale)
+    // 4B. Mission Story & Tactical Radio Messages (200% scale)
     if (missionManager && missionManager.radioMessages && missionManager.radioMessages.length > 0) {
-      let radioY = 135;
+      let radioY = 140;
       for (const m of missionManager.radioMessages) {
         if (!m || !m.text || m.life <= 0) continue;
         const alpha = Math.min(1.0, m.life);
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.font = "bold 26px 'Share Tech Mono', 'Courier New', monospace";
+        ctx.font = "bold 30px 'Share Tech Mono', 'Courier New', monospace";
         ctx.fillStyle = '#00ffee';
         ctx.shadowColor = '#00ff88';
         ctx.shadowBlur = 18;
@@ -87,7 +87,7 @@ export class FlightHUD {
         const cleanRadio = (m.text || '').trim().replace(/^<<\s*/, '').replace(/\s*>>$/, '');
         ctx.fillText(`<< ${cleanRadio} >>`, centerX, radioY);
         ctx.restore();
-        radioY += 42;
+        radioY += 48;
       }
     }
 
@@ -2094,46 +2094,55 @@ export class FlightHUD {
     const portraitX = canvasWidth - requiredRightSpace + slideOffset;
     const portraitY = 24;
 
-    // Speech bubble dynamic sizing based on text length & word wrapping at 200% scale (36px font)
-    ctx.font = "bold 36px 'Share Tech Mono', 'Courier New', monospace";
-    const maxBubbleW = Math.min(840, portraitX - 40);
+    // Speech bubble dynamic sizing based on text length & word wrapping at 200% scale
+    const fontStr = "bold 32px 'Share Tech Mono', 'Courier New', monospace";
+    ctx.font = fontStr;
+    const maxAllowedW = Math.min(960, Math.max(380, portraitX - 50));
 
-    // Calculate lines for typing text and full text to keep bubble width stable while typing
+    // Calculate lines for full text to guarantee stable bubble dimensions while typing
     const fullWords = (dialogue.text || '').split(' ');
-    let targetMaxLineW = 0;
-    let targetCurLine = '';
-    let targetLineCount = 1;
+    const fullLines = [];
+    let curLine = '';
+    let maxMeasuredW = 0;
+
     for (const w of fullWords) {
-      const test = targetCurLine ? (targetCurLine + ' ' + w) : w;
-      if (ctx.measureText(test).width <= maxBubbleW - 70) {
-        targetCurLine = test;
+      const candidate = curLine ? (curLine + ' ' + w) : w;
+      if (ctx.measureText(candidate).width <= maxAllowedW - 64) {
+        curLine = candidate;
       } else {
-        targetMaxLineW = Math.max(targetMaxLineW, ctx.measureText(targetCurLine).width);
-        targetCurLine = w;
-        targetLineCount++;
+        if (curLine) {
+          fullLines.push(curLine);
+          maxMeasuredW = Math.max(maxMeasuredW, ctx.measureText(curLine).width);
+        }
+        curLine = w;
       }
     }
-    if (targetCurLine) targetMaxLineW = Math.max(targetMaxLineW, ctx.measureText(targetCurLine).width);
+    if (curLine) {
+      fullLines.push(curLine);
+      maxMeasuredW = Math.max(maxMeasuredW, ctx.measureText(curLine).width);
+    }
+    if (fullLines.length === 0) fullLines.push('');
 
-    const bubbleW = Math.max(360, Math.min(maxBubbleW, targetMaxLineW + 74));
-    const bubbleH = targetLineCount > 2 ? 188 : (targetLineCount > 1 ? 148 : 112);
+    const lineHeight = 40;
+    const bubbleW = Math.max(400, Math.min(maxAllowedW, maxMeasuredW + 72));
+    const bubbleH = Math.max(124, fullLines.length * lineHeight + 44);
     const bubbleX = portraitX - bubbleW - 24;
-    const bubbleY = portraitY + 8;
+    const bubbleY = portraitY + 4;
 
-    // Word wrap the currently displayed typewriter text
+    // Word wrap the currently displayed typewriter text within the bubble width
     const dispWords = (dialogue.displayedText || '').split(' ');
     const dispLines = [];
-    let curDispLine = '';
+    let curDisp = '';
     for (const w of dispWords) {
-      const test = curDispLine ? (curDispLine + ' ' + w) : w;
-      if (ctx.measureText(test).width <= bubbleW - 60) {
-        curDispLine = test;
+      const candidate = curDisp ? (curDisp + ' ' + w) : w;
+      if (ctx.measureText(candidate).width <= bubbleW - 64) {
+        curDisp = candidate;
       } else {
-        if (curDispLine) dispLines.push(curDispLine);
-        curDispLine = w;
+        if (curDisp) dispLines.push(curDisp);
+        curDisp = w;
       }
     }
-    if (curDispLine) dispLines.push(curDispLine);
+    if (curDisp) dispLines.push(curDisp);
     if (dispLines.length === 0) dispLines.push('');
 
     // 1. Draw Speech Bubble Frame & Connecting Arrow Pointer (200% scale)
@@ -2143,7 +2152,7 @@ export class FlightHUD {
     ctx.shadowBlur = 16;
     ctx.lineWidth = 4.0;
 
-    const arrowY = bubbleY + bubbleH * 0.45;
+    const arrowY = bubbleY + Math.min(bubbleH * 0.45, 84);
     ctx.beginPath();
     ctx.moveTo(bubbleX, bubbleY);
     ctx.lineTo(bubbleX + bubbleW, bubbleY);
@@ -2156,9 +2165,9 @@ export class FlightHUD {
     ctx.fill();
     ctx.stroke();
 
-    // 2. Draw Typewritten Dialogue Text (200% scale - 36px font)
+    // 2. Draw Typewritten Dialogue Text - all wrapped lines centered vertically & horizontally
     ctx.save();
-    ctx.font = "bold 36px 'Share Tech Mono', 'Courier New', monospace";
+    ctx.font = fontStr;
     ctx.fillStyle = '#ffffff';
     ctx.shadowColor = '#00ff66';
     ctx.shadowBlur = 8;
@@ -2166,18 +2175,11 @@ export class FlightHUD {
     ctx.textBaseline = 'middle';
 
     const textX = bubbleX + bubbleW * 0.5;
-    const textY = bubbleY + bubbleH * 0.5;
-    const lineHeight = 42;
+    const totalTextH = (dispLines.length - 1) * lineHeight;
+    const startY = bubbleY + (bubbleH - totalTextH) * 0.5;
 
-    if (dispLines.length === 1) {
-      ctx.fillText(dispLines[0], textX, textY + 2);
-    } else if (dispLines.length === 2) {
-      ctx.fillText(dispLines[0], textX, textY - lineHeight * 0.5);
-      ctx.fillText(dispLines[1], textX, textY + lineHeight * 0.5);
-    } else {
-      ctx.fillText(dispLines[0] || '', textX, textY - lineHeight);
-      ctx.fillText(dispLines[1] || '', textX, textY);
-      ctx.fillText(dispLines[2] || '', textX, textY + lineHeight);
+    for (let i = 0; i < dispLines.length; i++) {
+      ctx.fillText(dispLines[i], textX, startY + i * lineHeight);
     }
     ctx.restore();
 

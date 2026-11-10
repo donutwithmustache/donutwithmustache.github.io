@@ -566,6 +566,19 @@ class FlightGame {
     document.getElementById('btn-pause-exit')?.addEventListener('click', () => {
       this.exitToMainMenu();
     });
+
+    // Pause menu button hover hints
+    const pauseHintEl = document.getElementById('pause-btn-hint');
+    const pauseBtns = document.querySelectorAll('.pause-menu-items .pause-btn');
+    pauseBtns.forEach(btn => {
+      btn.addEventListener('mouseenter', () => {
+        pauseBtns.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        if (pauseHintEl && btn.dataset.hint) {
+          pauseHintEl.textContent = btn.dataset.hint;
+        }
+      });
+    });
   }
 
   // Fully unload simulation and audio when leaving level
@@ -694,32 +707,35 @@ class FlightGame {
         const badgeClass = obj.isPrimary ? 'briefing-badge-pri' : 'briefing-badge-sec';
         const badgeText = obj.isPrimary ? 'PRIMARY' : 'SECONDARY';
 
-        // Type parameter tag
-        let paramTag = '';
-        if (obj.type === 'DESTROY_TARGETS') {
-          paramTag = `<span class="briefing-param-tag">[REQ: ${obj.requiredCount || 1} KILLS]</span>`;
-        } else if (obj.type === 'DESTROY_NAMED_TARGET') {
-          paramTag = `<span class="briefing-param-tag">[TARGET: ${obj.targetUnitId || 'HOSTILE VIP'}]</span>`;
-        } else if (obj.type === 'REACH_AREA') {
-          paramTag = `<span class="briefing-param-tag">[ZONE: ${obj.areaId || 'SECTOR'}]</span>`;
-        } else if (obj.type === 'SURVIVE_TIME') {
-          paramTag = `<span class="briefing-param-tag">[TIME: ${obj.timeLimit || 120}s]</span>`;
-        } else if (obj.type === 'CUSTOM_SCRIPTED') {
-          paramTag = `<span class="briefing-param-tag">[SCRIPTED]</span>`;
-        }
-
         item.innerHTML = `
           <span class="${badgeClass}">${badgeText}</span>
           <div style="flex: 1;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
               <strong style="color: #ffffff; letter-spacing: 1px;">${obj.title || 'Neutralize Targets'}</strong>
-              ${paramTag}
             </div>
             <div style="font-size: 11px; color: #ffb8b8; margin-top: 2px;">${obj.description || ''}</div>
           </div>
         `;
         objList.appendChild(item);
       });
+    }
+
+    // Safety cleanup: purge obsolete rows (gun, flares, loadout status) even if browser cached old HTML template
+    const airframeCard = document.getElementById('loading-airframe-card');
+    if (airframeCard) {
+      const rows = airframeCard.querySelectorAll('.airframe-info-row');
+      rows.forEach(r => {
+        const text = r.textContent.toUpperCase();
+        if (text.includes('PRIMARY GUN') || text.includes('LOADOUT STATUS') || text.includes('COUNTERMEASURES')) {
+          r.remove();
+        }
+      });
+      if (!document.getElementById('loading-ability-name')) {
+        const row = document.createElement('div');
+        row.className = 'airframe-info-row';
+        row.innerHTML = '<span class="lbl">ABILITY:</span><span class="val" id="loading-ability-name">TACTICAL ABILITY</span>';
+        airframeCard.appendChild(row);
+      }
     }
 
     // Populate airframe & loadout: if mission uses forced loadout, display forced plane & special weapon regardless of normal plane restrictions
@@ -1785,9 +1801,7 @@ class FlightGame {
     this.boundaryTimer = 0;
     this.crashHandled = false;
     this.crashReason = null;
-    if (this.playerTweakables) {
-      this.applyPlayerTweakables(this.playerTweakables);
-    }
+    // Retain current ammunition counts, equipped weapons, and return-line resupply on respawn
   }
 
   // Get active mission's Return Line configuration
@@ -1907,6 +1921,52 @@ class FlightGame {
     if (pauseMenu) {
       if (this.isPaused) {
         pauseMenu.classList.remove('hidden');
+
+        // Dynamically update mission title and objectives in Ace Combat pause menu
+        const titleEl = document.getElementById('pause-mission-title');
+        const subEl = document.getElementById('pause-mission-subtitle');
+        const objEl = document.getElementById('pause-objectives-content');
+        const mapLocEl = document.getElementById('pause-map-location');
+
+        const mData = (this.missionManager && this.missionManager.currentMission) ? this.missionManager.currentMission : null;
+        if (mData) {
+          if (titleEl) {
+            titleEl.textContent = (mData.name || mData.map?.name || this.missionManager.activeMissionId || 'COMBAT SORTIE').toUpperCase();
+          }
+          if (subEl) {
+            subEl.textContent = 'OPERATION IN PROGRESS // TACTICAL BRIEFING SUSPENDED';
+          }
+          if (mapLocEl) {
+            mapLocEl.textContent = (mData.map?.location || mData.location || 'SECTOR 04 // OPERATIONAL AIRSPACE').toUpperCase();
+          }
+          if (objEl) {
+            const objs = this.missionManager.objectives || [];
+            if (objs.length > 0) {
+              objEl.innerHTML = objs.map(o => {
+                const statusBadge = o.isCompleted
+                  ? '<span style="color:#00ff88; font-weight:bold;">[SECURED]</span>'
+                  : '<span style="color:#ffa502; font-weight:bold;">[ACTIVE]</span>';
+                return `<div style="margin-bottom: 6px;">${statusBadge} <strong>${o.title || 'Neutralize Targets'}</strong><br><span style="font-size: 11px; color: #ffd0d5;">${o.description || ''}</span></div>`;
+              }).join('');
+            } else {
+              objEl.textContent = 'Engage and destroy all hostile combat assets in theater.';
+            }
+          }
+        } else {
+          if (titleEl) titleEl.textContent = 'TEST FLIGHT';
+          if (subEl) subEl.textContent = 'TACTICAL SIMULATION SUSPENDED';
+          if (mapLocEl) mapLocEl.textContent = 'PROVING GROUNDS // AIRSPACE';
+          if (objEl) {
+            objEl.textContent = 'Free flight exercise. Test avionics, weaponry and flight envelope.';
+          }
+        }
+
+        // Render tactical pause map
+        const pauseCanvas = document.getElementById('pause-map-canvas');
+        if (pauseCanvas) {
+          this.drawPauseTheaterMap(pauseCanvas);
+        }
+
         if (this.audio) {
           this.audio.silenceContinuousSounds();
           if (this.audio.playSwitchSound) {
@@ -1923,6 +1983,182 @@ class FlightGame {
         }
       }
     }
+  }
+
+  // Render Ace Combat Style Vector Theater Map on Pause Screen
+  drawPauseTheaterMap(canvas) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+
+    // Deep tactical ocean background
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+    bgGrad.addColorStop(0, '#04090f');
+    bgGrad.addColorStop(1, '#020407');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Tactical grid in faint red
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 51, 68, 0.12)';
+    ctx.lineWidth = 1;
+    const cols = 6;
+    for (let c = 1; c < cols; c++) {
+      const gx = (width / cols) * c;
+      ctx.beginPath();
+      ctx.moveTo(gx, 0);
+      ctx.lineTo(gx, height);
+      ctx.stroke();
+    }
+    for (let r = 1; r < cols; r++) {
+      const gy = (height / cols) * r;
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(width, gy);
+      ctx.stroke();
+    }
+
+    const mData = (this.missionManager && this.missionManager.currentMission) || {};
+    const mapSize = (mData.map && mData.map.size) ? mData.map.size : 30150;
+    const padding = 24;
+    const drawW = width - padding * 2;
+    const drawH = height - padding * 2;
+    const scale = Math.min(drawW, drawH) / mapSize;
+
+    const toCanvasX = (worldX) => width / 2 + worldX * scale;
+    const toCanvasY = (worldY) => height / 2 + worldY * scale;
+
+    // 1. Red Tactical AO Boundary Box
+    ctx.strokeStyle = 'rgba(255, 51, 68, 0.65)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(padding, padding, drawW, drawH);
+
+    // 2. Return Line (if present)
+    const returnLine = this.getReturnLine();
+    if (returnLine && returnLine.enabled) {
+      ctx.save();
+      ctx.strokeStyle = '#00ffee';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      const lineCoord = returnLine.coordinate || 0;
+      if (returnLine.side === 'top' || returnLine.side === 'bottom') {
+        const ly = toCanvasY(lineCoord);
+        ctx.beginPath();
+        ctx.moveTo(padding, ly);
+        ctx.lineTo(width - padding, ly);
+        ctx.stroke();
+      } else {
+        const lx = toCanvasX(lineCoord);
+        ctx.beginPath();
+        ctx.moveTo(lx, padding);
+        ctx.lineTo(lx, height - padding);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 3. Terrain Contours / Islands
+    const terrains = (mData.map && Array.isArray(mData.map.terrain) && mData.map.terrain.length > 0)
+      ? mData.map.terrain
+      : (this.world && Array.isArray(this.world.islands) ? this.world.islands : []);
+
+    for (const t of terrains) {
+      const lType = (t.landType || 'island').toLowerCase();
+      let fillCol = 'rgba(24, 48, 32, 0.85)';
+      let strokeCol = 'rgba(0, 255, 136, 0.65)';
+      if (lType === 'city') {
+        fillCol = 'rgba(40, 48, 60, 0.85)';
+        strokeCol = 'rgba(100, 180, 255, 0.65)';
+      } else if (lType === 'desert') {
+        fillCol = 'rgba(60, 50, 32, 0.85)';
+        strokeCol = 'rgba(255, 200, 90, 0.65)';
+      }
+
+      ctx.fillStyle = fillCol;
+      ctx.strokeStyle = strokeCol;
+      ctx.lineWidth = 1.2;
+
+      const pts = t.points;
+      if (pts && pts.length >= 3) {
+        ctx.beginPath();
+        for (let i = 0; i < pts.length; i++) {
+          const pt = pts[i];
+          const px = Array.isArray(pt) ? pt[0] : (pt.x || 0);
+          const py = Array.isArray(pt) ? pt[1] : (pt.y || 0);
+          const cx = toCanvasX(px);
+          const cy = toCanvasY(py);
+          if (i === 0) ctx.moveTo(cx, cy);
+          else ctx.lineTo(cx, cy);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        const cx = toCanvasX(t.x || 0);
+        const cy = toCanvasY(t.y || 0);
+        const cr = Math.max(3, (t.radius || 1000) * scale);
+        ctx.beginPath();
+        ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    // 4. Hostile / Active Targets (solid red squares matching Ace Combat image 2)
+    if (this.targetManager && Array.isArray(this.targetManager.targets)) {
+      for (const tgt of this.targetManager.targets) {
+        if (!tgt || tgt.active === false || tgt.isDestroyed) continue;
+        const tx = toCanvasX(tgt.x || 0);
+        const ty = toCanvasY(tgt.y || 0);
+        if (tx < padding - 5 || tx > width - padding + 5 || ty < padding - 5 || ty > height - padding + 5) continue;
+
+        ctx.fillStyle = '#ff3344';
+        ctx.shadowColor = '#ff3344';
+        ctx.shadowBlur = 6;
+        const sqSize = 8;
+        ctx.fillRect(tx - sqSize / 2, ty - sqSize / 2, sqSize, sqSize);
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    // 5. Player Aircraft (Green Triangle + Forward Radar Sector Cone matching Ace Combat image 2)
+    const px = toCanvasX(this.flightState ? this.flightState.x : 0);
+    const py = toCanvasY(this.flightState ? this.flightState.y : 0);
+    const heading = this.flightState ? this.flightState.heading : -Math.PI * 0.25;
+
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(heading);
+
+    // Forward radar FOV cone
+    ctx.fillStyle = 'rgba(0, 255, 102, 0.18)';
+    ctx.strokeStyle = 'rgba(0, 255, 102, 0.7)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, 28, -Math.PI * 0.22, Math.PI * 0.22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Player Chevron / Triangle
+    ctx.fillStyle = '#00ff66';
+    ctx.shadowColor = '#00ff66';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(8, 0);
+    ctx.lineTo(-6, -5);
+    ctx.lineTo(-3, 0);
+    ctx.lineTo(-6, 5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+    ctx.restore();
   }
 
   restartTestFlight() {

@@ -733,8 +733,14 @@ export class MissionManager {
           }
         }
       } else if (eventType === 'TARGET_DESTROYED') {
-        const targetId = trig.targetId || trig.unitId || (trig.param && (trig.param.targetId || trig.param.unitId));
-        const target = this.game.targetManager ? this.game.targetManager.targets.find(t => t && (t.id === targetId || (t.id && targetId && t.id.toLowerCase() === targetId.toLowerCase()))) : null;
+        const rawTargetId = trig.targetId || trig.unitId || (trig.param && (trig.param.targetId || trig.param.unitId));
+        const cleanTgt = (rawTargetId || '').trim().toLowerCase();
+        const target = this.game.targetManager ? this.game.targetManager.targets.find(t => {
+          if (!t) return false;
+          const tid = (t.id || '').toLowerCase();
+          const tname = (t.name || '').toLowerCase();
+          return tid === cleanTgt || tname === cleanTgt || (cleanTgt && (tid.includes(cleanTgt) || tname.includes(cleanTgt)));
+        }) : null;
         if (target && (target.isDestroyed || target.isFalling || target.hp <= 0)) {
           triggered = true;
         }
@@ -837,7 +843,8 @@ export class MissionManager {
       } else if (act.type === 'SPAWN_WAVE') {
         this.spawnWave(act.units || []);
       } else if (act.type === 'RADIO_MESSAGE') {
-        this.postRadioMessage(act.text, act.life || 3.0);
+        const dur = act.duration || act.life || act.time || 4.5;
+        this.postRadioMessage(act.text, dur);
       } else if (act.type === 'SET_AI_ORDER') {
         this.applyUnitOrder(act.unitId, act.order);
       } else if (act.type === 'SCRIPTED_END') {
@@ -846,6 +853,10 @@ export class MissionManager {
         this.scriptedEndTitle = act.title || 'OPERATION CONCLUDED';
         this.scriptedEndText = act.text || 'MISSION UPDATE // SCRIPTED SEQUENCE TRIGGERED';
         this.postRadioMessage(`MISSION UPDATE // ${this.scriptedEndTitle.toUpperCase()}`, 5.0);
+        for (const obj of this.objectives) {
+          obj.isCompleted = true;
+        }
+        this.onMissionCompleted();
         this.startFadeTransition({
           title: this.scriptedEndTitle,
           subtitle: this.scriptedEndText,
@@ -886,8 +897,11 @@ export class MissionManager {
     unit.orders = Object.assign({}, unit.orders, order);
   }
 
-  postRadioMessage(text, life = 3.0) {
+  postRadioMessage(text, life = 4.5) {
     this.radioMessages.push({ text, life, maxLife: life });
+    if (this.game && this.game.audio && this.game.audio.playRadioChirp) {
+      this.game.audio.playRadioChirp();
+    }
   }
 
   onObjectiveCompleted(obj) {

@@ -760,7 +760,8 @@ export class TargetManager {
     for (const tgt of this.targets) {
       if (tgt.active === false) continue;
       if (tgt.isDestroyed) {
-        if (tgt.canRespawn === false || tgt.respawn === false) {
+        // AI units ONLY respawn if canRespawn or respawn is explicitly enabled
+        if (!tgt.canRespawn && !tgt.respawn) {
           continue;
         }
         tgt.respawnTimer -= dt;
@@ -831,7 +832,7 @@ export class TargetManager {
         if (tgt.altitude <= 0 || tgt.fallTimer >= tgt.fallDuration) {
           tgt.isFalling = false;
           tgt.isDestroyed = true;
-          tgt.respawnTimer = 14.0;
+          tgt.respawnTimer = (tgt.canRespawn || tgt.respawn) ? 14.0 : 0;
 
           // Violent surface impact detonation
           if (particles && particles.spawnExplosion) {
@@ -2238,7 +2239,7 @@ export class TargetManager {
       } else {
         // Surface targets (ships, SAMs) explode immediately on impact
         tgt.isDestroyed = true;
-        tgt.respawnTimer = 14.0;
+        tgt.respawnTimer = (tgt.canRespawn || tgt.respawn) ? 14.0 : 0;
         particles.spawnExplosion(tgt.x, tgt.y);
         if (audio) {
           if (audio.playMissileHitSound) {

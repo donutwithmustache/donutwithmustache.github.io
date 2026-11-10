@@ -38,9 +38,26 @@ if (html.includes('// SECTOR RADAR TOPOGRAPHY ACTIVE') || html.includes('CONTOUR
 }
 console.log('PASS: Obsolete topography text successfully removed');
 
+// Ability replaces countermeasures; gun and loadout status removed
+if (!html.includes('id="loading-ability-name"')) {
+  console.error('FAIL: Missing loading-ability-name in index.html');
+  process.exit(1);
+}
+if (html.includes('id="loading-gun-info"') || html.includes('id="loading-flares-info"') || html.includes('id="loading-loadout-type"')) {
+  console.error('FAIL: Gun, flares, or loadout status still present in index.html');
+  process.exit(1);
+}
+console.log('PASS: Loadout menu verified: gun/loadout status removed, countermeasures replaced with ability');
+
 // 2. Inspect css/menu.css
 const cssPath = path.join(__dirname, '..', 'css', 'menu.css');
 const css = fs.readFileSync(cssPath, 'utf8');
+
+if (!css.includes('.loading-loadout-container') || !css.includes('margin-top: auto;')) {
+  console.error('FAIL: .loading-loadout-container missing margin-top: auto anchor');
+  process.exit(1);
+}
+console.log('PASS: .loading-loadout-container anchored to bottom with margin-top: auto');
 
 if (!css.includes('.loading-progress-fill') || !css.includes('background: #ff3344;')) {
   console.error('FAIL: .loading-progress-fill is not pure solid red (#ff3344)');

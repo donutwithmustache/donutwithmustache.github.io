@@ -71,23 +71,23 @@ export class FlightHUD {
       }
     }
 
-    // 4B. Mission Story & Tactical Radio Messages
+    // 4B. Mission Story & Tactical Radio Messages (175% scale)
     if (missionManager && missionManager.radioMessages && missionManager.radioMessages.length > 0) {
-      let radioY = 125;
+      let radioY = 135;
       for (const m of missionManager.radioMessages) {
         if (!m || !m.text || m.life <= 0) continue;
         const alpha = Math.min(1.0, m.life);
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.font = "bold 15px 'Share Tech Mono', 'Courier New', monospace";
+        ctx.font = "bold 26px 'Share Tech Mono', 'Courier New', monospace";
         ctx.fillStyle = '#00ffee';
         ctx.shadowColor = '#00ff88';
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 18;
         ctx.textAlign = 'center';
         const cleanRadio = (m.text || '').trim().replace(/^<<\s*/, '').replace(/\s*>>$/, '');
         ctx.fillText(`<< ${cleanRadio} >>`, centerX, radioY);
         ctx.restore();
-        radioY += 24;
+        radioY += 42;
       }
     }
 
@@ -2047,7 +2047,7 @@ export class FlightHUD {
     ctx.restore();
   }
 
-  // Singleplayer Mission Dialogue Transmission (Ace Combat style top-right portrait & speech bubble)
+  // Singleplayer Mission Dialogue Transmission (Ace Combat style top-right portrait & speech bubble - 200% Scale)
   drawDialogueTransmission(ctx, canvasWidth, canvasHeight, dialogue) {
     if (!dialogue || !dialogue.text) return;
 
@@ -2061,111 +2061,154 @@ export class FlightHUD {
     if (dialogue.elapsed < introDuration) {
       const p = Math.max(0.001, dialogue.elapsed / introDuration);
       animAlpha = p;
-      slideOffset = (1.0 - Math.pow(p, 2)) * 60;
+      slideOffset = (1.0 - Math.pow(p, 2)) * 80;
     } else if (dialogue.timer < outroDuration) {
       animAlpha = Math.max(0, dialogue.timer / outroDuration);
-      slideOffset = (1.0 - animAlpha) * 40;
+      slideOffset = (1.0 - animAlpha) * 60;
     }
 
     ctx.globalAlpha = animAlpha;
 
-    // Portrait geometry (top right corner per reference screenshot)
-    const portraitW = 86;
-    const portraitH = 92;
-    const portraitX = canvasWidth - portraitW - 24 + slideOffset;
-    const portraitY = 18;
+    // Portrait geometry (200% size: 172 x 184)
+    const portraitW = 172;
+    const portraitH = 184;
 
-    // Speech bubble dynamic sizing based on text length & measurement
-    ctx.font = "bold 18px 'Share Tech Mono', 'Courier New', monospace";
-    const isMultiLine = dialogue.text.length > 36;
-    const measuredW = ctx.measureText(dialogue.text).width;
-    const maxBubbleW = Math.min(520, canvasWidth - portraitW - 70);
-    const bubbleW = isMultiLine
-      ? Math.max(340, Math.min(maxBubbleW, measuredW * 0.58 + 48))
-      : Math.max(210, Math.min(maxBubbleW, measuredW + 48));
-    const bubbleH = isMultiLine ? 78 : 64;
-    const bubbleX = portraitX - bubbleW - 14;
-    const bubbleY = portraitY + 6;
+    // Measure callsign / role / squadron metadata to guarantee long names never clip out of the screen edge
+    const speakerStr = (dialogue.speaker || 'UNKNOWN').toUpperCase();
+    const aircraftStr = (dialogue.aircraft || 'TAC-COM').toUpperCase();
+    const squadronStr = (dialogue.squadron || 'ALLIED FORCES').toUpperCase();
 
-    // 1. Draw Speech Bubble Frame & Connecting Arrow Pointer
-    ctx.fillStyle = 'rgba(8, 38, 18, 0.85)';
+    ctx.save();
+    ctx.font = "bold 28px monospace";
+    const speakerW = ctx.measureText(speakerStr).width;
+    ctx.font = "20px monospace";
+    const aircraftW = ctx.measureText(aircraftStr).width;
+    ctx.font = "18px monospace";
+    const squadronW = ctx.measureText(squadronStr).width;
+    ctx.restore();
+
+    const maxMetaW = Math.max(portraitW, speakerW, aircraftW, squadronW);
+    // Move transmission comfortably away from the edge so even long squadron names have breathing room
+    const edgeMargin = 50;
+    const requiredRightSpace = Math.max(portraitW + edgeMargin, maxMetaW + edgeMargin);
+    const portraitX = canvasWidth - requiredRightSpace + slideOffset;
+    const portraitY = 24;
+
+    // Speech bubble dynamic sizing based on text length & word wrapping at 200% scale (36px font)
+    ctx.font = "bold 36px 'Share Tech Mono', 'Courier New', monospace";
+    const maxBubbleW = Math.min(840, portraitX - 40);
+
+    // Calculate lines for typing text and full text to keep bubble width stable while typing
+    const fullWords = (dialogue.text || '').split(' ');
+    let targetMaxLineW = 0;
+    let targetCurLine = '';
+    let targetLineCount = 1;
+    for (const w of fullWords) {
+      const test = targetCurLine ? (targetCurLine + ' ' + w) : w;
+      if (ctx.measureText(test).width <= maxBubbleW - 70) {
+        targetCurLine = test;
+      } else {
+        targetMaxLineW = Math.max(targetMaxLineW, ctx.measureText(targetCurLine).width);
+        targetCurLine = w;
+        targetLineCount++;
+      }
+    }
+    if (targetCurLine) targetMaxLineW = Math.max(targetMaxLineW, ctx.measureText(targetCurLine).width);
+
+    const bubbleW = Math.max(360, Math.min(maxBubbleW, targetMaxLineW + 74));
+    const bubbleH = targetLineCount > 2 ? 188 : (targetLineCount > 1 ? 148 : 112);
+    const bubbleX = portraitX - bubbleW - 24;
+    const bubbleY = portraitY + 8;
+
+    // Word wrap the currently displayed typewriter text
+    const dispWords = (dialogue.displayedText || '').split(' ');
+    const dispLines = [];
+    let curDispLine = '';
+    for (const w of dispWords) {
+      const test = curDispLine ? (curDispLine + ' ' + w) : w;
+      if (ctx.measureText(test).width <= bubbleW - 60) {
+        curDispLine = test;
+      } else {
+        if (curDispLine) dispLines.push(curDispLine);
+        curDispLine = w;
+      }
+    }
+    if (curDispLine) dispLines.push(curDispLine);
+    if (dispLines.length === 0) dispLines.push('');
+
+    // 1. Draw Speech Bubble Frame & Connecting Arrow Pointer (200% scale)
+    ctx.fillStyle = 'rgba(8, 38, 18, 0.88)';
     ctx.strokeStyle = '#00ff66';
     ctx.shadowColor = '#00ff66';
-    ctx.shadowBlur = 8;
-    ctx.lineWidth = 2.0;
+    ctx.shadowBlur = 16;
+    ctx.lineWidth = 4.0;
 
     const arrowY = bubbleY + bubbleH * 0.45;
     ctx.beginPath();
     ctx.moveTo(bubbleX, bubbleY);
     ctx.lineTo(bubbleX + bubbleW, bubbleY);
-    ctx.lineTo(bubbleX + bubbleW, arrowY - 8);
-    ctx.lineTo(portraitX - 2, arrowY); // Arrow tip towards portrait
-    ctx.lineTo(bubbleX + bubbleW, arrowY + 8);
+    ctx.lineTo(bubbleX + bubbleW, arrowY - 16);
+    ctx.lineTo(portraitX - 4, arrowY); // Arrow tip towards portrait
+    ctx.lineTo(bubbleX + bubbleW, arrowY + 16);
     ctx.lineTo(bubbleX + bubbleW, bubbleY + bubbleH);
     ctx.lineTo(bubbleX, bubbleY + bubbleH);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // 2. Draw Typewritten Dialogue Text (Centered per reference)
+    // 2. Draw Typewritten Dialogue Text (200% scale - 36px font)
     ctx.save();
-    ctx.font = "bold 18px 'Share Tech Mono', 'Courier New', monospace";
+    ctx.font = "bold 36px 'Share Tech Mono', 'Courier New', monospace";
     ctx.fillStyle = '#ffffff';
     ctx.shadowColor = '#00ff66';
-    ctx.shadowBlur = 4;
+    ctx.shadowBlur = 8;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     const textX = bubbleX + bubbleW * 0.5;
     const textY = bubbleY + bubbleH * 0.5;
+    const lineHeight = 42;
 
-    const currentText = dialogue.displayedText || '';
-    if (isMultiLine) {
-      const words = currentText.split(' ');
-      let line1 = '';
-      let line2 = '';
-      for (const w of words) {
-        if ((line1 + ' ' + w).length <= 32) {
-          line1 = (line1 ? line1 + ' ' : '') + w;
-        } else {
-          line2 = (line2 ? line2 + ' ' : '') + w;
-        }
-      }
-      ctx.fillText(line1, textX, textY - 11);
-      ctx.fillText(line2, textX, textY + 13);
+    if (dispLines.length === 1) {
+      ctx.fillText(dispLines[0], textX, textY + 2);
+    } else if (dispLines.length === 2) {
+      ctx.fillText(dispLines[0], textX, textY - lineHeight * 0.5);
+      ctx.fillText(dispLines[1], textX, textY + lineHeight * 0.5);
     } else {
-      ctx.fillText(currentText, textX, textY + 1);
+      ctx.fillText(dispLines[0] || '', textX, textY - lineHeight);
+      ctx.fillText(dispLines[1] || '', textX, textY);
+      ctx.fillText(dispLines[2] || '', textX, textY + lineHeight);
     }
     ctx.restore();
 
-    // 3. Draw Portrait Outer Box & Glow
+    // 3. Draw Portrait Outer Box & Glow (200% scale)
     ctx.fillStyle = '#061a10';
     ctx.strokeStyle = '#00ff66';
     ctx.shadowColor = '#00ff66';
-    ctx.shadowBlur = 10;
-    ctx.lineWidth = 2.4;
+    ctx.shadowBlur = 20;
+    ctx.lineWidth = 4.8;
     ctx.fillRect(portraitX, portraitY, portraitW, portraitH);
     ctx.strokeRect(portraitX, portraitY, portraitW, portraitH);
 
-    // 4. Portrait Content (Custom Image or Authentic Tactical Pilot Silhouette)
+    // 4. Portrait Content (Custom Image or Authentic Tactical Pilot Silhouette at 200% scale)
     if (dialogue.portraitImage && dialogue.portraitImage.complete && dialogue.portraitImage.naturalWidth > 0) {
-      ctx.drawImage(dialogue.portraitImage, portraitX + 3, portraitY + 3, portraitW - 6, portraitH - 6);
+      ctx.drawImage(dialogue.portraitImage, portraitX + 6, portraitY + 6, portraitW - 12, portraitH - 12);
       ctx.fillStyle = 'rgba(0, 255, 102, 0.22)';
-      ctx.fillRect(portraitX + 3, portraitY + 3, portraitW - 6, portraitH - 6);
+      ctx.fillRect(portraitX + 6, portraitY + 6, portraitW - 12, portraitH - 12);
     } else {
-      // High-Tech Generic Pilot Silhouette Vector
+      // High-Tech Generic Pilot Silhouette Vector (200% scale)
       ctx.save();
       const pcX = portraitX + portraitW * 0.5;
-      const pcY = portraitY + 44;
+      const pcY = portraitY + 88;
 
       // Pilot helmet
       ctx.fillStyle = '#0f3822';
       ctx.strokeStyle = '#00ff66';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(pcX, pcY - 6, 26, Math.PI, 0, false);
-      ctx.lineTo(pcX + 26, pcY + 16);
-      ctx.lineTo(pcX - 26, pcY + 16);
+      ctx.arc(pcX, pcY - 12, 52, Math.PI, 0, false);
+      ctx.lineTo(pcX + 52, pcY + 32);
+      ctx.lineTo(pcX - 52, pcY + 32);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -2173,40 +2216,40 @@ export class FlightHUD {
       // Tinted flight visor
       ctx.fillStyle = '#00ff66';
       ctx.beginPath();
-      ctx.ellipse(pcX, pcY - 5, 20, 11, 0, 0, Math.PI * 2);
+      ctx.ellipse(pcX, pcY - 10, 40, 22, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // Visor reflection
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 2.4;
       ctx.beginPath();
-      ctx.moveTo(pcX - 10, pcY - 8);
-      ctx.lineTo(pcX - 2, pcY - 12);
+      ctx.moveTo(pcX - 20, pcY - 16);
+      ctx.lineTo(pcX - 4, pcY - 24);
       ctx.stroke();
 
       // Oxygen mask & boom microphone
       ctx.fillStyle = '#082414';
       ctx.strokeStyle = '#00ff88';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 3.0;
       ctx.beginPath();
-      ctx.arc(pcX, pcY + 12, 11, 0, Math.PI, false);
+      ctx.arc(pcX, pcY + 24, 22, 0, Math.PI, false);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
       // Mic boom
       ctx.beginPath();
-      ctx.moveTo(pcX - 18, pcY + 6);
-      ctx.lineTo(pcX - 5, pcY + 14);
+      ctx.moveTo(pcX - 36, pcY + 12);
+      ctx.lineTo(pcX - 10, pcY + 28);
       ctx.stroke();
 
       // Shoulders
       ctx.fillStyle = '#092215';
       ctx.beginPath();
-      ctx.moveTo(pcX - 38, portraitY + portraitH - 4);
-      ctx.lineTo(pcX - 24, pcY + 18);
-      ctx.lineTo(pcX + 24, pcY + 18);
-      ctx.lineTo(pcX + 38, portraitY + portraitH - 4);
+      ctx.moveTo(pcX - 76, portraitY + portraitH - 8);
+      ctx.lineTo(pcX - 48, pcY + 36);
+      ctx.lineTo(pcX + 48, pcY + 36);
+      ctx.lineTo(pcX + 76, portraitY + portraitH - 8);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -2214,50 +2257,50 @@ export class FlightHUD {
       ctx.restore();
     }
 
-    // CRT Scanlines across portrait
+    // CRT Scanlines across portrait (200% scale)
     ctx.save();
     ctx.fillStyle = 'rgba(0, 255, 102, 0.14)';
-    for (let sy = portraitY + 2; sy < portraitY + portraitH; sy += 3) {
-      ctx.fillRect(portraitX + 2, sy, portraitW - 4, 1);
+    for (let sy = portraitY + 4; sy < portraitY + portraitH; sy += 6) {
+      ctx.fillRect(portraitX + 4, sy, portraitW - 8, 2);
     }
     ctx.restore();
 
-    // 5. Callsign / Character Meta Info Under Portrait
+    // 5. Callsign / Character Meta Info Under Portrait (200% scale)
     ctx.save();
-    const metaX = portraitX + 2;
-    const metaY = portraitY + portraitH + 13;
+    const metaX = portraitX + 4;
+    const metaY = portraitY + portraitH + 26;
 
-    // Callsign (bold phosphor green)
-    ctx.font = 'bold 14px monospace';
+    // Callsign (bold phosphor green - 28px)
+    ctx.font = 'bold 28px monospace';
     ctx.fillStyle = '#00ff66';
     ctx.shadowColor = '#00ff66';
-    ctx.shadowBlur = 6;
-    ctx.fillText((dialogue.speaker || 'UNKNOWN').toUpperCase(), metaX, metaY);
+    ctx.shadowBlur = 12;
+    ctx.fillText(speakerStr, metaX, metaY);
 
-    // Aircraft / Role
-    ctx.font = '10px monospace';
+    // Aircraft / Role (20px)
+    ctx.font = '20px monospace';
     ctx.fillStyle = '#a0ffcc';
     ctx.shadowBlur = 0;
-    ctx.fillText((dialogue.aircraft || 'TAC-COM').toUpperCase(), metaX, metaY + 12);
+    ctx.fillText(aircraftStr, metaX, metaY + 25);
 
-    // Squadron / Affiliation
-    ctx.font = '9px monospace';
+    // Squadron / Affiliation (18px)
+    ctx.font = '18px monospace';
     ctx.fillStyle = '#60b080';
-    ctx.fillText((dialogue.squadron || 'ALLIED FORCES').toUpperCase(), metaX, metaY + 23);
+    ctx.fillText(squadronStr, metaX, metaY + 48);
 
     ctx.restore();
 
-    // Holographic Entry Beaming sweep line effect
+    // Holographic Entry Beaming sweep line effect (200% scale)
     if (dialogue.elapsed < introDuration) {
-      const sweepY = portraitY + (dialogue.elapsed / introDuration) * (portraitH + 35);
+      const sweepY = portraitY + (dialogue.elapsed / introDuration) * (portraitH + 70);
       ctx.save();
       ctx.strokeStyle = '#ffffff';
       ctx.shadowColor = '#00ffcc';
-      ctx.shadowBlur = 15;
-      ctx.lineWidth = 2.5;
+      ctx.shadowBlur = 25;
+      ctx.lineWidth = 5.0;
       ctx.beginPath();
-      ctx.moveTo(bubbleX - 10, sweepY);
-      ctx.lineTo(portraitX + portraitW + 10, sweepY);
+      ctx.moveTo(bubbleX - 16, sweepY);
+      ctx.lineTo(portraitX + portraitW + 16, sweepY);
       ctx.stroke();
       ctx.restore();
     }

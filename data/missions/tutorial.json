@@ -10,7 +10,7 @@
   },
   "map": {
     "id": "tutorial",
-    "name": "Combat Flight Training",
+    "name": "Combat Flight Training & Aerial Gunnery",
     "location": "San Salvacion // Tactical Proving Grounds",
     "size": 30150,
     "halfMapSize": 15075,
@@ -611,16 +611,25 @@
       "windHeading": -0.45,
       "windSpeed": 10
     },
-    "areas": []
+    "areas": [
+      {
+        "id": "area_1",
+        "name": "Zone 1",
+        "x": 7018.9,
+        "y": -6872.0,
+        "radius": 7311.0,
+        "color": "#00e5ff"
+      }
+    ]
   },
   "units": {
     "playerSpawns": [
       {
         "id": "spawn_p1",
         "team": "friendly",
-        "x": 3421.1,
-        "y": 13385.4,
-        "heading": -0.785,
+        "x": 9825.2,
+        "y": 13369.1,
+        "heading": -2.8879,
         "speed": 335,
         "altitude": 1.0,
         "isPrimary": true,
@@ -682,7 +691,7 @@
         "active": true,
         "x": 8311.1,
         "y": -6533.0,
-        "heading": 0.0,
+        "heading": 2.5939,
         "speed": 0,
         "hp": 160,
         "maxHp": 160,
@@ -721,49 +730,64 @@
         },
         "aiType": "rookie",
         "groundType": "radar_station",
-        "weaponType": "standard_missiles"
+        "weaponType": "standard_missiles",
+        "heading": 2.6998
       },
       {
         "id": "sam_custom_1_copy1",
         "name": "Flak Gun",
-        "code": "TGT [SAM]",
+        "code": "TGT [AA]",
         "type": "ground",
         "team": "enemy",
         "active": true,
         "x": 11548.0,
         "y": -6350.6,
-        "hp": 40,
-        "maxHp": 40,
-        "hitRadius": 32,
-        "range": 3400,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 24,
+        "range": 2100,
         "fireInterval": 9.0,
         "orders": {
           "type": "DEFEND_POINT"
         },
         "aiType": "rookie",
-        "groundType": "radar_station",
-        "weaponType": "rapid_flak"
+        "groundType": "flak_aa",
+        "weaponType": "rapid_flak",
+        "canRespawn": false,
+        "respawn": false,
+        "subType": "flak_aa",
+        "speed": 0,
+        "hasSAM": false,
+        "hasFlak": true,
+        "heading": 0.7744
       },
       {
         "id": "sam_custom_1_copy2",
         "name": "Flak Gun",
-        "code": "TGT [SAM]",
+        "code": "TGT [AA]",
         "type": "ground",
         "team": "enemy",
         "active": true,
         "x": 8277.4,
         "y": -8276.6,
-        "hp": 40,
-        "maxHp": 40,
-        "hitRadius": 32,
-        "range": 3400,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 24,
+        "range": 2100,
         "fireInterval": 9.0,
         "orders": {
           "type": "DEFEND_POINT"
         },
         "aiType": "rookie",
-        "groundType": "radar_station",
-        "weaponType": "rapid_flak"
+        "groundType": "flak_aa",
+        "weaponType": "rapid_flak",
+        "canRespawn": false,
+        "respawn": false,
+        "subType": "flak_aa",
+        "speed": 0,
+        "hasSAM": false,
+        "hasFlak": true,
+        "heading": -3.0098
       },
       {
         "id": "sam_custom_4",
@@ -784,7 +808,8 @@
         },
         "aiType": "rookie",
         "groundType": "sam_battery",
-        "weaponType": "heavy_sam"
+        "weaponType": "heavy_sam",
+        "heading": 2.6232
       }
     ]
   },
@@ -793,16 +818,17 @@
       "id": "tutorial",
       "title": "OPERATION: UNNAMED",
       "codename": "AIR-STRIKE",
-      "briefing": "Mission briefing parameters..."
+      "briefing": "Mission briefing parameters...",
+      "name": "Combat Flight Training & Aerial Gunnery"
     },
     "objectives": [
       {
         "id": "obj_primary",
-        "title": "Eliminate Hostiles",
-        "description": "Destroy hostile forces in sector.",
-        "type": "DESTROY_TARGETS",
-        "requiredCount": 5,
-        "isPrimary": true
+        "title": "Tutorial Flight",
+        "description": "Follow AWACS instructions to complete the tutorial.",
+        "type": "CUSTOM_SCRIPTED",
+        "isPrimary": true,
+        "scripted": true
       }
     ],
     "winConditions": {
@@ -814,7 +840,16 @@
       "timeLimit": 0,
       "noRespawn": false
     },
-    "areas": [],
+    "areas": [
+      {
+        "id": "area_1",
+        "name": "Zone 1",
+        "x": 7018.9,
+        "y": -6872.0,
+        "radius": 7311.0,
+        "color": "#00e5ff"
+      }
+    ],
     "triggers": [
       {
         "id": "trig_dia_1",
@@ -828,7 +863,7 @@
             "aircraft": "E-767",
             "squadron": "DONUT MERCENARY LEGION",
             "duration": 4.0,
-            "text": "Welcome to the tutorial.",
+            "text": "Welcome to the tutorial! My name is AWACS ASTRA, I will be guiding you through the basics today.",
             "portrait": "./assets/portraits/awacs_astra.png"
           }
         ]
@@ -844,16 +879,16 @@
             "speaker": "ASTRA",
             "aircraft": "E-767",
             "squadron": "DONUT MERCENARY LEGION",
-            "duration": 5.0,
-            "text": "Great job! Now We will practice groundattack.",
+            "duration": 8.0,
+            "text": "Great job! Now We will practice groundattack. Proceed right to the island on your map.",
             "portrait": "./assets/portraits/awacs_astra.png"
           }
         ],
-        "targetId": "Firebee"
+        "targetId": "fighter_custom_1_copy1"
       },
       {
         "id": "trig_end_3",
-        "name": "Scripted Mission Ending #3",
+        "name": "Scripted Mission Ending",
         "event": "TARGET_DESTROYED",
         "actions": [
           {
@@ -949,6 +984,42 @@
             "portrait": "./assets/portraits/awacs_astra.png"
           }
         ]
+      },
+      {
+        "id": "trig_dia_1_copy7",
+        "name": "Story Dialogue #1 (Copy 7)",
+        "event": "PLAYER_ENTER_AREA",
+        "time": 30.0,
+        "actions": [
+          {
+            "type": "RADIO_MESSAGE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767",
+            "squadron": "DONUT MERCENARY LEGION",
+            "duration": 15.0,
+            "text": "X TO SWITCH WEAPONS\nS TO DEPLOY FLARES\nA TO USE ABILITY",
+            "portrait": "./assets/portraits/awacs_astra.png"
+          }
+        ],
+        "areaId": "area_1"
+      },
+      {
+        "id": "trig_dia_1_copy8",
+        "name": "Story Dialogue #1 (Copy 8)",
+        "event": "PLAYER_ENTER_AREA",
+        "time": 30.0,
+        "actions": [
+          {
+            "type": "DIALOGUE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767",
+            "squadron": "DONUT MERCENARY LEGION",
+            "duration": 18.0,
+            "text": "Feel free to use the RETURN LINE to the North to equip bombs. Your main objective is to destroy the mothballed target ship in the harbor.",
+            "portrait": "./assets/portraits/awacs_astra.png"
+          }
+        ],
+        "areaId": "area_1"
       }
     ]
   },

@@ -652,9 +652,7 @@ class FlightGame {
     const objList = document.getElementById('loading-objectives-list');
     const planeNameEl = document.getElementById('loading-aircraft-name');
     const spwNameEl = document.getElementById('loading-spw-name');
-    const gunInfoEl = document.getElementById('loading-gun-info');
-    const flaresInfoEl = document.getElementById('loading-flares-info');
-    const loadoutTypeEl = document.getElementById('loading-loadout-type');
+    const abilityNameEl = document.getElementById('loading-ability-name');
     const locEl = document.getElementById('loading-location-name');
     const mapCanvas = document.getElementById('loading-map-canvas');
     const statusText = document.getElementById('loading-status-text');
@@ -736,22 +734,11 @@ class FlightGame {
     const spwAmmoCount = (this.weapons && this.weapons.spwCount !== undefined) ? this.weapons.spwCount : (sData.defaultAmmo || 24);
     if (spwNameEl) spwNameEl.textContent = `${sData.name || displaySpwId.toUpperCase()} [x${spwAmmoCount}]`;
 
-    if (gunInfoEl) {
-      const gunRounds = (this.weapons && this.weapons.gunAmmo !== undefined) ? this.weapons.gunAmmo : 800;
-      gunInfoEl.textContent = `20MM M61A2 VULCAN (${gunRounds} RDS)`;
-    }
-    if (flaresInfoEl) {
-      const flaresCount = (this.weapons && this.weapons.flareCount !== undefined) ? this.weapons.flareCount : 32;
-      flaresInfoEl.textContent = `FLARES (${flaresCount} UNITS)`;
-    }
-    if (loadoutTypeEl) {
-      if (isForced) {
-        loadoutTypeEl.textContent = 'FORCED MISSION LOADOUT';
-        loadoutTypeEl.className = 'val status-orange';
-      } else {
-        loadoutTypeEl.textContent = 'PILOT EQUIPPED LOADOUT';
-        loadoutTypeEl.className = 'val status-green';
-      }
+    // Tactical Ability
+    if (abilityNameEl) {
+      const planeAbilityKey = (pData.weapons && pData.weapons.ability) || (this.weapons && this.weapons.abilityId);
+      const abilityDef = ABILITIES[planeAbilityKey] || ABILITIES.emergencyAfterburner;
+      abilityNameEl.textContent = (abilityDef.name || 'STANDARD AVIONICS').toUpperCase();
     }
 
     // Render simple theater vector map showing only terrain (zero target indicators / zero unit markers)

@@ -10,7 +10,7 @@
   },
   "map": {
     "id": "test_flight",
-    "name": "Open Ocean & Archipelago",
+    "name": "Operation: Open Ocean & Archipelago",
     "location": "Barents Strait // Archipelago 04",
     "size": 30150,
     "halfMapSize": 15075.0,
@@ -1618,24 +1618,33 @@
       "id": "test_flight",
       "title": "OPERATION: PROVING GROUND",
       "codename": "TEST FLIGHT",
-      "briefing": "Tactical weapons evaluation and flight envelope calibration. Engage live targets across the combat theater."
+      "briefing": "Tactical weapons evaluation and flight envelope calibration. Engage live targets across the combat theater.",
+      "name": "Operation: Open Ocean & Archipelago"
     },
     "objectives": [
       {
         "id": "obj_eval",
-        "title": "Engage Hostile Units",
-        "description": "Engage hostile air, naval, and SAM installations in the combat zone.",
-        "type": "DESTROY_TARGETS",
-        "requiredCount": 5,
-        "isPrimary": true
+        "title": "Target Practice",
+        "description": "Engage hostile air, naval, and SAM installations on the map.",
+        "type": "CUSTOM_SCRIPTED",
+        "isPrimary": true,
+        "scripted": true
+      },
+      {
+        "id": "obj_2",
+        "title": "Infinite Respawns",
+        "description": "You have infinite respawns. Use ESC to leave the mission at any time.",
+        "type": "CUSTOM_SCRIPTED",
+        "isPrimary": false,
+        "scripted": true
       }
     ],
     "winConditions": {
-      "allPrimaryComplete": true,
+      "allPrimaryComplete": false,
       "requiredKills": 0
     },
     "loseConditions": {
-      "playerDestroyed": true,
+      "playerDestroyed": false,
       "timeLimit": 0,
       "noRespawn": false
     },
@@ -1794,6 +1803,7 @@
     "flareCount": 30,
     "abilityCharges": 1,
     "startSpeed": 335.0,
-    "startAltitude": 1.0
+    "startAltitude": 1.0,
+    "enabled": false
   }
 }

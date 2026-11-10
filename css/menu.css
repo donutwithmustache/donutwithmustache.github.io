@@ -1278,28 +1278,41 @@
   font-family: var(--font-mono);
 }
 
+.loading-col.directives-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.loading-loadout-container {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+}
+
 .airframe-card {
   background: rgba(18, 2, 5, 0.88);
   border: 1px solid rgba(255, 71, 87, 0.3);
-  padding: 16px 20px;
+  padding: 10px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
 }
 .airframe-info-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13px;
+  font-size: 11px;
 }
 .airframe-info-row .lbl {
   color: #d19298;
-  letter-spacing: 1.5px;
+  letter-spacing: 1.2px;
+  font-size: 11px;
 }
 .airframe-info-row .val {
   color: #ffffff;
   font-weight: 700;
-  letter-spacing: 1.5px;
+  letter-spacing: 1.2px;
+  font-size: 11.5px;
 }
 .airframe-info-row .val.status-green {
   color: #ff4757;

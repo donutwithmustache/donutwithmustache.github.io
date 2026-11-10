@@ -436,7 +436,6 @@ export class MenuManager {
 
   // Launch a playable mission into the game loop
   launchMission(missionId) {
-    this.showScreen('game');
     const profile = profileManager.activeProfile;
     const planeId = (profile && profile.equippedPlane) ? profile.equippedPlane : 'f15c';
     const spwId = (profile && profile.equippedSpw && profile.equippedSpw[planeId])

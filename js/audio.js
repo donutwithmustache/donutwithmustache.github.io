@@ -16,6 +16,7 @@ export class SoundEngine {
     
     // Cooldown timers
     this.lastGunTime = 0;
+    this.isSilenced = false;
   }
 
   init() {
@@ -163,8 +164,38 @@ export class SoundEngine {
     brakeSource.start();
   }
 
+  silenceContinuousSounds() {
+    this.isSilenced = true;
+    if (!this.initialized || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    try {
+      if (this.engineGain) {
+        this.engineGain.gain.cancelScheduledValues(t);
+        this.engineGain.gain.setValueAtTime(0, t);
+      }
+      if (this.burnerGain) {
+        this.burnerGain.gain.cancelScheduledValues(t);
+        this.burnerGain.gain.setValueAtTime(0, t);
+      }
+      if (this.windGain) {
+        this.windGain.gain.cancelScheduledValues(t);
+        this.windGain.gain.setValueAtTime(0, t);
+      }
+      if (this.brakeGain) {
+        this.brakeGain.gain.cancelScheduledValues(t);
+        this.brakeGain.gain.setValueAtTime(0, t);
+      }
+    } catch (e) {
+      console.warn('Error silencing continuous audio:', e);
+    }
+  }
+
+  resumeContinuousSounds() {
+    this.isSilenced = false;
+  }
+
   update(flightState) {
-    if (!this.initialized || !this.ctx || this.isMuted) return;
+    if (!this.initialized || !this.ctx || this.isMuted || this.isSilenced) return;
 
     const t = this.ctx.currentTime;
     const speedRatio = Math.min(1.5, flightState.speed / 250);

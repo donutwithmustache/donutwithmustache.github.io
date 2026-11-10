@@ -568,11 +568,55 @@ class FlightGame {
     });
   }
 
-  // Tactical Mission Deployment Flow (Invoked from Menus)
-  startMissionFlow(missionId, planeId, spwId) {
-    if (this.canvas) {
-      this.canvas.style.display = 'block';
+  // Fully unload simulation and audio when leaving level
+  unloadLevel() {
+    this.isPaused = true;
+    if (this.audio) {
+      this.audio.silenceContinuousSounds();
     }
+    if (this.particles) {
+      this.particles.reset();
+    }
+    if (this.weapons) {
+      this.weapons.bullets = [];
+      this.weapons.activeMissiles = [];
+      this.weapons.flares = [];
+      this.weapons.isFiringGun = false;
+      this.weapons.isFiringSpw = false;
+    }
+    if (this.targeting) {
+      this.targeting.designatedTarget = null;
+      this.targeting.targetLock = null;
+      this.targeting.multiLockedTargets = [];
+      this.targeting.lockState = 'NONE';
+      this.targeting.lockTimer = 0;
+    }
+    if (this.targetManager) {
+      this.targetManager.targets = [];
+      this.targetManager.destroyedNotifications = [];
+    }
+    if (this.hud) {
+      this.hud.destroyedNotifications = [];
+      this.hud.notifications = [];
+    }
+    if (this.missionManager) {
+      this.missionManager.reset();
+    }
+    if (this.physics) {
+      this.physics.reset(0, 0, -Math.PI * 0.25, 0);
+    }
+    this.crashHandled = false;
+    this.crashReason = null;
+    this.playerDying = false;
+    this.playerFallTimer = 0;
+    this.boundaryTimer = 0;
+    this.boundaryState = null;
+  }
+
+  // Tactical Mission Deployment Flow (Invoked from Menus)
+  async startMissionFlow(missionId, planeId, spwId) {
+    this.unloadLevel();
+
     if (planeId && AIRCRAFT_DATA[planeId]) {
       this.selectAircraft(planeId, true);
     }
@@ -587,22 +631,220 @@ class FlightGame {
     // Reset physics & load modular mission
     this.physics.reset(0, 0, -Math.PI * 0.25, 335);
     this.flightState = this.physics.update(0.016, this.input);
-    this.missionManager.loadMission(missionId || 'test_flight');
+    await this.missionManager.loadMission(missionId || 'test_flight');
 
-    // Unpause game
-    this.isPaused = false;
-    this.togglePause(false);
+    // Present the tactical loading & briefing screen with confirmation to start
+    this.showMissionLoadingScreen(missionId, planeId, spwId);
+  }
+
+  showMissionLoadingScreen(missionId, planeId, spwId) {
+    const screen = document.getElementById('mission-loading-screen');
+    if (!screen) {
+      this.isPaused = false;
+      if (this.audio) this.audio.resumeContinuousSounds();
+      return;
+    }
+
+    const mData = this.missionManager.currentMission || {};
+    const titleEl = document.getElementById('loading-mission-title');
+    const subEl = document.getElementById('loading-mission-subtitle');
+    const tagEl = document.getElementById('loading-header-tag');
+    const objList = document.getElementById('loading-objectives-list');
+    const condList = document.getElementById('loading-conditions-list');
+    const planeNameEl = document.getElementById('loading-aircraft-name');
+    const spwNameEl = document.getElementById('loading-spw-name');
+    const gunInfoEl = document.getElementById('loading-gun-info');
+    const flaresInfoEl = document.getElementById('loading-flares-info');
+    const statusText = document.getElementById('loading-status-text');
+    const pctText = document.getElementById('loading-progress-pct');
+    const bar = document.getElementById('loading-progress-bar');
+    const actionContainer = document.getElementById('loading-action-container');
+    const commenceBtn = document.getElementById('btn-commence-operation');
+    const briefingBody = document.getElementById('loading-briefing-body');
+
+    if (tagEl) tagEl.textContent = '// TACTICAL SORTIE BRIEFING // TOP SECRET';
+    if (titleEl) {
+      const mapName = mData.map?.name || (missionId ? missionId.replace(/_/g, ' ').toUpperCase() : 'COMBAT AIR PATROL');
+      titleEl.textContent = `OPERATION: ${mapName.toUpperCase()}`;
+    }
+    if (subEl) {
+      const theater = mData.dynamics?.meta?.briefing || 'SECTOR 04 // OPERATIONAL AIRSPACE';
+      subEl.textContent = theater;
+    }
+
+    if (briefingBody) briefingBody.style.display = 'grid';
+
+    // Populate objectives
+    if (objList) {
+      objList.innerHTML = '';
+      const objectives = (mData.dynamics && Array.isArray(mData.dynamics.objectives) && mData.dynamics.objectives.length > 0)
+        ? mData.dynamics.objectives
+        : [
+            { title: 'Engage Hostile Forces', description: 'Eliminate all primary targets within the operational theater.', isPrimary: true },
+            { title: 'Protect Allied Assets', description: 'Maintain fleet airspace perimeter and neutralize bogeys.', isPrimary: false }
+          ];
+
+      objectives.forEach(obj => {
+        const item = document.createElement('div');
+        item.className = 'briefing-item';
+        const badgeClass = obj.isPrimary ? 'briefing-badge-pri' : 'briefing-badge-sec';
+        const badgeText = obj.isPrimary ? 'PRIMARY' : 'SECONDARY';
+        item.innerHTML = `
+          <span class="${badgeClass}">${badgeText}</span>
+          <div>
+            <strong style="color: #ffffff;">${obj.title || 'Neutralize Targets'}</strong>
+            <div style="font-size: 11px; color: #a2b7c7;">${obj.description || ''}</div>
+          </div>
+        `;
+        objList.appendChild(item);
+      });
+    }
+
+    // Populate conditions
+    if (condList) {
+      condList.innerHTML = `
+        <div class="briefing-item"><span class="briefing-bullet">&gt;</span><span><strong>VICTORY:</strong> All designated hostile units neutralized</span></div>
+        <div class="briefing-item"><span class="briefing-bullet" style="color:#ff4444;">&gt;</span><span><strong>DEFEAT:</strong> Airframe crash or destruction</span></div>
+      `;
+    }
+
+    // Populate airframe info
+    const pData = AIRCRAFT_DATA[planeId] || this.aircraftConfig || {};
+    if (planeNameEl) planeNameEl.textContent = pData.name || 'F-15C EAGLE';
+    const sData = SPECIAL_WEAPONS[spwId] || SPECIAL_WEAPONS[this.weapons.equippedSpecialWeapon] || {};
+    if (spwNameEl) spwNameEl.textContent = `${sData.name || 'QAAM'} [x${this.weapons.spwAmmo}]`;
+    if (gunInfoEl) gunInfoEl.textContent = `20MM AUTOCANNON (${this.weapons.gunAmmo} RDS)`;
+    if (flaresInfoEl) flaresInfoEl.textContent = `FLARES (${this.weapons.flareCount} UNITS)`;
+
+    // Reset progress
+    if (bar) bar.style.width = '0%';
+    if (pctText) pctText.textContent = '0%';
+    if (statusText) statusText.textContent = 'ESTABLISHING SATELLITE TACTICAL LINK...';
+    if (actionContainer) actionContainer.classList.add('hidden');
+
+    screen.classList.remove('hidden');
+
+    const menuSys = document.getElementById('menu-system');
+    if (menuSys) menuSys.style.display = 'none';
+    if (this.canvas) this.canvas.style.display = 'none';
+
+    // Loading stages
+    const stages = [
+      { pct: 30, text: 'SYNCHRONIZING TOPOGRAPHICAL RADAR CONTOURS...' },
+      { pct: 60, text: 'ARMING WEAPON PYLONS & MUNITIONS RACKS...' },
+      { pct: 85, text: 'CALIBRATING IFF TRANSPONDER & AVIONICS HUD...' },
+      { pct: 100, text: 'ALL SYSTEMS NOMINAL // READY FOR SORTIE' }
+    ];
+
+    let currentStage = 0;
+    const interval = setInterval(() => {
+      if (currentStage < stages.length) {
+        const s = stages[currentStage];
+        if (bar) bar.style.width = `${s.pct}%`;
+        if (pctText) pctText.textContent = `${s.pct}%`;
+        if (statusText) statusText.textContent = s.text;
+        currentStage++;
+      } else {
+        clearInterval(interval);
+        // Loading complete: Reveal confirmation button!
+        if (actionContainer) actionContainer.classList.remove('hidden');
+        if (this.audio && this.audio.playTargetLockSound) {
+          this.audio.playTargetLockSound();
+        }
+
+        const handleCommence = () => {
+          cleanup();
+          if (this.audio && this.audio.playMenuSelect) {
+            this.audio.playMenuSelect();
+          }
+          screen.classList.add('hidden');
+          if (this.canvas) this.canvas.style.display = 'block';
+          if (this.menu) this.menu.activeScreen = 'game';
+          if (this.audio) this.audio.resumeContinuousSounds();
+          this.isPaused = false;
+        };
+
+        const handleKey = (e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            handleCommence();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cleanup();
+            this.exitToMainMenu();
+          }
+        };
+
+        const cleanup = () => {
+          if (commenceBtn) commenceBtn.removeEventListener('click', handleCommence);
+          window.removeEventListener('keydown', handleKey);
+        };
+
+        if (commenceBtn) commenceBtn.addEventListener('click', handleCommence);
+        window.addEventListener('keydown', handleKey);
+      }
+    }, 160);
   }
 
   exitToMainMenu() {
     this.isPaused = true;
-    this.togglePause(false);
-    if (this.canvas) {
-      this.canvas.style.display = 'none';
+    if (this.audio) {
+      this.audio.silenceContinuousSounds();
     }
-    if (this.menu) {
-      this.menu.showScreen('main-menu');
+
+    const pauseMenu = document.getElementById('pause-menu');
+    if (pauseMenu) pauseMenu.classList.add('hidden');
+
+    const screen = document.getElementById('mission-loading-screen');
+    if (!screen) {
+      this.unloadLevel();
+      if (this.canvas) this.canvas.style.display = 'none';
+      if (this.menu) this.menu.showScreen('main-menu');
+      return;
     }
+
+    // Show RTB transition loading screen
+    const tagEl = document.getElementById('loading-header-tag');
+    const titleEl = document.getElementById('loading-mission-title');
+    const subEl = document.getElementById('loading-mission-subtitle');
+    const briefingBody = document.getElementById('loading-briefing-body');
+    const actionContainer = document.getElementById('loading-action-container');
+    const bar = document.getElementById('loading-progress-bar');
+    const pctText = document.getElementById('loading-progress-pct');
+    const statusText = document.getElementById('loading-status-text');
+
+    if (tagEl) tagEl.textContent = '// SORTIE TERMINATED // RTB PROTOCOL';
+    if (titleEl) titleEl.textContent = 'RETURNING TO BASE';
+    if (subEl) subEl.textContent = 'DISENGAGING COMBAT SIMULATION // SECURING TELEMETRY';
+    if (briefingBody) briefingBody.style.display = 'none';
+    if (actionContainer) actionContainer.classList.add('hidden');
+    if (bar) bar.style.width = '0%';
+    if (pctText) pctText.textContent = '0%';
+    if (statusText) statusText.textContent = 'DISENGAGING COMBAT SYSTEMS...';
+
+    screen.classList.remove('hidden');
+
+    setTimeout(() => {
+      if (bar) bar.style.width = '50%';
+      if (pctText) pctText.textContent = '50%';
+      if (statusText) statusText.textContent = 'UNLOADING MAP & COMBAT UNITS...';
+      this.unloadLevel();
+    }, 150);
+
+    setTimeout(() => {
+      if (bar) bar.style.width = '100%';
+      if (pctText) pctText.textContent = '100%';
+      if (statusText) statusText.textContent = 'TELEMETRY SECURED // DOCKING CARRIER';
+    }, 320);
+
+    setTimeout(() => {
+      screen.classList.add('hidden');
+      if (this.canvas) this.canvas.style.display = 'none';
+      if (briefingBody) briefingBody.style.display = 'grid';
+      if (this.menu) {
+        this.menu.showScreen('main-menu');
+      }
+    }, 480);
   }
 
   updateMouseWorldCoords() {
@@ -1519,6 +1761,7 @@ class FlightGame {
     if (this.menu && this.menu.activeScreen !== 'game') {
       const pauseMenu = document.getElementById('pause-menu');
       if (pauseMenu) pauseMenu.classList.add('hidden');
+      if (this.audio) this.audio.silenceContinuousSounds();
       return;
     }
     this.isPaused = (forceState !== null) ? !!forceState : !this.isPaused;
@@ -1526,13 +1769,19 @@ class FlightGame {
     if (pauseMenu) {
       if (this.isPaused) {
         pauseMenu.classList.remove('hidden');
-        if (this.audio && this.audio.playSwitchSound) {
-          this.audio.playSwitchSound();
+        if (this.audio) {
+          this.audio.silenceContinuousSounds();
+          if (this.audio.playSwitchSound) {
+            this.audio.playSwitchSound();
+          }
         }
       } else {
         pauseMenu.classList.add('hidden');
-        if (this.audio && this.audio.playTargetLockSound) {
-          this.audio.playTargetLockSound();
+        if (this.audio) {
+          this.audio.resumeContinuousSounds();
+          if (this.audio.playTargetLockSound) {
+            this.audio.playTargetLockSound();
+          }
         }
       }
     }

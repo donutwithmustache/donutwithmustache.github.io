@@ -115,6 +115,7 @@ class MissionEditorApp(tk.Tk):
         self.selected_trigger_idx = None
         self.drag_start = None
         self.dragging_area_resize = False
+        self.dragging_unit_heading = False
         self.portrait_preview_img = None
 
         # Polygonal island drawing and vertex manipulation state
@@ -593,7 +594,7 @@ class MissionEditorApp(tk.Tk):
         self.cb_default_land_type.pack(side="left", padx=2)
 
         self.terrain_listbox = tk.Listbox(box_terrain, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55",
-                                          font=("Consolas", 9), height=7, bd=0)
+                                          exportselection=False, font=("Consolas", 9), height=7, bd=0)
         self.terrain_listbox.pack(fill="both", expand=True, pady=4)
         self.terrain_listbox.bind("<<ListboxSelect>>", self.on_select_island_item)
 
@@ -706,9 +707,40 @@ class MissionEditorApp(tk.Tk):
         tk.Button(sp_btns, text="Auto-Format Spawns", bg="#15334e", fg="#00e5ff", font=("Consolas", 8, "bold"), command=self.auto_generate_player_spawns).pack(side="left", padx=2)
         tk.Button(sp_btns, text="- Remove", bg="#4a1818", fg="#ff8888", font=("Consolas", 8), command=self.delete_selected_spawn).pack(side="left", padx=2)
 
-        self.spawns_listbox = tk.Listbox(box_spawns, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", font=("Consolas", 9), height=3, bd=0)
+        self.spawns_listbox = tk.Listbox(box_spawns, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", exportselection=False, font=("Consolas", 9), height=3, bd=0)
         self.spawns_listbox.pack(fill="x", pady=4)
         self.spawns_listbox.bind("<<ListboxSelect>>", self.on_select_spawn_item)
+
+        # Player Spawn Inspector Panel
+        self.sp_insp = tk.Frame(box_spawns, bg="#101c2b", pady=3)
+        self.sp_insp.pack(fill="x")
+
+        # Row 0: Heading Label & Entry + Compass preset buttons
+        tk.Label(self.sp_insp, text="Spawn Heading (°):", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=0, column=0, sticky="w")
+        sp_hd_f = tk.Frame(self.sp_insp, bg="#101c2b")
+        sp_hd_f.grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        self.ent_sp_heading = ttk.Entry(sp_hd_f, width=6)
+        self.ent_sp_heading.pack(side="left", padx=2)
+        self.ent_sp_heading.bind("<Return>", lambda e: self.update_spawn_from_form())
+        for c_lbl, c_deg in [("N", 270), ("NE", 315), ("E", 0), ("SE", 45), ("S", 90), ("SW", 135), ("W", 180), ("NW", 225)]:
+            tk.Button(sp_hd_f, text=c_lbl, bg="#15283c", fg="#a0d8ef", activebackground="#00aa55", activeforeground="#ffffff",
+                      font=("Consolas", 7), padx=2, pady=0,
+                      command=lambda d=c_deg: self.set_spawn_heading_preset(d)).pack(side="left", padx=1)
+
+        tk.Label(self.sp_insp, text="Speed (m/s):", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=0, column=2, sticky="w", padx=4)
+        self.ent_sp_speed = ttk.Entry(self.sp_insp, width=7)
+        self.ent_sp_speed.grid(row=0, column=3, sticky="w", padx=2)
+        self.ent_sp_speed.bind("<Return>", lambda e: self.update_spawn_from_form())
+
+        # Row 1: Primary Lead Checkbox + Apply button
+        self.var_sp_primary = tk.BooleanVar(value=False)
+        self.chk_sp_primary = tk.Checkbutton(self.sp_insp, text="Lead / Primary Spawn (P1)",
+                                             variable=self.var_sp_primary, bg="#101c2b", fg="#00ffcc",
+                                             selectcolor="#005522", font=("Consolas", 9))
+        self.chk_sp_primary.grid(row=1, column=0, columnspan=2, sticky="w", padx=2, pady=2)
+
+        btn_save_sp = tk.Button(self.sp_insp, text="Apply Spawn Changes", bg="#1a3248", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.update_spawn_from_form)
+        btn_save_sp.grid(row=1, column=2, columnspan=2, sticky="e", pady=2, padx=2)
 
         # 2. Combat Units List
         box_units = tk.LabelFrame(frame, text=" Combat Units & Story Spawn States ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=6)
@@ -724,7 +756,7 @@ class MissionEditorApp(tk.Tk):
         tk.Button(u_btns, text="Paste", bg="#15283c", fg="#a0d8ef", font=("Consolas", 8), command=self.paste_unit).pack(side="left", padx=2)
         tk.Button(u_btns, text="- Remove", bg="#4a1818", fg="#ff8888", font=("Consolas", 8), command=self.delete_selected_unit).pack(side="left", padx=2)
 
-        self.units_listbox = tk.Listbox(box_units, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", font=("Consolas", 9), height=6, bd=0)
+        self.units_listbox = tk.Listbox(box_units, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", exportselection=False, font=("Consolas", 9), height=6, bd=0)
         self.units_listbox.pack(fill="both", expand=True, pady=4)
         self.units_listbox.bind("<<ListboxSelect>>", self.on_select_unit_item)
 
@@ -767,6 +799,18 @@ class MissionEditorApp(tk.Tk):
         btn_save_u = tk.Button(self.u_insp, text="Apply Unit Changes", bg="#1a3248", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.update_unit_from_form)
         btn_save_u.grid(row=3, column=2, columnspan=2, sticky="e", padx=4)
 
+        # Row 4: Spawn Heading & Direction
+        tk.Label(self.u_insp, text="Spawn Heading (°):", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=4, column=0, sticky="w", pady=2)
+        u_hd_f = tk.Frame(self.u_insp, bg="#101c2b")
+        u_hd_f.grid(row=4, column=1, columnspan=3, sticky="w", padx=4, pady=2)
+        self.ent_u_heading = ttk.Entry(u_hd_f, width=6)
+        self.ent_u_heading.pack(side="left", padx=2)
+        self.ent_u_heading.bind("<Return>", lambda e: self.update_unit_from_form())
+        for c_lbl, c_deg in [("N", 270), ("NE", 315), ("E", 0), ("SE", 45), ("S", 90), ("SW", 135), ("W", 180), ("NW", 225)]:
+            tk.Button(u_hd_f, text=c_lbl, bg="#15283c", fg="#a0d8ef", activebackground="#00aa55", activeforeground="#ffffff",
+                      font=("Consolas", 7), padx=2, pady=0,
+                      command=lambda d=c_deg: self.set_unit_heading_preset(d)).pack(side="left", padx=1)
+
     # ----------------------------------------------------
     # TAB 3: LAYER 3 - DYNAMICS, DIALOGUE & TRIGGERS
     # ----------------------------------------------------
@@ -791,7 +835,7 @@ class MissionEditorApp(tk.Tk):
         tk.Button(o_btns, text="+ Add Objective", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.add_objective).pack(side="left", padx=2)
         tk.Button(o_btns, text="- Remove", bg="#4a1818", fg="#ff8888", font=("Consolas", 8), command=self.delete_objective).pack(side="left", padx=2)
 
-        self.objs_listbox = tk.Listbox(box_objs, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", font=("Consolas", 9), height=3, bd=0)
+        self.objs_listbox = tk.Listbox(box_objs, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", exportselection=False, font=("Consolas", 9), height=3, bd=0)
         self.objs_listbox.pack(fill="x", pady=4)
 
         # 1B. Win & Lose Conditions Panel
@@ -853,7 +897,7 @@ class MissionEditorApp(tk.Tk):
         tk.Button(a_btns, text="Duplicate", bg="#1f3b58", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.duplicate_area).pack(side="left", padx=2)
         tk.Button(a_btns, text="- Delete", bg="#331111", fg="#ff6666", font=("Consolas", 8), command=self.delete_area).pack(side="left", padx=2)
 
-        self.areas_listbox = tk.Listbox(box_areas, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", font=("Consolas", 9), height=3, bd=0)
+        self.areas_listbox = tk.Listbox(box_areas, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", exportselection=False, font=("Consolas", 9), height=3, bd=0)
         self.areas_listbox.pack(fill="x", pady=4)
         self.areas_listbox.bind("<<ListboxSelect>>", self.on_select_area_item)
 
@@ -911,47 +955,84 @@ class MissionEditorApp(tk.Tk):
         tk.Button(t_btns, text="Paste", bg="#15283c", fg="#a0d8ef", font=("Consolas", 8), command=self.paste_trigger).pack(side="left", padx=2)
         tk.Button(t_btns, text="- Delete", bg="#331111", fg="#ff6666", font=("Consolas", 8), command=self.delete_trigger).pack(side="left", padx=2)
 
-        self.trigs_listbox = tk.Listbox(box_trigs, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", font=("Consolas", 9), height=4, bd=0)
+        self.trigs_listbox = tk.Listbox(box_trigs, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", exportselection=False, font=("Consolas", 9), height=4, bd=0)
         self.trigs_listbox.pack(fill="x", pady=4)
         self.trigs_listbox.bind("<<ListboxSelect>>", self.on_select_trigger_item)
 
-        # 4. Trigger & Dialogue Action Inspector
+        # 4. Trigger & Action Inspector
         self.trig_insp = tk.LabelFrame(frame, text=" Trigger & Action Inspector ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=8)
         self.trig_insp.pack(fill="x", pady=6)
 
+        # Header Row: Name & ID
         tk.Label(self.trig_insp, text="Trigger Name:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=0, column=0, sticky="w")
         self.ent_trig_name = ttk.Entry(self.trig_insp, width=24)
         self.ent_trig_name.grid(row=0, column=1, sticky="w", padx=4, pady=2)
 
-        tk.Label(self.trig_insp, text="Condition Event:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=0, column=2, sticky="w")
-        self.cb_trig_event = ttk.Combobox(self.trig_insp, values=TRIGGER_EVENTS, state="readonly", width=18)
-        self.cb_trig_event.grid(row=0, column=3, sticky="w", padx=4, pady=2)
+        self.lbl_trig_id = tk.Label(self.trig_insp, text="ID: (none)", bg="#101c2b", fg="#608090", font=("Consolas", 8))
+        self.lbl_trig_id.grid(row=0, column=2, columnspan=2, sticky="e", padx=4)
 
-        tk.Label(self.trig_insp, text="Action Type:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=1, column=0, sticky="w")
-        self.cb_act_type = ttk.Combobox(self.trig_insp, values=TRIGGER_ACTIONS, state="readonly", width=20)
-        self.cb_act_type.grid(row=1, column=1, sticky="w", padx=4, pady=2)
+        # --- Section 1: TRIGGER CONDITION (When does it fire?) ---
+        cond_frame = tk.LabelFrame(self.trig_insp, text=" [1] Condition (When Trigger Fires) ", bg="#0d1825", fg="#00ffcc", font=("Consolas", 9, "bold"), padx=8, pady=6)
+        cond_frame.grid(row=1, column=0, columnspan=4, sticky="ew", pady=4)
 
-        # Dialogue-specific fields
-        tk.Label(self.trig_insp, text="Speaker Callsign:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=2, column=0, sticky="w")
-        self.ent_dia_speaker = ttk.Entry(self.trig_insp, width=16)
-        self.ent_dia_speaker.grid(row=2, column=1, sticky="w", padx=4, pady=2)
+        tk.Label(cond_frame, text="Condition Event:", bg="#0d1825", fg="#00ffcc", font=("Consolas", 9, "bold")).grid(row=0, column=0, sticky="w")
+        self.cb_trig_event = ttk.Combobox(cond_frame, values=TRIGGER_EVENTS, state="readonly", width=20)
+        self.cb_trig_event.grid(row=0, column=1, sticky="w", padx=4, pady=2)
+        self.cb_trig_event.bind("<<ComboboxSelected>>", self.on_trig_event_changed)
 
-        tk.Label(self.trig_insp, text="Aircraft / Role:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=2, column=2, sticky="w")
-        self.ent_dia_craft = ttk.Entry(self.trig_insp, width=16)
-        self.ent_dia_craft.grid(row=2, column=3, sticky="w", padx=4, pady=2)
+        self.lbl_event_hint = tk.Label(cond_frame, text="Fires after elapsed time from mission start.", bg="#0d1825", fg="#88c0a0", font=("Consolas", 8, "italic"))
+        self.lbl_event_hint.grid(row=0, column=2, columnspan=2, sticky="w", padx=6)
 
-        tk.Label(self.trig_insp, text="Squadron / Unit:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=3, column=0, sticky="w")
-        self.ent_dia_sq = ttk.Entry(self.trig_insp, width=20)
-        self.ent_dia_sq.grid(row=3, column=1, sticky="w", padx=4, pady=2)
+        # Condition Parameters
+        self.lbl_trig_time = tk.Label(cond_frame, text="Timer Delay (s):", bg="#0d1825", fg="#00ffcc", font=("Consolas", 9, "bold"))
+        self.lbl_trig_time.grid(row=1, column=0, sticky="w", pady=2)
+        self.ent_trig_time = ttk.Entry(cond_frame, width=12)
+        self.ent_trig_time.grid(row=1, column=1, sticky="w", padx=4, pady=2)
 
-        tk.Label(self.trig_insp, text="Duration (s):", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=3, column=2, sticky="w")
-        self.ent_dia_dur = ttk.Entry(self.trig_insp, width=8)
-        self.ent_dia_dur.grid(row=3, column=3, sticky="w", padx=4, pady=2)
+        self.lbl_trig_target = tk.Label(cond_frame, text="Target Unit ID:", bg="#0d1825", fg="#88c0a0", font=("Consolas", 9))
+        self.lbl_trig_target.grid(row=1, column=2, sticky="w", pady=2)
+        self.cb_trig_target = ttk.Combobox(cond_frame, values=[], width=24)
+        self.cb_trig_target.grid(row=1, column=3, sticky="w", padx=4, pady=2)
+        self.ent_act_target = self.cb_trig_target  # backward-compatibility alias
+
+        self.lbl_trig_area = tk.Label(cond_frame, text="Target Area:", bg="#0d1825", fg="#88c0a0", font=("Consolas", 9))
+        self.lbl_trig_area.grid(row=2, column=0, sticky="w", pady=2)
+        self.cb_trig_area = ttk.Combobox(cond_frame, values=[], state="readonly", width=20)
+        self.cb_trig_area.grid(row=2, column=1, sticky="w", padx=4, pady=2)
+
+        self.lbl_trig_range = tk.Label(cond_frame, text="Proximity Range (m):", bg="#0d1825", fg="#88c0a0", font=("Consolas", 9))
+        self.lbl_trig_range.grid(row=2, column=2, sticky="w", pady=2)
+        self.ent_trig_range = ttk.Entry(cond_frame, width=12)
+        self.ent_trig_range.grid(row=2, column=3, sticky="w", padx=4, pady=2)
+
+        # --- Section 2: TRIGGER ACTION (What does it do?) ---
+        act_frame = tk.LabelFrame(self.trig_insp, text=" [2] Action (What Trigger Does) ", bg="#0d1825", fg="#00e5ff", font=("Consolas", 9, "bold"), padx=8, pady=6)
+        act_frame.grid(row=2, column=0, columnspan=4, sticky="ew", pady=4)
+
+        tk.Label(act_frame, text="Action Type:", bg="#0d1825", fg="#00e5ff", font=("Consolas", 9, "bold")).grid(row=0, column=0, sticky="w")
+        self.cb_act_type = ttk.Combobox(act_frame, values=TRIGGER_ACTIONS, state="readonly", width=20)
+        self.cb_act_type.grid(row=0, column=1, sticky="w", padx=4, pady=2)
+
+        tk.Label(act_frame, text="Speaker Callsign:", bg="#0d1825", fg="#88c0a0", font=("Consolas", 9)).grid(row=1, column=0, sticky="w")
+        self.ent_dia_speaker = ttk.Entry(act_frame, width=16)
+        self.ent_dia_speaker.grid(row=1, column=1, sticky="w", padx=4, pady=2)
+
+        tk.Label(act_frame, text="Aircraft / Role:", bg="#0d1825", fg="#88c0a0", font=("Consolas", 9)).grid(row=1, column=2, sticky="w")
+        self.ent_dia_craft = ttk.Entry(act_frame, width=16)
+        self.ent_dia_craft.grid(row=1, column=3, sticky="w", padx=4, pady=2)
+
+        tk.Label(act_frame, text="Squadron / Unit:", bg="#0d1825", fg="#88c0a0", font=("Consolas", 9)).grid(row=2, column=0, sticky="w")
+        self.ent_dia_sq = ttk.Entry(act_frame, width=20)
+        self.ent_dia_sq.grid(row=2, column=1, sticky="w", padx=4, pady=2)
+
+        tk.Label(act_frame, text="Duration (s):", bg="#0d1825", fg="#88c0a0", font=("Consolas", 9)).grid(row=2, column=2, sticky="w")
+        self.ent_dia_dur = ttk.Entry(act_frame, width=8)
+        self.ent_dia_dur.grid(row=2, column=3, sticky="w", padx=4, pady=2)
 
         # Portrait row with preview canvas
-        tk.Label(self.trig_insp, text="Portrait Image:", bg="#101c2b", fg="#00ffcc", font=("Consolas", 9, "bold")).grid(row=4, column=0, sticky="w")
-        port_frame = tk.Frame(self.trig_insp, bg="#101c2b")
-        port_frame.grid(row=4, column=1, columnspan=2, sticky="w", padx=4, pady=2)
+        tk.Label(act_frame, text="Portrait Image:", bg="#0d1825", fg="#00ffcc", font=("Consolas", 9, "bold")).grid(row=3, column=0, sticky="w")
+        port_frame = tk.Frame(act_frame, bg="#0d1825")
+        port_frame.grid(row=3, column=1, columnspan=2, sticky="w", padx=4, pady=2)
         self.ent_dia_portrait = ttk.Entry(port_frame, width=24)
         self.ent_dia_portrait.pack(side="left")
         self.ent_dia_portrait.bind("<KeyRelease>", lambda e: self.update_portrait_preview())
@@ -959,50 +1040,41 @@ class MissionEditorApp(tk.Tk):
         tk.Button(port_frame, text="Clear", bg="#3a1a1a", fg="#ff8888", font=("Consolas", 8), command=self.clear_portrait).pack(side="left")
 
         # Portrait thumbnail preview canvas
-        self.dia_portrait_canvas = tk.Canvas(self.trig_insp, width=64, height=64, bg="#05121a", highlightthickness=1, highlightbackground="#00ff66")
-        self.dia_portrait_canvas.grid(row=4, column=3, rowspan=2, sticky="w", padx=6, pady=2)
+        self.dia_portrait_canvas = tk.Canvas(act_frame, width=64, height=64, bg="#05121a", highlightthickness=1, highlightbackground="#00ff66")
+        self.dia_portrait_canvas.grid(row=3, column=3, rowspan=2, sticky="w", padx=6, pady=2)
 
-        tk.Label(self.trig_insp, text="Dialogue Text:", bg="#101c2b", fg="#00ffcc", font=("Consolas", 9, "bold")).grid(row=5, column=0, sticky="nw", pady=4)
-        self.txt_dia_body = tk.Text(self.trig_insp, height=3, width=38, bg="#132030", fg="#ffffff", font=("Consolas", 9))
-        self.txt_dia_body.grid(row=5, column=1, columnspan=2, sticky="w", padx=4, pady=4)
+        tk.Label(act_frame, text="Dialogue Text:", bg="#0d1825", fg="#00ffcc", font=("Consolas", 9, "bold")).grid(row=4, column=0, sticky="nw", pady=4)
+        self.txt_dia_body = tk.Text(act_frame, height=3, width=38, bg="#132030", fg="#ffffff", font=("Consolas", 9))
+        self.txt_dia_body.grid(row=4, column=1, columnspan=2, sticky="w", padx=4, pady=4)
 
-        # Row 6: Area Target / Trigger Zone Selector & Target Unit ID
-        tk.Label(self.trig_insp, text="Area (Zone/Target):", bg="#101c2b", fg="#00e5ff", font=("Consolas", 9, "bold")).grid(row=6, column=0, sticky="w")
-        self.cb_trig_area = ttk.Combobox(self.trig_insp, values=[], state="readonly", width=22)
-        self.cb_trig_area.grid(row=6, column=1, sticky="w", padx=4, pady=2)
+        # Fade / Sector Transition fields
+        tk.Label(act_frame, text="Sector Title:", bg="#0d1825", fg="#00e5ff", font=("Consolas", 9)).grid(row=5, column=0, sticky="w")
+        self.ent_fade_title = ttk.Entry(act_frame, width=20)
+        self.ent_fade_title.grid(row=5, column=1, sticky="w", padx=4, pady=2)
 
-        tk.Label(self.trig_insp, text="Target Unit ID:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=6, column=2, sticky="w")
-        self.ent_act_target = ttk.Entry(self.trig_insp, width=16)
-        self.ent_act_target.grid(row=6, column=3, sticky="w", padx=4, pady=2)
+        tk.Label(act_frame, text="Sector Subtitle:", bg="#0d1825", fg="#00e5ff", font=("Consolas", 9)).grid(row=5, column=2, sticky="w")
+        self.ent_fade_subtitle = ttk.Entry(act_frame, width=20)
+        self.ent_fade_subtitle.grid(row=5, column=3, sticky="w", padx=4, pady=2)
 
-        tk.Label(self.trig_insp, text="Action X / Y:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=7, column=0, sticky="w")
-        xy_frame = tk.Frame(self.trig_insp, bg="#101c2b")
+        tk.Label(act_frame, text="Spawn Unit IDs:", bg="#0d1825", fg="#88c0a0", font=("Consolas", 9)).grid(row=6, column=0, sticky="w")
+        self.ent_fade_spawn = ttk.Entry(act_frame, width=20)
+        self.ent_fade_spawn.grid(row=6, column=1, sticky="w", padx=4, pady=2)
+
+        tk.Label(act_frame, text="Despawn IDs:", bg="#0d1825", fg="#88c0a0", font=("Consolas", 9)).grid(row=6, column=2, sticky="w")
+        self.ent_fade_despawn = ttk.Entry(act_frame, width=20)
+        self.ent_fade_despawn.grid(row=6, column=3, sticky="w", padx=4, pady=2)
+
+        tk.Label(act_frame, text="Action X / Y:", bg="#0d1825", fg="#88c0a0", font=("Consolas", 9)).grid(row=7, column=0, sticky="w")
+        xy_frame = tk.Frame(act_frame, bg="#0d1825")
         xy_frame.grid(row=7, column=1, sticky="w", padx=4)
         self.ent_act_x = ttk.Entry(xy_frame, width=7)
         self.ent_act_x.pack(side="left")
         self.ent_act_y = ttk.Entry(xy_frame, width=7)
         self.ent_act_y.pack(side="left", padx=2)
 
-        # Fade to Black / Sector Transition fields
-        tk.Label(self.trig_insp, text="Sector Title:", bg="#101c2b", fg="#00e5ff", font=("Consolas", 9)).grid(row=7, column=2, sticky="w")
-        self.ent_fade_title = ttk.Entry(self.trig_insp, width=16)
-        self.ent_fade_title.grid(row=7, column=3, sticky="w", padx=4, pady=2)
-
-        tk.Label(self.trig_insp, text="Subtitle / Time:", bg="#101c2b", fg="#00e5ff", font=("Consolas", 9)).grid(row=8, column=0, sticky="w")
-        self.ent_fade_subtitle = ttk.Entry(self.trig_insp, width=20)
-        self.ent_fade_subtitle.grid(row=8, column=1, sticky="w", padx=4, pady=2)
-
-        tk.Label(self.trig_insp, text="Spawn Unit IDs:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=8, column=2, sticky="w")
-        self.ent_fade_spawn = ttk.Entry(self.trig_insp, width=16)
-        self.ent_fade_spawn.grid(row=8, column=3, sticky="w", padx=4, pady=2)
-
-        tk.Label(self.trig_insp, text="Despawn IDs:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=9, column=0, sticky="w")
-        self.ent_fade_despawn = ttk.Entry(self.trig_insp, width=20)
-        self.ent_fade_despawn.grid(row=9, column=1, sticky="w", padx=4, pady=2)
-
-        btn_save_trig = tk.Button(self.trig_insp, text="Apply Trigger Changes", bg="#1a3248", fg="#00ffcc", font=("Consolas", 9, "bold"),
+        btn_save_trig = tk.Button(act_frame, text="Apply Trigger Changes", bg="#1a3248", fg="#00ffcc", font=("Consolas", 9, "bold"),
                                   command=self.update_trigger_from_form)
-        btn_save_trig.grid(row=9, column=2, columnspan=2, sticky="e", padx=4, pady=6)
+        btn_save_trig.grid(row=7, column=2, columnspan=2, sticky="e", padx=4, pady=6)
 
     # ----------------------------------------------------
     # MISSION MODE & LOADOUT MANAGEMENT
@@ -1164,8 +1236,9 @@ class MissionEditorApp(tk.Tk):
             ]
         }
         trigs.append(new_trig)
-        self.selected_trigger_idx = len(trigs) - 1
+        new_idx = len(trigs) - 1
         self.populate_form_from_mission()
+        self.select_trigger(new_idx)
 
     # ----------------------------------------------------
     # DATA POPULATION & SYNCHRONIZATION
@@ -1252,7 +1325,9 @@ class MissionEditorApp(tk.Tk):
         self.spawns_listbox.delete(0, tk.END)
         for i, s in enumerate(u.get("playerSpawns", [])):
             prim = "[PRIMARY]" if s.get("isPrimary") else ""
-            self.spawns_listbox.insert(tk.END, f"P{i+1} {s.get('id')} {prim} | ({int(s.get('x',0))}, {int(s.get('y',0))})")
+            hd = s.get("heading", -0.785)
+            deg = round(math.degrees(hd)) % 360
+            self.spawns_listbox.insert(tk.END, f"P{i+1} {s.get('id')} {prim} | ({int(s.get('x',0))}, {int(s.get('y',0))}) | HDG {deg}°")
 
         # Units list
         self.units_listbox.delete(0, tk.END)
@@ -1261,17 +1336,20 @@ class MissionEditorApp(tk.Tk):
             m_str = a.get("model", "plane").upper()
             spw = a.get("specialWeapon")
             spw_str = f"/{spw.upper()}" if spw and spw != "none" else ""
-            self.units_listbox.insert(tk.END, f"[AIR/{m_str}{spw_str}] {a.get('name', 'Plane')} ({int(a.get('x',0))}, {int(a.get('y',0))}){dorm}")
+            deg = round(math.degrees(a.get("heading", 0.0))) % 360
+            self.units_listbox.insert(tk.END, f"[AIR/{m_str}{spw_str}] {a.get('name', 'Plane')} ({int(a.get('x',0))}, {int(a.get('y',0))}) HDG {deg}°{dorm}")
         for g in u.get("groundUnits", []):
             dorm = " [DORMANT]" if (g.get("active") is False or g.get("spawned") is False) else ""
             stat = " [STAT]" if (g.get("orders", {}).get("type") == "STATIONARY" or g.get("speed", 0) == 0) else ""
             g_str = (g.get("groundType") or g.get("subType") or "gnd").upper()
-            self.units_listbox.insert(tk.END, f"[GND/{g_str}{stat}] {g.get('name', 'Unit')} ({int(g.get('x',0))}, {int(g.get('y',0))}){dorm}")
+            deg = round(math.degrees(g.get("heading", 0.0))) % 360
+            self.units_listbox.insert(tk.END, f"[GND/{g_str}{stat}] {g.get('name', 'Unit')} ({int(g.get('x',0))}, {int(g.get('y',0))}) HDG {deg}°{dorm}")
         for n in u.get("navalUnits", []):
             dorm = " [DORMANT]" if (n.get("active") is False or n.get("spawned") is False) else ""
             stat = " [STAT]" if (n.get("orders", {}).get("type") == "STATIONARY" or n.get("speed", 1) == 0) else ""
             s_str = (n.get("subType") or n.get("shipType") or "ship").upper()
-            self.units_listbox.insert(tk.END, f"[NAV/{s_str}{stat}] {n.get('name', 'Ship')} ({int(n.get('x',0))}, {int(n.get('y',0))}){dorm}")
+            deg = round(math.degrees(n.get("heading", 0.0))) % 360
+            self.units_listbox.insert(tk.END, f"[NAV/{s_str}{stat}] {n.get('name', 'Ship')} ({int(n.get('x',0))}, {int(n.get('y',0))}) HDG {deg}°{dorm}")
 
         # Objectives & Triggers
         d = self.mission.get("dynamics", {})
@@ -1345,12 +1423,12 @@ class MissionEditorApp(tk.Tk):
                         self.units_listbox.selection_set(list_idx)
                         self.units_listbox.activate(list_idx)
                         self.units_listbox.see(list_idx)
-            elif layer == "dynamics" and kind == "area":
-                if s_idx < len(areas):
-                    self.areas_listbox.selection_clear(0, tk.END)
-                    self.areas_listbox.selection_set(s_idx)
-                    self.areas_listbox.activate(s_idx)
-                    self.areas_listbox.see(s_idx)
+        # Restore Area selection
+        if self.selected_area_idx is not None and self.selected_area_idx < len(areas):
+            self.areas_listbox.selection_clear(0, tk.END)
+            self.areas_listbox.selection_set(self.selected_area_idx)
+            self.areas_listbox.activate(self.selected_area_idx)
+            self.areas_listbox.see(self.selected_area_idx)
 
         # Restore trigger selection
         if self.selected_trigger_idx is not None and self.selected_trigger_idx < len(d.get("triggers", [])):
@@ -1467,6 +1545,17 @@ class MissionEditorApp(tk.Tk):
                 self.spawns_listbox.selection_set(idx)
                 self.spawns_listbox.activate(idx)
                 self.spawns_listbox.see(idx)
+                sp = spawns[idx]
+                if hasattr(self, 'ent_sp_heading'):
+                    hd = sp.get("heading", -0.785)
+                    deg = round(math.degrees(hd)) % 360
+                    self.ent_sp_heading.delete(0, tk.END)
+                    self.ent_sp_heading.insert(0, str(deg))
+                if hasattr(self, 'ent_sp_speed'):
+                    self.ent_sp_speed.delete(0, tk.END)
+                    self.ent_sp_speed.insert(0, str(sp.get("speed", 335)))
+                if hasattr(self, 'var_sp_primary'):
+                    self.var_sp_primary.set(bool(sp.get("isPrimary", False)))
         elif kind in ("air", "ground", "naval"):
             self.spawns_listbox.selection_clear(0, tk.END)
             air_len = len(u.get("airUnits", []))
@@ -1499,6 +1588,12 @@ class MissionEditorApp(tk.Tk):
                 self.cb_u_order.set(orders.get("type", "PATROL_AREA"))
                 is_active = unit.get("active", True) if unit.get("spawned") is None else unit.get("spawned", True)
                 self.var_u_active.set(bool(is_active))
+
+                if hasattr(self, 'ent_u_heading'):
+                    hd = unit.get("heading", 0.0)
+                    deg = round(math.degrees(hd)) % 360
+                    self.ent_u_heading.delete(0, tk.END)
+                    self.ent_u_heading.insert(0, str(deg))
 
                 # Contextually update Unit Type / Model and Weapon selectors
                 if hasattr(self, 'cb_u_model') and hasattr(self, 'cb_u_weapon'):
@@ -1698,120 +1793,299 @@ class MissionEditorApp(tk.Tk):
                     elif unit.get("speed", 0) == 0 and g_type in ("apc", "tank"):
                         unit["speed"] = 32 if g_type == "apc" else 22
 
+            # Save Unit Heading
+            if hasattr(self, 'ent_u_heading'):
+                try:
+                    deg = float(self.ent_u_heading.get().strip())
+                    rad = math.radians(deg)
+                    rad = (rad + math.pi) % (2 * math.pi) - math.pi
+                    unit["heading"] = round(rad, 4)
+                except ValueError:
+                    pass
+
             self.populate_form_from_mission()
             self.select_unit(u_type, idx)
 
-    def on_select_trigger_item(self, event):
-        sel = self.trigs_listbox.curselection()
-        idx = sel[0] if sel else self.selected_trigger_idx
-        if idx is None: return
+    def set_spawn_heading_preset(self, deg):
+        if hasattr(self, "ent_sp_heading"):
+            self.ent_sp_heading.delete(0, tk.END)
+            self.ent_sp_heading.insert(0, str(deg))
+            self.update_spawn_from_form()
+
+    def set_unit_heading_preset(self, deg):
+        if hasattr(self, "ent_u_heading"):
+            self.ent_u_heading.delete(0, tk.END)
+            self.ent_u_heading.insert(0, str(deg))
+            self.update_unit_from_form()
+
+    def update_spawn_from_form(self):
+        if not self.selected_item or self.selected_item[0] != "units" or self.selected_item[1] != "spawn":
+            return
+        idx = self.selected_item[2]
+        spawns = self.mission.get("units", {}).get("playerSpawns", [])
+        if idx < len(spawns):
+            sp = spawns[idx]
+            if hasattr(self, "ent_sp_heading"):
+                try:
+                    deg = float(self.ent_sp_heading.get().strip())
+                    rad = math.radians(deg)
+                    rad = (rad + math.pi) % (2 * math.pi) - math.pi
+                    sp["heading"] = round(rad, 4)
+                except ValueError:
+                    pass
+            if hasattr(self, "ent_sp_speed"):
+                try:
+                    sp["speed"] = float(self.ent_sp_speed.get().strip())
+                except ValueError:
+                    pass
+            if hasattr(self, "var_sp_primary"):
+                is_prim = bool(self.var_sp_primary.get())
+                if is_prim:
+                    for s in spawns:
+                        s["isPrimary"] = False
+                sp["isPrimary"] = is_prim
+            self.populate_form_from_mission()
+            self.select_unit("spawn", idx)
+
+    def refresh_trig_target_options(self):
+        unit_options = []
+        units = self.mission.get("units", {})
+        for cat in ["airUnits", "navalUnits", "groundUnits"]:
+            for u in units.get(cat, []):
+                uid = u.get("id")
+                if uid:
+                    uname = u.get("name", "")
+                    unit_options.append(f"{uid} ({uname})" if uname else str(uid))
+        self.cb_trig_target["values"] = unit_options
+
+    def on_trig_event_changed(self, event=None):
+        ev = self.cb_trig_event.get()
+        if ev == "TIMER":
+            self.lbl_event_hint.config(text="TIMER: Fires when elapsed time reaches Timer Delay.", fg="#00ffcc")
+            self.lbl_trig_time.config(fg="#00ffcc", font=("Consolas", 9, "bold"))
+            self.lbl_trig_target.config(fg="#608090", font=("Consolas", 9))
+            self.lbl_trig_area.config(fg="#608090", font=("Consolas", 9))
+            self.lbl_trig_range.config(fg="#608090", font=("Consolas", 9))
+        elif ev == "TARGET_DESTROYED":
+            self.lbl_event_hint.config(text="TARGET DESTROYED: Fires when Target Unit is killed/shot down.", fg="#ffcc00")
+            self.lbl_trig_time.config(fg="#608090", font=("Consolas", 9))
+            self.lbl_trig_target.config(fg="#ffcc00", font=("Consolas", 9, "bold"))
+            self.lbl_trig_area.config(fg="#608090", font=("Consolas", 9))
+            self.lbl_trig_range.config(fg="#608090", font=("Consolas", 9))
+        elif ev == "PLAYER_ENTER_AREA":
+            self.lbl_event_hint.config(text="ENTER AREA: Fires when player aircraft enters Target Area.", fg="#00e5ff")
+            self.lbl_trig_time.config(fg="#608090", font=("Consolas", 9))
+            self.lbl_trig_target.config(fg="#608090", font=("Consolas", 9))
+            self.lbl_trig_area.config(fg="#00e5ff", font=("Consolas", 9, "bold"))
+            self.lbl_trig_range.config(fg="#608090", font=("Consolas", 9))
+        elif ev == "UNIT_ENTER_AREA":
+            self.lbl_event_hint.config(text="UNIT ENTER AREA: Fires when specified Unit enters Target Area.", fg="#00e5ff")
+            self.lbl_trig_time.config(fg="#608090", font=("Consolas", 9))
+            self.lbl_trig_target.config(fg="#00e5ff", font=("Consolas", 9, "bold"))
+            self.lbl_trig_area.config(fg="#00e5ff", font=("Consolas", 9, "bold"))
+            self.lbl_trig_range.config(fg="#608090", font=("Consolas", 9))
+        elif ev == "PLAYER_PROXIMITY":
+            self.lbl_event_hint.config(text="PROXIMITY: Fires when player approaches within Range of Target/Area.", fg="#ffaa00")
+            self.lbl_trig_time.config(fg="#608090", font=("Consolas", 9))
+            self.lbl_trig_target.config(fg="#ffaa00", font=("Consolas", 9, "bold"))
+            self.lbl_trig_area.config(fg="#ffaa00", font=("Consolas", 9, "bold"))
+            self.lbl_trig_range.config(fg="#ffaa00", font=("Consolas", 9, "bold"))
+        elif ev == "ON_START":
+            self.lbl_event_hint.config(text="ON START: Fires immediately once mission begins.", fg="#88c0a0")
+            self.lbl_trig_time.config(fg="#608090", font=("Consolas", 9))
+            self.lbl_trig_target.config(fg="#608090", font=("Consolas", 9))
+            self.lbl_trig_area.config(fg="#608090", font=("Consolas", 9))
+            self.lbl_trig_range.config(fg="#608090", font=("Consolas", 9))
+
+    def select_trigger(self, idx):
+        trigs = self.mission.get("dynamics", {}).get("triggers", [])
+        if idx is None or idx < 0 or idx >= len(trigs): return
         self.selected_trigger_idx = idx
-        trigs = self.mission["dynamics"].get("triggers", [])
-        if idx < len(trigs):
-            trig = trigs[idx]
-            self.ent_trig_name.delete(0, tk.END)
-            self.ent_trig_name.insert(0, trig.get("name", ""))
-            self.cb_trig_event.set(trig.get("event", "ON_START"))
+        self.selected_item = ("dynamics", "trigger", idx)
 
-            acts = trig.get("actions", [])
-            dia_act = next((a for a in acts if a.get("type") == "DIALOGUE"), None)
-            act = dia_act if dia_act else (acts[0] if len(acts) > 0 else {})
-            act_type = act.get("type", "RADIO_MESSAGE")
-            self.cb_act_type.set(act_type)
+        if hasattr(self, "trigs_listbox"):
+            if not self.trigs_listbox.curselection() or self.trigs_listbox.curselection()[0] != idx:
+                self.trigs_listbox.selection_clear(0, tk.END)
+                self.trigs_listbox.selection_set(idx)
+                self.trigs_listbox.activate(idx)
+                self.trigs_listbox.see(idx)
 
-            # Populate dialogue fields from dialogue action if present
-            d_source = dia_act or act
-            self.ent_dia_speaker.delete(0, tk.END)
-            self.ent_dia_speaker.insert(0, str(d_source.get("speaker", "PIXY")))
-            self.ent_dia_craft.delete(0, tk.END)
-            self.ent_dia_craft.insert(0, str(d_source.get("aircraft", "F-15C")))
-            self.ent_dia_sq.delete(0, tk.END)
-            self.ent_dia_sq.insert(0, str(d_source.get("squadron", "1ST BUDDY AIRFORCE")))
-            self.ent_dia_dur.delete(0, tk.END)
-            self.ent_dia_dur.insert(0, str(d_source.get("duration", 5.5)))
+        trig = trigs[idx]
+        self.ent_trig_name.delete(0, tk.END)
+        self.ent_trig_name.insert(0, trig.get("name", ""))
+        self.lbl_trig_id.config(text=f"ID: {trig.get('id', 'trig')}")
 
-            port_val = d_source.get("portrait", "")
-            self.ent_dia_portrait.delete(0, tk.END)
-            self.ent_dia_portrait.insert(0, str(port_val))
-            self.update_portrait_preview()
+        trig_ev = trig.get("event", "ON_START")
+        self.cb_trig_event.set(trig_ev)
 
-            self.txt_dia_body.delete("1.0", tk.END)
-            self.txt_dia_body.insert("1.0", str(d_source.get("text", "")))
+        # 1. Condition Parameters: Timer Delay
+        trig_time = trig.get("time") if trig.get("time") is not None else trig.get("param", {}).get("time", "")
+        self.ent_trig_time.delete(0, tk.END)
+        self.ent_trig_time.insert(0, str(trig_time if trig_time != "" else "10.0"))
 
-            # Area association
-            trig_area = trig.get("areaId") or act.get("areaId") or ""
-            matched = False
-            for val in self.cb_trig_area["values"]:
-                if trig_area and (val == trig_area or val.startswith(trig_area + " ") or val.startswith(trig_area + "-")):
-                    self.cb_trig_area.set(val)
-                    matched = True
-                    break
-            if not matched:
-                self.cb_trig_area.set(trig_area)
+        # 2. Condition Parameters: Target Unit ID
+        self.refresh_trig_target_options()
+        tgt_val = trig.get("targetId") or trig.get("unitId") or trig.get("param", {}).get("targetId", "")
+        matched_tgt = False
+        for opt in self.cb_trig_target["values"]:
+            if tgt_val and (opt == tgt_val or opt.startswith(tgt_val + " ") or opt.startswith(tgt_val + "(")):
+                self.cb_trig_target.set(opt)
+                matched_tgt = True
+                break
+        if not matched_tgt:
+            self.cb_trig_target.set(str(tgt_val or ""))
 
-            tgt_val = trig.get("targetId") or act.get("unitId") or act.get("targetId") or ""
-            self.ent_act_target.delete(0, tk.END)
-            self.ent_act_target.insert(0, str(tgt_val))
+        # 3. Condition Parameters: Area
+        trig_area = trig.get("areaId") or trig.get("param", {}).get("areaId", "")
+        matched_area = False
+        for val in self.cb_trig_area["values"]:
+            if trig_area and (val == trig_area or val.startswith(trig_area + " ") or val.startswith(trig_area + "-")):
+                self.cb_trig_area.set(val)
+                matched_area = True
+                break
+        if not matched_area:
+            self.cb_trig_area.set(trig_area or "")
 
-            self.ent_act_x.delete(0, tk.END)
-            self.ent_act_x.insert(0, str(int(act.get("x", 0))))
-            self.ent_act_y.delete(0, tk.END)
-            self.ent_act_y.insert(0, str(int(act.get("y", 0))))
+        # 4. Condition Parameters: Proximity Range
+        trig_range = trig.get("range") or trig.get("param", {}).get("range", 3000)
+        self.ent_trig_range.delete(0, tk.END)
+        self.ent_trig_range.insert(0, str(trig_range))
 
-            # Populate fade transition fields
+        self.on_trig_event_changed()
+
+        # Action Parameters
+        acts = trig.get("actions", [])
+        dia_act = next((a for a in acts if a.get("type") == "DIALOGUE"), None)
+        act = dia_act if dia_act else (acts[0] if len(acts) > 0 else {})
+        act_type = act.get("type", "DIALOGUE")
+        self.cb_act_type.set(act_type)
+
+        d_source = dia_act or act
+        self.ent_dia_speaker.delete(0, tk.END)
+        self.ent_dia_speaker.insert(0, str(d_source.get("speaker", "ASTRA")))
+        self.ent_dia_craft.delete(0, tk.END)
+        self.ent_dia_craft.insert(0, str(d_source.get("aircraft", "E-767")))
+        self.ent_dia_sq.delete(0, tk.END)
+        self.ent_dia_sq.insert(0, str(d_source.get("squadron", "OADF")))
+        self.ent_dia_dur.delete(0, tk.END)
+        self.ent_dia_dur.insert(0, str(d_source.get("duration", 5.5)))
+
+        port_val = d_source.get("portrait", "")
+        self.ent_dia_portrait.delete(0, tk.END)
+        self.ent_dia_portrait.insert(0, str(port_val))
+        self.update_portrait_preview()
+
+        self.txt_dia_body.delete("1.0", tk.END)
+        self.txt_dia_body.insert("1.0", str(d_source.get("text", "")))
+
+        self.ent_act_x.delete(0, tk.END)
+        self.ent_act_x.insert(0, str(int(act.get("x", 0))))
+        self.ent_act_y.delete(0, tk.END)
+        self.ent_act_y.insert(0, str(int(act.get("y", 0))))
+
+        self.ent_fade_title.delete(0, tk.END)
+        self.ent_fade_title.insert(0, str(act.get("title", "")))
+        self.ent_fade_subtitle.delete(0, tk.END)
+        self.ent_fade_subtitle.insert(0, str(act.get("subtitle", "")))
+        self.ent_fade_spawn.delete(0, tk.END)
+        self.ent_fade_spawn.insert(0, ",".join(act.get("spawnUnits", [])))
+        self.ent_fade_despawn.delete(0, tk.END)
+        self.ent_fade_despawn.insert(0, ",".join(act.get("despawnUnits", [])))
+
+        if act_type == "SCRIPTED_END":
             self.ent_fade_title.delete(0, tk.END)
-            self.ent_fade_title.insert(0, str(act.get("title", "")))
-            self.ent_fade_subtitle.delete(0, tk.END)
-            self.ent_fade_subtitle.insert(0, str(act.get("subtitle", "")))
-            self.ent_fade_spawn.delete(0, tk.END)
-            self.ent_fade_spawn.insert(0, ",".join(act.get("spawnUnits", [])))
-            self.ent_fade_despawn.delete(0, tk.END)
-            self.ent_fade_despawn.insert(0, ",".join(act.get("despawnUnits", [])))
+            self.ent_fade_title.insert(0, str(act.get("title", "OPERATION CONCLUDED")))
+            self.txt_dia_body.delete("1.0", tk.END)
+            self.txt_dia_body.insert("1.0", str(act.get("text", "")))
+            self.ent_dia_dur.delete(0, tk.END)
+            self.ent_dia_dur.insert(0, str(act.get("fadeTime", 2.0)))
 
-            if act_type == "SCRIPTED_END":
-                self.ent_fade_title.delete(0, tk.END)
-                self.ent_fade_title.insert(0, str(act.get("title", "OPERATION CONCLUDED")))
-                self.txt_dia_body.delete("1.0", tk.END)
-                self.txt_dia_body.insert("1.0", str(act.get("text", "")))
-                self.ent_dia_dur.delete(0, tk.END)
-                self.ent_dia_dur.insert(0, str(act.get("fadeTime", 2.0)))
+    def on_select_trigger_item(self, event=None):
+        sel = self.trigs_listbox.curselection()
+        if not sel: return
+        new_idx = sel[0]
+        if self.selected_trigger_idx is not None and self.selected_trigger_idx != new_idx:
+            trigs = self.mission.get("dynamics", {}).get("triggers", [])
+            if self.selected_trigger_idx < len(trigs):
+                self.update_trigger_from_form(auto_select=False)
+        self.select_trigger(new_idx)
 
-    def update_trigger_from_form(self):
-        if self.selected_trigger_idx is None: return
-        trigs = self.mission["dynamics"].get("triggers", [])
+    def update_trigger_from_form(self, auto_select=True):
+        if self.selected_trigger_idx is None:
+            trigs = self.mission.get("dynamics", {}).get("triggers", [])
+            if trigs:
+                self.selected_trigger_idx = 0
+            else:
+                return
+        trigs = self.mission["dynamics"].setdefault("triggers", [])
         if self.selected_trigger_idx < len(trigs):
             trig = trigs[self.selected_trigger_idx]
-            trig["name"] = self.ent_trig_name.get().strip()
-            trig["event"] = self.cb_trig_event.get()
+            trig["name"] = self.ent_trig_name.get().strip() or f"Trigger #{self.selected_trigger_idx+1}"
+            ev = self.cb_trig_event.get()
+            trig["event"] = ev
 
-            # Set trigger-level targetId for proximity / destroyed events
-            tgt_val = self.ent_act_target.get().strip()
-            if trig["event"] in ["PLAYER_PROXIMITY", "TARGET_DESTROYED"] and tgt_val:
-                trig["targetId"] = tgt_val
+            # 1. Condition Parameters: TIMER
+            if ev == "TIMER":
+                time_str = self.ent_trig_time.get().strip()
+                try:
+                    trig["time"] = float(time_str) if time_str else 10.0
+                except ValueError:
+                    trig["time"] = 10.0
 
-            if trig["event"] in ["PLAYER_ENTER_AREA", "UNIT_ENTER_AREA"]:
+            # 2. Condition Parameters: TARGET_DESTROYED
+            raw_tgt = self.cb_trig_target.get().strip()
+            tgt_val = raw_tgt.split(" ")[0].strip() if raw_tgt else ""
+
+            if ev == "TARGET_DESTROYED":
+                if tgt_val:
+                    trig["targetId"] = tgt_val
+                elif "targetId" in trig:
+                    del trig["targetId"]
+
+            # 3. Condition Parameters: PLAYER_ENTER_AREA / UNIT_ENTER_AREA
+            if ev in ["PLAYER_ENTER_AREA", "UNIT_ENTER_AREA"]:
                 chosen_area = self.cb_trig_area.get().split(" ")[0].strip()
                 if chosen_area:
                     trig["areaId"] = chosen_area
-                if trig["event"] == "UNIT_ENTER_AREA" and tgt_val:
+                if ev == "UNIT_ENTER_AREA" and tgt_val:
                     trig["unitId"] = tgt_val
 
+            # 4. Condition Parameters: PLAYER_PROXIMITY
+            if ev == "PLAYER_PROXIMITY":
+                if tgt_val:
+                    trig["targetId"] = tgt_val
+                chosen_area = self.cb_trig_area.get().split(" ")[0].strip()
+                if chosen_area:
+                    trig["areaId"] = chosen_area
+                range_str = self.ent_trig_range.get().strip()
+                try:
+                    trig["range"] = float(range_str) if range_str else 3000.0
+                except ValueError:
+                    trig["range"] = 3000.0
+
             act_type = self.cb_act_type.get()
-            act = {"type": act_type}
+            acts = trig.get("actions", [])
+            act = copy.deepcopy(acts[0]) if acts else {}
+            act["type"] = act_type
 
             if act_type == "DIALOGUE":
-                act["speaker"] = self.ent_dia_speaker.get().strip()
-                act["aircraft"] = self.ent_dia_craft.get().strip()
-                act["squadron"] = self.ent_dia_sq.get().strip()
-                act["duration"] = float(self.ent_dia_dur.get() or 5.5)
+                act["speaker"] = self.ent_dia_speaker.get().strip() or "ASTRA"
+                act["aircraft"] = self.ent_dia_craft.get().strip() or "E-767"
+                act["squadron"] = self.ent_dia_sq.get().strip() or "OADF"
+                try:
+                    act["duration"] = float(self.ent_dia_dur.get().strip() or "5.5")
+                except ValueError:
+                    act["duration"] = 5.5
                 act["text"] = self.txt_dia_body.get("1.0", tk.END).strip()
                 port = self.ent_dia_portrait.get().strip()
                 if port:
                     act["portrait"] = port
+                elif "portrait" in act:
+                    del act["portrait"]
             elif act_type in ["FLY_TO_AREA", "DEFEND_AREA", "STAY_IN_AREA"]:
                 chosen_area = self.cb_trig_area.get().split(" ")[0].strip()
                 act["areaId"] = chosen_area
-                act["unitId"] = self.ent_act_target.get().strip()
+                act["unitId"] = tgt_val
                 if self.ent_act_x.get().strip():
                     try:
                         act["speed"] = float(self.ent_act_x.get().strip())
@@ -1820,8 +2094,7 @@ class MissionEditorApp(tk.Tk):
             elif act_type in ["TELEPORT_TO_AREA", "TELEPORT_PLAYER", "TELEPORT_UNIT"]:
                 chosen_area = self.cb_trig_area.get().split(" ")[0].strip()
                 act["areaId"] = chosen_area
-                u_id = self.ent_act_target.get().strip()
-                act["unitId"] = u_id if u_id else ("player" if act_type != "TELEPORT_UNIT" else "")
+                act["unitId"] = tgt_val if tgt_val else ("player" if act_type != "TELEPORT_UNIT" else "")
             elif act_type == "FADE_TRANSITION":
                 act["title"] = self.ent_fade_title.get().strip()
                 act["subtitle"] = self.ent_fade_subtitle.get().strip()
@@ -1833,17 +2106,29 @@ class MissionEditorApp(tk.Tk):
                 act["holdTime"] = 1.3
                 act["clearMissiles"] = True
             elif act_type == "DETONATE_NUKE":
-                act["x"] = float(self.ent_act_x.get() or 0)
-                act["y"] = float(self.ent_act_y.get() or 0)
+                try:
+                    act["x"] = float(self.ent_act_x.get() or 0)
+                    act["y"] = float(self.ent_act_y.get() or 0)
+                except ValueError:
+                    act["x"] = 0.0
+                    act["y"] = 0.0
                 act["duration"] = 2.5
             elif act_type in ["EXPLODE_UNIT", "SPAWN_UNIT", "DESPAWN_UNIT"]:
-                act["unitId"] = self.ent_act_target.get().strip()
+                act["unitId"] = tgt_val
             elif act_type == "MOVE_UNIT":
-                act["unitId"] = self.ent_act_target.get().strip()
-                act["targetX"] = float(self.ent_act_x.get() or 0)
-                act["targetY"] = float(self.ent_act_y.get() or 0)
+                act["unitId"] = tgt_val
+                try:
+                    act["targetX"] = float(self.ent_act_x.get() or 0)
+                    act["targetY"] = float(self.ent_act_y.get() or 0)
+                except ValueError:
+                    act["targetX"] = 0.0
+                    act["targetY"] = 0.0
             elif act_type == "RADIO_MESSAGE":
                 act["text"] = self.txt_dia_body.get("1.0", tk.END).strip()
+                try:
+                    act["duration"] = float(self.ent_dia_dur.get().strip() or "4.0")
+                except ValueError:
+                    act["duration"] = 4.0
             elif act_type == "SCRIPTED_END":
                 act["title"] = self.ent_fade_title.get().strip() or "OPERATION CONCLUDED"
                 act["text"] = self.txt_dia_body.get("1.0", tk.END).strip() or "HQ // Tactical sortie objectives completed. RTB approved."
@@ -1853,7 +2138,11 @@ class MissionEditorApp(tk.Tk):
                     act["fadeTime"] = 2.0
 
             trig["actions"] = [act]
+            cur_idx = self.selected_trigger_idx
             self.populate_form_from_mission()
+            if auto_select:
+                self.select_trigger(cur_idx)
+            self.status_bar.config(text=f"Updated Trigger '{trig.get('name', 'Trigger')}' ({ev})")
 
     # ----------------------------------------------------
     # ADD / DELETE HANDLERS
@@ -1986,6 +2275,7 @@ class MissionEditorApp(tk.Tk):
             "allowedTags": []
         })
         self.populate_form_from_mission()
+        self.select_unit("spawn", len(spawns) - 1)
         self.update_spawns_status()
 
     def add_fade_trigger(self):
@@ -2008,7 +2298,9 @@ class MissionEditorApp(tk.Tk):
                 }
             ]
         })
+        new_idx = len(trigs) - 1
         self.populate_form_from_mission()
+        self.select_trigger(new_idx)
 
     def delete_selected_spawn(self):
         if self.selected_item and self.selected_item[1] == "spawn":
@@ -2172,7 +2464,9 @@ class MissionEditorApp(tk.Tk):
                 }
             ]
         })
+        new_idx = len(trigs) - 1
         self.populate_form_from_mission()
+        self.select_trigger(new_idx)
 
     # ----------------------------------------------------
     # OPERATIONAL AREAS & PORTRAIT HANDLERS
@@ -2253,7 +2547,7 @@ class MissionEditorApp(tk.Tk):
 
     def select_area(self, idx):
         areas = self.mission["dynamics"].setdefault("areas", [])
-        if idx >= len(areas): return
+        if idx is None or idx < 0 or idx >= len(areas): return
         area = areas[idx]
         self.selected_item = ("dynamics", "area", idx)
         self.selected_area_idx = idx
@@ -2264,10 +2558,11 @@ class MissionEditorApp(tk.Tk):
         self.units_listbox.selection_clear(0, tk.END)
 
         if hasattr(self, "areas_listbox"):
-            self.areas_listbox.selection_clear(0, tk.END)
-            self.areas_listbox.selection_set(idx)
-            self.areas_listbox.activate(idx)
-            self.areas_listbox.see(idx)
+            if not self.areas_listbox.curselection() or self.areas_listbox.curselection()[0] != idx:
+                self.areas_listbox.selection_clear(0, tk.END)
+                self.areas_listbox.selection_set(idx)
+                self.areas_listbox.activate(idx)
+                self.areas_listbox.see(idx)
 
         self.ent_area_id.delete(0, tk.END)
         self.ent_area_id.insert(0, str(area.get("id", f"area_{idx+1}")))
@@ -2285,23 +2580,57 @@ class MissionEditorApp(tk.Tk):
     def on_select_area_item(self, event=None):
         sel = self.areas_listbox.curselection()
         if not sel: return
-        self.select_area(sel[0])
+        new_idx = sel[0]
+        if self.selected_area_idx is not None and self.selected_area_idx != new_idx:
+            areas = self.mission.get("dynamics", {}).get("areas", [])
+            if self.selected_area_idx < len(areas):
+                self.update_area_from_form(auto_select=False)
+        self.select_area(new_idx)
 
-    def update_area_from_form(self):
-        if self.selected_area_idx is None: return
+    def update_area_from_form(self, auto_select=True):
+        if self.selected_area_idx is None:
+            areas = self.mission.get("dynamics", {}).get("areas", [])
+            if areas:
+                self.selected_area_idx = 0
+            else:
+                return
         areas = self.mission["dynamics"].setdefault("areas", [])
         if self.selected_area_idx < len(areas):
             area = areas[self.selected_area_idx]
-            area["id"] = self.ent_area_id.get().strip() or area.get("id", "area_1")
+            old_id = area.get("id")
+            new_id = self.ent_area_id.get().strip() or area.get("id", f"area_{self.selected_area_idx+1}")
+            area["id"] = new_id
             area["name"] = self.ent_area_name.get().strip() or "Unnamed Area"
             try:
                 area["x"] = round(float(self.ent_area_x.get().strip()), 1)
+            except (ValueError, TypeError):
+                pass
+            try:
                 area["y"] = round(float(self.ent_area_y.get().strip()), 1)
+            except (ValueError, TypeError):
+                pass
+            try:
                 area["radius"] = max(100.0, round(float(self.ent_area_radius.get().strip()), 1))
-            except ValueError:
+            except (ValueError, TypeError):
                 pass
             area["color"] = self.cb_area_color.get().strip() or "#00e5ff"
+
+            # Sync with map.areas
+            self.mission.setdefault("map", {})["areas"] = areas
+
+            # If ID changed, update triggers referencing this area
+            if old_id and new_id and old_id != new_id:
+                for tr in self.mission.get("dynamics", {}).get("triggers", []):
+                    if tr.get("areaId") == old_id:
+                        tr["areaId"] = new_id
+                    for a_act in tr.get("actions", []):
+                        if a_act.get("areaId") == old_id:
+                            a_act["areaId"] = new_id
+
+            cur_idx = self.selected_area_idx
             self.populate_form_from_mission()
+            if auto_select:
+                self.select_area(cur_idx)
             self.redraw_canvas()
             self.status_bar.config(text=f"Updated Area '{area['name']}' [R={int(area['radius'])}m]")
 
@@ -2330,13 +2659,20 @@ class MissionEditorApp(tk.Tk):
             self.select_area(len(areas) - 1)
 
     def delete_area(self):
-        if self.selected_area_idx is None: return
+        sel = self.areas_listbox.curselection()
+        idx = sel[0] if sel else self.selected_area_idx
+        if idx is None: return
         areas = self.mission["dynamics"].setdefault("areas", [])
-        if self.selected_area_idx < len(areas):
-            del areas[self.selected_area_idx]
-            self.selected_area_idx = None
-            self.selected_item = None
+        if idx < len(areas):
+            del areas[idx]
+            new_idx = min(idx, len(areas) - 1) if areas else None
+            self.selected_area_idx = new_idx
+            self.mission.setdefault("map", {})["areas"] = areas
             self.populate_form_from_mission()
+            if new_idx is not None:
+                self.select_area(new_idx)
+            else:
+                self.selected_item = None
             self.redraw_canvas()
 
     def add_area_trigger(self):
@@ -2355,7 +2691,9 @@ class MissionEditorApp(tk.Tk):
                 }
             ]
         })
+        new_idx = len(trigs) - 1
         self.populate_form_from_mission()
+        self.select_trigger(new_idx)
 
     def add_nuke_trigger(self, x=0, y=0):
         trigs = self.mission["dynamics"].setdefault("triggers", [])
@@ -2373,7 +2711,9 @@ class MissionEditorApp(tk.Tk):
                 }
             ]
         })
+        new_idx = len(trigs) - 1
         self.populate_form_from_mission()
+        self.select_trigger(new_idx)
 
     def add_explode_trigger(self):
         trigs = self.mission["dynamics"].setdefault("triggers", [])
@@ -2389,7 +2729,9 @@ class MissionEditorApp(tk.Tk):
                 }
             ]
         })
+        new_idx = len(trigs) - 1
         self.populate_form_from_mission()
+        self.select_trigger(new_idx)
 
     def delete_selected_unit(self):
         if not self.selected_item or self.selected_item[0] != "units": return
@@ -2424,12 +2766,18 @@ class MissionEditorApp(tk.Tk):
 
     def delete_trigger(self):
         sel = self.trigs_listbox.curselection()
-        if not sel: return
+        idx = sel[0] if sel else self.selected_trigger_idx
+        if idx is None: return
         trigs = self.mission["dynamics"].get("triggers", [])
-        if sel[0] < len(trigs):
-            del trigs[sel[0]]
-            self.selected_trigger_idx = None
+        if idx < len(trigs):
+            del trigs[idx]
+            new_idx = min(idx, len(trigs) - 1) if trigs else None
+            self.selected_trigger_idx = new_idx
             self.populate_form_from_mission()
+            if new_idx is not None:
+                self.select_trigger(new_idx)
+            else:
+                self.selected_item = None
 
     # ----------------------------------------------------
     # UNIT DUPLICATION & CLIPBOARD
@@ -2797,6 +3145,8 @@ class MissionEditorApp(tk.Tk):
             hx = sx + math.cos(hd) * 20
             hy = sy + math.sin(hd) * 20
             self.canvas.create_line(sx, sy, hx, hy, fill=col, width=2, arrow=tk.LAST)
+            if is_sel:
+                self.canvas.create_oval(hx - 4, hy - 4, hx + 4, hy + 4, fill="#ffffff", outline="#00e5ff", width=1.5)
 
             slot_label = f"P{idx+1} [LEAD]" if (sp.get("isPrimary") or idx == 0) else f"P{idx+1}"
             if is_extra:
@@ -2822,6 +3172,13 @@ class MissionEditorApp(tk.Tk):
             m_str = a.get("model", "plane").upper()
             label = f"{m_str}: {a.get('name', 'Fighter')[:10]}" + (" (DORMANT)" if not is_active else "")
             self.canvas.create_text(sx, sy + 10, text=label, fill=col, font=("Consolas", 7))
+
+            # Directional heading indicator & interactive rotation handle when selected
+            if is_sel:
+                hx = sx + cosH * 24
+                hy = sy + sinH * 24
+                self.canvas.create_line(sx, sy, hx, hy, fill="#ffff00", width=2, arrow=tk.LAST)
+                self.canvas.create_oval(hx - 4, hy - 4, hx + 4, hy + 4, fill="#ffffff", outline="#ffff00", width=1.5)
 
             # Patrol radius ring if selected
             if is_sel and a.get("orders", {}).get("type") == "PATROL_AREA":
@@ -2851,6 +3208,14 @@ class MissionEditorApp(tk.Tk):
             else:
                 self.canvas.create_rectangle(sx - 5, sy - 5, sx + 5, sy + 5, fill=col, outline="#ffffff" if is_sel else "")
 
+            # Directional heading indicator arrow & handle
+            hd = g.get("heading", 0)
+            hx = sx + math.cos(hd) * 18
+            hy = sy + math.sin(hd) * 18
+            self.canvas.create_line(sx, sy, hx, hy, fill=col, width=1.8, arrow=tk.LAST)
+            if is_sel:
+                self.canvas.create_oval(hx - 4, hy - 4, hx + 4, hy + 4, fill="#ffffff", outline="#ffff00", width=1.5)
+
             s_range = (g.get("range") or 0) * self.zoom
             if s_range > 0:
                 self.canvas.create_oval(sx - s_range, sy - s_range, sx + s_range, sy + s_range, outline=col, width=1, dash=(2, 4))
@@ -2879,9 +3244,13 @@ class MissionEditorApp(tk.Tk):
             else:
                 self.canvas.create_oval(sx - 7, sy - 4, sx + 7, sy + 4, fill=col, outline="#ffffff" if is_sel else "")
 
-            stat_icon = " [STAT]" if is_stat else ""
-            s_str = stype.replace("_", " ").upper()
-            self.canvas.create_text(sx, sy + 9, text=f"[{s_str}]{stat_icon} {n.get('name', 'Ship')[:10]}", fill=col, font=("Consolas", 7, "bold"))
+            # Directional heading indicator arrow & handle
+            hd = n.get("heading", 0)
+            hx = sx + math.cos(hd) * 22
+            hy = sy + math.sin(hd) * 22
+            self.canvas.create_line(sx, sy, hx, hy, fill=col, width=2, arrow=tk.LAST)
+            if is_sel:
+                self.canvas.create_oval(hx - 4, hy - 4, hx + 4, hy + 4, fill="#ffffff", outline="#ffff00", width=1.5)
 
         # 7. Layer 3: Scripted Nukes Visual Indicators
         for tr in self.mission["dynamics"].get("triggers", []):
@@ -3159,6 +3528,31 @@ class MissionEditorApp(tk.Tk):
                             self.redraw_canvas()
                             return
 
+        # Check if clicking on heading rotation handle of currently selected unit/spawn (Layer 2)
+        if layer == "units" and self.selected_item and self.selected_item[0] == "units":
+            kind = self.selected_item[1]
+            idx = self.selected_item[2]
+            u = self.mission.get("units", {})
+            target_ent = None
+            if kind == "spawn":
+                spawns = u.get("playerSpawns", [])
+                if idx < len(spawns): target_ent = spawns[idx]
+            else:
+                key = f"{kind}Units"
+                if key in u and idx < len(u[key]): target_ent = u[key][idx]
+
+            if target_ent:
+                esx, esy = self.world_to_screen(target_ent.get("x", 0), target_ent.get("y", 0))
+                ehd = target_ent.get("heading", 0)
+                handle_len = 24 if kind == "air" else (22 if kind == "naval" else (20 if kind == "spawn" else 18))
+                hhx = esx + math.cos(ehd) * handle_len
+                hhy = esy + math.sin(ehd) * handle_len
+                if math.hypot(event.x - hhx, event.y - hhy) <= 12:
+                    self.dragging_unit_heading = True
+                    self.drag_start = (event.x, event.y)
+                    self.status_bar.config(text=f"Rotating heading for selected {kind}...")
+                    return
+
         self.drag_start = (event.x, event.y)
 
         # STRICT LAYER ISOLATION
@@ -3287,7 +3681,35 @@ class MissionEditorApp(tk.Tk):
         if not self.drag_start: return
         wx, wy = self.screen_to_world(event.x, event.y)
 
-        # 1. Resize selected area radius via perimeter handle
+        # 1. Rotate selected unit or spawn heading via interactive handle
+        if self.dragging_unit_heading and self.selected_item and self.selected_item[0] == "units":
+            kind = self.selected_item[1]
+            idx = self.selected_item[2]
+            u = self.mission.get("units", {})
+            target_ent = None
+            if kind == "spawn":
+                spawns = u.get("playerSpawns", [])
+                if idx < len(spawns): target_ent = spawns[idx]
+            else:
+                key = f"{kind}Units"
+                if key in u and idx < len(u[key]): target_ent = u[key][idx]
+
+            if target_ent:
+                esx, esy = self.world_to_screen(target_ent.get("x", 0), target_ent.get("y", 0))
+                ang = math.atan2(event.y - esy, event.x - esx)
+                target_ent["heading"] = round(ang, 4)
+                deg = round(math.degrees(ang)) % 360
+                if kind == "spawn" and hasattr(self, "ent_sp_heading"):
+                    self.ent_sp_heading.delete(0, tk.END)
+                    self.ent_sp_heading.insert(0, str(deg))
+                elif hasattr(self, "ent_u_heading"):
+                    self.ent_u_heading.delete(0, tk.END)
+                    self.ent_u_heading.insert(0, str(deg))
+                self.redraw_canvas()
+                self.status_bar.config(text=f"Selected {kind.upper()} Heading: {deg}° ({round(ang, 3)} rad)")
+                return
+
+        # 2. Resize selected area radius via perimeter handle
         if self.dragging_area_resize and self.selected_item and self.selected_item[1] == "area":
             idx = self.selected_item[2]
             areas = self.mission.get("dynamics", {}).get("areas", [])
@@ -3361,12 +3783,15 @@ class MissionEditorApp(tk.Tk):
             self.redraw_canvas()
 
     def on_canvas_release(self, event):
+        self.dragging_unit_heading = False
         self.dragging_area_resize = False
         self.drag_start = None
         self.populate_form_from_mission()
         if self.selected_item:
             layer, kind, idx = self.selected_item
-            if layer == "map" and kind == "island":
+            if layer == "units":
+                self.select_unit(kind, idx)
+            elif layer == "map" and kind == "island":
                 terrain = self.mission["map"].get("terrain", [])
                 if idx < len(terrain):
                     isl = terrain[idx]
@@ -3394,6 +3819,14 @@ class MissionEditorApp(tk.Tk):
         self.mission = self.get_empty_mission()
         self.current_mission_id = "new_mission"
         self.populate_form_from_mission()
+        if self.mission.get("dynamics", {}).get("areas"):
+            self.select_area(0)
+        else:
+            self.selected_area_idx = None
+        if self.mission.get("dynamics", {}).get("triggers"):
+            self.select_trigger(0)
+        else:
+            self.selected_trigger_idx = None
         self.fit_map_view()
 
     def load_mission_by_id(self, mission_id):
@@ -3405,6 +3838,14 @@ class MissionEditorApp(tk.Tk):
                 self.normalize_mission_areas()
                 self.current_mission_id = mission_id
                 self.populate_form_from_mission()
+                if self.mission.get("dynamics", {}).get("areas"):
+                    self.select_area(0)
+                else:
+                    self.selected_area_idx = None
+                if self.mission.get("dynamics", {}).get("triggers"):
+                    self.select_trigger(0)
+                else:
+                    self.selected_trigger_idx = None
                 self.fit_map_view()
                 self.status_bar.config(text=f"Loaded mission: {mission_id} ({m_file})")
             except Exception as e:
@@ -3419,6 +3860,14 @@ class MissionEditorApp(tk.Tk):
                 self.normalize_mission_areas()
                 self.current_mission_id = os.path.splitext(os.path.basename(f))[0]
                 self.populate_form_from_mission()
+                if self.mission.get("dynamics", {}).get("areas"):
+                    self.select_area(0)
+                else:
+                    self.selected_area_idx = None
+                if self.mission.get("dynamics", {}).get("triggers"):
+                    self.select_trigger(0)
+                else:
+                    self.selected_trigger_idx = None
                 self.fit_map_view()
             except Exception as e:
                 messagebox.showerror("Error", str(e))

@@ -4,7 +4,7 @@
   "loadout": {
     "mode": "forced",
     "aircraft": "f15c",
-    "specialWeapon": "qaam"
+    "specialWeapon": "ugb"
   },
   "map": {
     "id": "tutorial",
@@ -671,30 +671,31 @@
     "navalUnits": [
       {
         "id": "destroyer_custom_1",
-        "name": "Destroyer DDG #1",
+        "name": "Mothballed Ship",
         "code": "TGT [NAV]",
         "type": "naval",
-        "subType": "destroyer",
+        "subType": "cargo",
         "team": "enemy",
         "active": true,
         "x": 8311.1,
         "y": -6533.0,
         "heading": 0.0,
-        "speed": 18,
-        "hp": 190,
-        "maxHp": 190,
-        "hitRadius": 44,
-        "hasCIWS": true,
+        "speed": 0,
+        "hp": 160,
+        "maxHp": 160,
+        "hitRadius": 46,
+        "hasCIWS": false,
         "ciwsChannels": 1,
         "ciwsRange": 850,
-        "hasSAM": true,
+        "hasSAM": false,
         "samRange": 3400,
         "orders": {
-          "type": "FORMATION_ORBIT"
+          "type": "STATIONARY"
         },
-        "aiType": "rookie",
-        "shipType": "destroyer",
-        "weaponType": "standard_armament"
+        "aiType": "dummy",
+        "shipType": "cargo",
+        "weaponType": "unarmed_transport",
+        "hasFlak": false
       }
     ],
     "groundUnits": [
@@ -841,7 +842,7 @@
             "aircraft": "E-767",
             "squadron": "DONUT MERCENARY LEGION",
             "duration": 5.5,
-            "text": "10",
+            "text": "101",
             "portrait": "./assets/portraits/awacs_astra.png"
           }
         ],
@@ -859,7 +860,7 @@
             "fadeTime": 2.0
           }
         ],
-        "targetId": "Destroyer"
+        "targetId": "Mothballed Ship"
       }
     ]
   },
@@ -871,10 +872,11 @@
     "unlimitedAmmo": false,
     "gunAmmo": 800,
     "mslCount": 120,
-    "spwCount": 24,
+    "spwCount": 0,
     "flareCount": 30,
     "abilityCharges": 1,
     "startSpeed": 335.0,
-    "startAltitude": 1.0
+    "startAltitude": 1.0,
+    "enabled": true
   }
 }

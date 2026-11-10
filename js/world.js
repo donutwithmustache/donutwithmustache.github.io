@@ -199,7 +199,7 @@ export class World {
         // 5. Land decorations (Vegetation, Dunes/Rocks, City Buildings)
         ctx.save();
         ctx.clip();
-        this.drawLandDecorations(ctx, isl);
+        this.drawLandDecorations(ctx, isl, camera, viewWidth, viewHeight);
         ctx.restore();
 
         ctx.restore();
@@ -232,7 +232,7 @@ export class World {
       // 4. Land decorations (Vegetation, Dunes/Rocks, City Buildings)
       ctx.save();
       ctx.clip();
-      this.drawLandDecorations(ctx, isl);
+      this.drawLandDecorations(ctx, isl, camera, viewWidth, viewHeight);
       ctx.restore();
     }
     ctx.restore();
@@ -246,7 +246,7 @@ export class World {
   }
 
   // Deterministic internal terrain decoration rendering (vegetation, desert dunes/rocks, city buildings)
-  drawLandDecorations(ctx, isl) {
+  drawLandDecorations(ctx, isl, camera = null, viewWidth = 0, viewHeight = 0) {
     const landType = isl.landType || (isl.theme || 'island');
     const rad = isl.radius || 350;
     const cx = isl.x;
@@ -359,84 +359,228 @@ export class World {
         ctx.restore();
       }
     } else if (landType === 'city') {
-      // City: Urban road network and multi-story building blocks
-      // 1. Street Grid
-      const gridSpacing = Math.max(90, Math.min(180, Math.floor(rad / 3.5)));
-      const minX = cx - rad;
-      const maxX = cx + rad;
-      const minY = cy - rad;
-      const maxY = cy + rad;
-
-      ctx.lineWidth = 18;
-      ctx.strokeStyle = '#22262e';
-      ctx.beginPath();
-      let gx = minX + (Math.abs(minX) % gridSpacing);
-      while (gx < maxX) {
-        ctx.moveTo(gx, minY);
-        ctx.lineTo(gx, maxY);
-        gx += gridSpacing;
+      // City: Dense urban road networks, structured city blocks, and multi-story building clusters
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      if (isl.points && isl.points.length >= 3) {
+        for (const pt of isl.points) {
+          if (pt.x < minX) minX = pt.x;
+          if (pt.x > maxX) maxX = pt.x;
+          if (pt.y < minY) minY = pt.y;
+          if (pt.y > maxY) maxY = pt.y;
+        }
+      } else {
+        minX = cx - rad;
+        maxX = cx + rad;
+        minY = cy - rad;
+        maxY = cy + rad;
       }
-      let gy = minY + (Math.abs(minY) % gridSpacing);
-      while (gy < maxY) {
-        ctx.moveTo(minX, gy);
-        ctx.lineTo(maxX, gy);
-        gy += gridSpacing;
-      }
-      ctx.stroke();
 
-      // Road dividing stripes
+      // Fast point-in-polygon inclusion test
+      const isPointInPoly = (px, py, pts) => {
+        let inside = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+          const xi = pts[i].x, yi = pts[i].y;
+          const xj = pts[j].x, yj = pts[j].y;
+          const intersect = ((yi > py) !== (yj > py))
+            && (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
+          if (intersect) inside = !inside;
+        }
+        return inside;
+      };
+
+      const isInsideLand = (px, py) => {
+        if (isl.points && isl.points.length >= 3) {
+          return isPointInPoly(px, py, isl.points);
+        }
+        return Math.hypot(px - cx, py - cy) < rad - 20;
+      };
+
+      const blockSize = 140;
+      const roadWidth = 24;
+      const step = blockSize + roadWidth; // 164
+
+      const startGx = Math.floor(minX / step) * step;
+      const startGy = Math.floor(minY / step) * step;
+
+      // 1. Asphalt Road Base
+      ctx.fillStyle = '#1c2027';
+      ctx.fillRect(minX - 50, minY - 50, (maxX - minX) + 100, (maxY - minY) + 100);
+
+      // Road dividers (yellow dashes along corridors)
+      ctx.strokeStyle = 'rgba(255, 215, 60, 0.40)';
       ctx.lineWidth = 2;
-      ctx.strokeStyle = 'rgba(255, 230, 120, 0.35)';
       ctx.setLineDash([12, 16]);
+      ctx.beginPath();
+      for (let rx = startGx; rx <= maxX + step; rx += step) {
+        const roadCenterX = rx - roadWidth * 0.5;
+        ctx.moveTo(roadCenterX, minY);
+        ctx.lineTo(roadCenterX, maxY);
+      }
+      for (let ry = startGy; ry <= maxY + step; ry += step) {
+        const roadCenterY = ry - roadWidth * 0.5;
+        ctx.moveTo(minX, roadCenterY);
+        ctx.lineTo(maxX, roadCenterY);
+      }
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // 2. City Buildings
-      const bldgCount = Math.min(65, Math.max(16, Math.floor(rad / 18)));
-      const bldgColors = ['#454b57', '#525966', '#3b404a', '#5d6473', '#666e7d'];
+      // 2. Dense City Blocks and Building Architecture
+      const bldgColors = [
+        '#3a404c', '#434a57', '#4e5666', '#545d6e',
+        '#354252', '#2f3b49', '#5a6270', '#4a443e'
+      ];
 
-      for (let i = 0; i < bldgCount; i++) {
-        const dist = Math.sqrt(rng()) * rad * 0.78;
-        const angle = rng() * Math.PI * 2;
-        const bwx = cx + Math.cos(angle) * dist;
-        const bwy = cy + Math.sin(angle) * dist;
-        const bw = 35 + rng() * 65;
-        const bh = 35 + rng() * 65;
-
-        // Building drop shadow
-        ctx.fillStyle = 'rgba(12, 15, 20, 0.65)';
-        ctx.fillRect(bwx - bw * 0.5 + 8, bwy - bh * 0.5 + 8, bw, bh);
+      const drawBuilding = (bx, by, bw, bh, brng) => {
+        // Drop shadow
+        ctx.fillStyle = 'rgba(10, 14, 20, 0.65)';
+        ctx.fillRect(bx + 6, by + 8, bw, bh);
 
         // Building rooftop
-        ctx.fillStyle = bldgColors[Math.floor(rng() * bldgColors.length)];
-        ctx.fillRect(bwx - bw * 0.5, bwy - bh * 0.5, bw, bh);
+        const col = bldgColors[Math.floor(brng() * bldgColors.length)];
+        ctx.fillStyle = col;
+        ctx.fillRect(bx, by, bw, bh);
 
-        // Rooftop border
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#262930';
-        ctx.strokeRect(bwx - bw * 0.5, bwy - bh * 0.5, bw, bh);
+        // Parapet border
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#22262e';
+        ctx.strokeRect(bx, by, bw, bh);
 
-        // Rooftop HVAC units or Helipad
-        const featureRoll = rng();
-        if (featureRoll < 0.22 && bw >= 45 && bh >= 45) {
-          // Helipad: Yellow circle with white H
+        // Rooftop features
+        const feature = brng();
+        if (feature < 0.22 && bw >= 36 && bh >= 36) {
+          // Helipad: yellow outer ring with white H
+          const hcx = bx + bw * 0.5;
+          const hcy = by + bh * 0.5;
+          const hRad = Math.min(bw, bh) * 0.30;
           ctx.strokeStyle = '#ffcc00';
-          ctx.lineWidth = 2.5;
+          ctx.lineWidth = 2.0;
           ctx.beginPath();
-          ctx.arc(bwx, bwy, Math.min(bw, bh) * 0.3, 0, Math.PI * 2);
+          ctx.arc(hcx, hcy, hRad, 0, Math.PI * 2);
           ctx.stroke();
 
           ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 12px "Quantico", monospace';
+          ctx.font = 'bold 11px monospace';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('H', bwx, bwy);
-        } else if (featureRoll < 0.65) {
-          // HVAC units (small rectangles)
-          ctx.fillStyle = '#7a8391';
-          const hvacW = 8 + rng() * 12;
-          const hvacH = 6 + rng() * 10;
-          ctx.fillRect(bwx - hvacW * 0.5, bwy - hvacH * 0.5, hvacW, hvacH);
+          ctx.fillText('H', hcx, hcy);
+        } else if (feature < 0.60) {
+          // Elevator penthouse / HVAC chillers
+          const boxW = Math.max(10, bw * 0.35);
+          const boxH = Math.max(8, bh * 0.35);
+          const boxX = bx + (bw - boxW) * 0.5;
+          const boxY = by + (bh - boxH) * 0.5;
+          ctx.fillStyle = '#2d333d';
+          ctx.fillRect(boxX, boxY, boxW, boxH);
+          ctx.strokeStyle = '#1d2127';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+          // Chiller vent grates
+          ctx.fillStyle = '#788291';
+          ctx.fillRect(boxX + 2, boxY + 2, boxW - 4, Math.max(2, boxH * 0.3));
+        } else if (feature < 0.82) {
+          // Twin HVAC pods
+          ctx.fillStyle = '#6d7582';
+          const pw = Math.max(6, bw * 0.22);
+          const ph = Math.max(5, bh * 0.22);
+          ctx.fillRect(bx + 4, by + 4, pw, ph);
+          ctx.fillRect(bx + bw - pw - 4, by + bh - ph - 4, pw, ph);
+        }
+      };
+
+      for (let bx = startGx; bx <= maxX; bx += step) {
+        for (let by = startGy; by <= maxY; by += step) {
+          const blockCenterX = bx + blockSize * 0.5;
+          const blockCenterY = by + blockSize * 0.5;
+
+          // Camera frustum culling
+          if (camera && viewWidth > 0 && viewHeight > 0) {
+            if (
+              bx + blockSize < camera.x - viewWidth * 0.6 ||
+              bx > camera.x + viewWidth * 0.6 ||
+              by + blockSize < camera.y - viewHeight * 0.6 ||
+              by > camera.y + viewHeight * 0.6
+            ) {
+              continue;
+            }
+          }
+
+          // Test if block is situated on the land polygon
+          if (!isInsideLand(blockCenterX, blockCenterY)) {
+            continue;
+          }
+
+          // Deterministic seed per block
+          const blockSeed = Math.abs(Math.floor((bx * 73856093) ^ (by * 19349663) ^ seed)) || 1;
+          const brng = createSeededRandom(blockSeed);
+
+          // Draw Sidewalk / Concrete Lot Base
+          ctx.fillStyle = '#2b303a';
+          ctx.fillRect(bx, by, blockSize, blockSize);
+
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = '#20242c';
+          ctx.strokeRect(bx, by, blockSize, blockSize);
+
+          // Block Subdivision: 4 Layout Archetypes
+          const layoutType = Math.floor(brng() * 4);
+
+          if (layoutType === 0) {
+            // 4 Dense Quadrant Towers
+            const subSizeW = (blockSize - 16) * 0.5;
+            const subSizeH = (blockSize - 16) * 0.5;
+            for (let qx = 0; qx < 2; qx++) {
+              for (let qy = 0; qy < 2; qy++) {
+                const bwx = bx + 5 + qx * (subSizeW + 6);
+                const bwy = by + 5 + qy * (subSizeH + 6);
+                drawBuilding(bwx, bwy, subSizeW, subSizeH, brng);
+              }
+            }
+          } else if (layoutType === 1) {
+            // 1 Major Skyscraper + 1 Medium Building + Park Plaza
+            const majorW = blockSize * 0.5 - 6;
+            const majorH = blockSize - 12;
+            drawBuilding(bx + 6, by + 6, majorW, majorH, brng);
+
+            const rightW = blockSize * 0.5 - 10;
+            const rightH = (blockSize - 18) * 0.5;
+            drawBuilding(bx + majorW + 12, by + 6, rightW, rightH, brng);
+
+            // Park Plaza with green trees
+            const plazaX = bx + majorW + 12;
+            const plazaY = by + rightH + 12;
+            ctx.fillStyle = '#243b2a';
+            ctx.fillRect(plazaX, plazaY, rightW, rightH);
+            ctx.fillStyle = '#1c5230';
+            for (let t = 0; t < 3; t++) {
+              const tx = plazaX + 8 + brng() * (rightW - 16);
+              const ty = plazaY + 6 + brng() * (rightH - 12);
+              ctx.beginPath();
+              ctx.arc(tx, ty, 5 + brng() * 4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          } else if (layoutType === 2) {
+            // 6 Row Buildings (3 columns x 2 rows)
+            const subW = (blockSize - 16) / 3;
+            const subH = (blockSize - 14) * 0.5;
+            for (let rx = 0; rx < 3; rx++) {
+              for (let ry = 0; ry < 2; ry++) {
+                const bwx = bx + 4 + rx * (subW + 4);
+                const bwy = by + 4 + ry * (subH + 6);
+                drawBuilding(bwx, bwy, subW, subH, brng);
+              }
+            }
+          } else {
+            // 2 Long towers + central parking / alleyway
+            const towerW = blockSize - 12;
+            const towerH = (blockSize - 24) * 0.5;
+            drawBuilding(bx + 6, by + 6, towerW, towerH, brng);
+            drawBuilding(bx + 6, by + towerH + 18, towerW, towerH, brng);
+
+            // Central alley / parking strip
+            ctx.fillStyle = '#1e2229';
+            ctx.fillRect(bx + 8, by + towerH + 8, blockSize - 16, 8);
+          }
         }
       }
     }

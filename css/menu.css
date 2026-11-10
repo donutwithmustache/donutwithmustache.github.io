@@ -309,10 +309,18 @@
 .menu-selector-cursor {
   position: absolute;
   left: -12px;
-  width: 340px;
+  width: 380px;
   height: 38px;
-  background: linear-gradient(90deg, #fffbe0 0%, rgba(255, 238, 140, 0.95) 20%, rgba(255, 205, 50, 0.4) 65%, rgba(255, 200, 50, 0) 100%);
-  box-shadow: 0 0 20px rgba(255, 238, 140, 0.6), 0 0 35px rgba(255, 190, 40, 0.3);
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 252, 220, 0.65) 25%,
+    rgba(255, 245, 180, 0.30) 60%,
+    rgba(255, 240, 150, 0.08) 85%,
+    rgba(255, 240, 150, 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 65%, transparent 100%);
+  mask-image: linear-gradient(to right, black 0%, black 65%, transparent 100%);
+  box-shadow: -4px 0 16px rgba(255, 255, 255, 0.8), 0 0 25px rgba(255, 255, 220, 0.35);
   pointer-events: none;
   border-left: 5px solid #ffffff;
   transition: top 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.15s ease;
@@ -333,9 +341,9 @@
 }
 
 .menu-nav-item.selected {
-  color: #1a0508;
+  color: #ffffff;
   font-weight: 900;
-  text-shadow: 0 0 1px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.95), 0 0 3px #ffffff, 0 1px 2px rgba(0, 0, 0, 0.85);
   transform: translateX(4px);
 }
 
@@ -1083,6 +1091,316 @@
 
 @keyframes toastFadeIn {
   0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   MISSION BRIEFING & LOADING OVERLAY (Ace Combat Tactical Sortie)
+   ========================================================================== */
+.loading-screen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at center, rgba(8, 22, 32, 0.97) 0%, rgba(3, 8, 14, 0.99) 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 500;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.loading-screen-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loading-panel {
+  position: relative;
+  width: 960px;
+  max-width: 92vw;
+  background: rgba(5, 16, 24, 0.92);
+  border: 1px solid rgba(0, 255, 170, 0.45);
+  box-shadow: 0 0 45px rgba(0, 255, 170, 0.15), inset 0 0 25px rgba(0, 255, 170, 0.05);
+  padding: 36px 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: #ffffff;
+  font-family: var(--font-tactical);
+}
+
+/* Tactical Corner Brackets */
+.panel-bracket {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+.panel-bracket.top-left {
+  top: -2px;
+  left: -2px;
+  border-top: 3px solid #00ffaa;
+  border-left: 3px solid #00ffaa;
+}
+.panel-bracket.top-right {
+  top: -2px;
+  right: -2px;
+  border-top: 3px solid #00ffaa;
+  border-right: 3px solid #00ffaa;
+}
+.panel-bracket.bottom-left {
+  bottom: -2px;
+  left: -2px;
+  border-bottom: 3px solid #00ffaa;
+  border-left: 3px solid #00ffaa;
+}
+.panel-bracket.bottom-right {
+  bottom: -2px;
+  right: -2px;
+  border-bottom: 3px solid #00ffaa;
+  border-right: 3px solid #00ffaa;
+}
+
+/* Header */
+.loading-header {
+  border-bottom: 1px solid rgba(0, 255, 170, 0.3);
+  padding-bottom: 14px;
+}
+.loading-tag {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #00ffaa;
+  text-shadow: 0 0 8px rgba(0, 255, 170, 0.6);
+  margin-bottom: 4px;
+}
+.loading-title {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #ffffff;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+  margin: 0;
+  text-transform: uppercase;
+}
+.loading-subtitle {
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #00ffee;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+/* Two-column Briefing Body */
+.loading-body {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 28px;
+  min-height: 200px;
+}
+
+.loading-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: #00ffaa;
+  border-bottom: 1px solid rgba(0, 255, 170, 0.25);
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+.loading-section-title.roe-title {
+  margin-top: 18px;
+}
+
+.briefing-list, .briefing-conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.briefing-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #d8e5ee;
+}
+.briefing-bullet {
+  color: #00ffaa;
+  font-weight: bold;
+}
+.briefing-badge-pri {
+  background: rgba(0, 255, 170, 0.2);
+  border: 1px solid #00ffaa;
+  color: #00ffaa;
+  font-size: 10px;
+  padding: 1px 6px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+.briefing-badge-sec {
+  background: rgba(0, 255, 238, 0.15);
+  border: 1px solid #00ffee;
+  color: #00ffee;
+  font-size: 10px;
+  padding: 1px 6px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.airframe-card {
+  background: rgba(4, 12, 18, 0.85);
+  border: 1px solid rgba(0, 255, 238, 0.25);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.airframe-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+.airframe-info-row .lbl {
+  color: #8da4b8;
+  letter-spacing: 1.5px;
+}
+.airframe-info-row .val {
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+.airframe-info-row .val.status-green {
+  color: #00ffaa;
+  text-shadow: 0 0 8px rgba(0, 255, 170, 0.5);
+}
+
+.briefing-map-preview {
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: rgba(0, 255, 170, 0.05);
+  border: 1px dashed rgba(0, 255, 170, 0.3);
+}
+.map-preview-tag {
+  font-size: 11px;
+  color: #00ffee;
+  letter-spacing: 2px;
+}
+.map-preview-sub {
+  font-size: 11px;
+  color: #8da4b8;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* Footer & Progress Bar */
+.loading-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.loading-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #00ffaa;
+}
+
+.loading-progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(10, 26, 36, 0.9);
+  border: 1px solid rgba(0, 255, 170, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00bb77 0%, #00ffaa 80%, #ffffff 100%);
+  box-shadow: 0 0 14px rgba(0, 255, 170, 0.8);
+  transition: width 0.1s linear;
+}
+
+/* Action Container */
+.loading-action-container {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: fadeInCommence 0.35s ease;
+}
+
+.loading-action-container.hidden {
+  display: none;
+}
+
+.btn-commence {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  padding: 14px 28px;
+  background: linear-gradient(90deg, rgba(0, 255, 170, 0.15) 0%, rgba(0, 255, 170, 0.35) 50%, rgba(0, 255, 170, 0.15) 100%);
+  border: 2px solid #00ffaa;
+  box-shadow: 0 0 25px rgba(0, 255, 170, 0.4), inset 0 0 15px rgba(0, 255, 170, 0.2);
+  color: #ffffff;
+  font-family: var(--font-tactical);
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: pulseCommence 1.6s infinite ease-in-out;
+}
+
+.btn-commence:hover {
+  background: rgba(0, 255, 170, 0.9);
+  color: #030a0e;
+  box-shadow: 0 0 35px rgba(0, 255, 170, 0.8);
+  transform: translateY(-2px);
+}
+
+.commence-pulse-bracket {
+  color: #00ffee;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.commence-subtext {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #8da4b8;
+  text-align: center;
+}
+
+@keyframes pulseCommence {
+  0%, 100% {
+    border-color: #00ffaa;
+    box-shadow: 0 0 20px rgba(0, 255, 170, 0.3);
+  }
+  50% {
+    border-color: #ffffff;
+    box-shadow: 0 0 35px rgba(0, 255, 170, 0.7);
+  }
+}
+
+@keyframes fadeInCommence {
+  0% { opacity: 0; transform: translateY(8px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 

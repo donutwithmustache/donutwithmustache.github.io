@@ -51,6 +51,27 @@ export class MissionManager {
     this.fadeTransition = null;
   }
 
+  // Fully unload and reset mission manager state
+  reset() {
+    this.currentMission = null;
+    this.objectives = [];
+    this.triggers = [];
+    this.firedTriggers.clear();
+    this.elapsedTime = 0;
+    this.isCompleted = false;
+    this.isFailed = false;
+    this.playerSpawns = [];
+    this.radioMessages = [];
+    this.areas = [];
+    this.activeDialogue = null;
+    this.dialogueQueue = [];
+    this.nukeState = { timer: 0, duration: 2.5, x: 0, y: 0 };
+    this.fadeTransition = null;
+    this.isScriptedEnding = false;
+    this.scriptedEndTitle = null;
+    this.scriptedEndText = null;
+  }
+
   // Load a mission by ID or direct JSON data
   async loadMission(missionIdOrData) {
     let data = null;
@@ -281,13 +302,14 @@ export class MissionManager {
     // 3. Cinematic Sector Fade Transition Update
     this.updateFadeTransition(dt);
 
-    // 4. Evaluate Periodic Triggers (TIMER, PROXIMITY, AREA ENTRY)
+    // 4. Evaluate Periodic Triggers (TIMER, PROXIMITY, AREA ENTRY, TARGET_DESTROYED)
     this.evaluateTriggers('TIMER', { time: this.elapsedTime });
     if (flightState) {
       this.evaluateTriggers('PLAYER_PROXIMITY', { x: flightState.x, y: flightState.y });
       this.evaluateTriggers('PLAYER_ENTER_AREA', { x: flightState.x, y: flightState.y });
     }
     this.evaluateTriggers('UNIT_ENTER_AREA');
+    this.evaluateTriggers('TARGET_DESTROYED');
 
     // 5. Track Objectives Progress
     const tm = this.game.targetManager;
@@ -650,7 +672,7 @@ export class MissionManager {
       if (eventType === 'ON_START') {
         triggered = true;
       } else if (eventType === 'TIMER') {
-        const threshold = trig.time || (trig.param && trig.param.time) || 0;
+        const threshold = (trig.time !== undefined) ? Number(trig.time) : ((trig.param && trig.param.time !== undefined) ? Number(trig.param.time) : 0);
         if (context.time >= threshold) triggered = true;
       } else if (eventType === 'PLAYER_ENTER_AREA') {
         const areaId = trig.areaId || (trig.param && trig.param.areaId) || trig.targetId;
@@ -664,7 +686,7 @@ export class MissionManager {
         const unitId = trig.unitId || (trig.param && trig.param.unitId) || trig.targetId;
         const area = this.getArea(areaId);
         if (area && this.game.targetManager) {
-          const unit = this.game.targetManager.targets.find(t => t.id === unitId);
+          const unit = this.game.targetManager.targets.find(t => t && (t.id === unitId || (t.id && unitId && t.id.toLowerCase() === unitId.toLowerCase())));
           if (unit && !unit.isDestroyed && unit.active !== false) {
             const dist = Math.hypot(unit.x - area.x, unit.y - area.y);
             if (dist <= (area.radius || 2000)) triggered = true;
@@ -679,16 +701,18 @@ export class MissionManager {
           if (dist <= range) triggered = true;
         } else {
           const range = trig.range || (trig.param && trig.param.range) || 3000;
-          const target = this.game.targetManager ? this.game.targetManager.targets.find(t => t.id === targetId) : null;
+          const target = this.game.targetManager ? this.game.targetManager.targets.find(t => t && (t.id === targetId || (t.id && targetId && t.id.toLowerCase() === targetId.toLowerCase()))) : null;
           if (target && !target.isDestroyed && target.active !== false) {
             const dist = Math.hypot(context.x - target.x, context.y - target.y);
             if (dist <= range) triggered = true;
           }
         }
       } else if (eventType === 'TARGET_DESTROYED') {
-        const targetId = trig.targetId || (trig.param && trig.param.targetId);
-        const target = this.game.targetManager ? this.game.targetManager.targets.find(t => t.id === targetId) : null;
-        if (target && target.isDestroyed) triggered = true;
+        const targetId = trig.targetId || trig.unitId || (trig.param && (trig.param.targetId || trig.param.unitId));
+        const target = this.game.targetManager ? this.game.targetManager.targets.find(t => t && (t.id === targetId || (t.id && targetId && t.id.toLowerCase() === targetId.toLowerCase()))) : null;
+        if (target && (target.isDestroyed || target.isFalling || target.hp <= 0)) {
+          triggered = true;
+        }
       }
 
       if (triggered) {

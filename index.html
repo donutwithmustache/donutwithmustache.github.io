@@ -507,6 +507,88 @@
     </div>
   </div>
 
+  <!-- SCREEN: MISSION BRIEFING & LOADING OVERLAY -->
+  <div id="mission-loading-screen" class="loading-screen-overlay hidden">
+    <div class="loading-panel">
+      <!-- Corner Tactical Accents -->
+      <div class="panel-bracket top-left"></div>
+      <div class="panel-bracket top-right"></div>
+      <div class="panel-bracket bottom-left"></div>
+      <div class="panel-bracket bottom-right"></div>
+
+      <div class="loading-header">
+        <div class="loading-tag" id="loading-header-tag">// TACTICAL SORTIE BRIEFING // TOP SECRET</div>
+        <h1 class="loading-title" id="loading-mission-title">OPERATION: TEST FLIGHT</h1>
+        <div class="loading-subtitle" id="loading-mission-subtitle">SECTOR 04 // COMBAT EVALUATION ZONE</div>
+      </div>
+
+      <div class="loading-body" id="loading-briefing-body">
+        <div class="loading-col directives-col">
+          <div class="loading-section-title">MISSION DIRECTIVES & ROE</div>
+          <div id="loading-objectives-list" class="briefing-list">
+            <!-- Dynamically populated objectives -->
+          </div>
+
+          <div class="loading-section-title roe-title">ENGAGEMENT CRITERIA</div>
+          <div id="loading-conditions-list" class="briefing-conditions">
+            <!-- Dynamically populated win/loss conditions -->
+          </div>
+        </div>
+
+        <div class="loading-col airframe-col">
+          <div class="loading-section-title">SORTIE AIRFRAME & PAYLOAD</div>
+          <div class="airframe-card" id="loading-airframe-card">
+            <div class="airframe-info-row">
+              <span class="lbl">AIRCRAFT:</span>
+              <span class="val" id="loading-aircraft-name">F-15C EAGLE</span>
+            </div>
+            <div class="airframe-info-row">
+              <span class="lbl">SPECIAL WEAPON:</span>
+              <span class="val" id="loading-spw-name">QAAM INTERCEPTOR</span>
+            </div>
+            <div class="airframe-info-row">
+              <span class="lbl">PRIMARY GUN:</span>
+              <span class="val" id="loading-gun-info">20MM M61A2 VULCAN (800 RDS)</span>
+            </div>
+            <div class="airframe-info-row">
+              <span class="lbl">COUNTERMEASURES:</span>
+              <span class="val" id="loading-flares-info">FLARES (32 UNITS)</span>
+            </div>
+            <div class="airframe-info-row">
+              <span class="lbl">AVIONICS LINK:</span>
+              <span class="val status-green">IFF SYNCHRONIZED</span>
+            </div>
+          </div>
+
+          <div class="briefing-map-preview">
+            <div class="map-preview-tag">// SECTOR RADAR TOPOGRAPHY ACTIVE</div>
+            <div class="map-preview-sub">CONTOUR MAPPING ENGAGED</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="loading-footer">
+        <div class="loading-status-row">
+          <span id="loading-status-text" class="loading-status-text">CALIBRATING AVIONICS...</span>
+          <span id="loading-progress-pct" class="loading-progress-pct">0%</span>
+        </div>
+        <div class="loading-progress-track">
+          <div id="loading-progress-bar" class="loading-progress-fill" style="width: 0%;"></div>
+        </div>
+
+        <!-- Confirmation Action Button (Revealed at 100%) -->
+        <div id="loading-action-container" class="loading-action-container hidden">
+          <button id="btn-commence-operation" class="btn-commence">
+            <span class="commence-pulse-bracket">&gt;&gt;</span>
+            <span class="commence-label">COMMENCE OPERATION</span>
+            <span class="commence-pulse-bracket">&lt;&lt;</span>
+          </button>
+          <div class="commence-subtext">PRESS [SPACE] OR [ENTER] TO COMMENCE OPERATION // [ESC] ABORT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="./js/game.js"></script>
 </body>
 

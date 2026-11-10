@@ -929,8 +929,9 @@
             "aircraft": "E-767",
             "squadron": "DONUT MERCENARY LEGION",
             "duration": 12.0,
-            "text": "MOUSE TO AIM\nSHIFT/CTRL FOR THROTTLE\nZ TO EXPAND MINIMAP",
-            "portrait": "./assets/portraits/awacs_astra.png"
+            "text": "MOUSE TO AIM // SHIFT/CTRL FOR THROTTLE // A FOR ABILITY",
+            "portrait": "./assets/portraits/awacs_astra.png",
+            "color": "#00ffee"
           }
         ]
       },
@@ -980,8 +981,9 @@
             "aircraft": "E-767",
             "squadron": "DONUT MERCENARY LEGION",
             "duration": 15.0,
-            "text": "LMB FOR GUNS\nRMB FOR TARGET LOCK\nSPACE TO FIRE MSL",
-            "portrait": "./assets/portraits/awacs_astra.png"
+            "text": "LMB FOR GUNS // RMB FOR TARGET LOCK // SPACE TO FIRE MSL",
+            "portrait": "./assets/portraits/awacs_astra.png",
+            "color": "#00ffee"
           }
         ]
       },
@@ -997,8 +999,9 @@
             "aircraft": "E-767",
             "squadron": "DONUT MERCENARY LEGION",
             "duration": 15.0,
-            "text": "X TO SWITCH WEAPONS\nS TO DEPLOY FLARES\nA TO USE ABILITY",
-            "portrait": "./assets/portraits/awacs_astra.png"
+            "text": "X TO SWITCH WEAPONS // S TO DEPLOY FLARES //",
+            "portrait": "./assets/portraits/awacs_astra.png",
+            "color": "#00ffee"
           }
         ],
         "areaId": "area_1"
@@ -1020,6 +1023,24 @@
           }
         ],
         "areaId": "area_1"
+      },
+      {
+        "id": "trig_dia_1_copy9",
+        "name": "Story Dialogue #1 (Copy 9)",
+        "event": "TIMER",
+        "time": 34.0,
+        "actions": [
+          {
+            "type": "RADIO_MESSAGE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767",
+            "squadron": "DONUT MERCENARY LEGION",
+            "duration": 15.0,
+            "text": "Z TO EXPAND MINIMAP",
+            "portrait": "./assets/portraits/awacs_astra.png",
+            "color": "#00ffee"
+          }
+        ]
       }
     ]
   },

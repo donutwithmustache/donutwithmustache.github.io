@@ -852,6 +852,22 @@ export class MissionManager {
           fadeTime: act.fadeTime || 2.0,
           holdTime: 3.0
         });
+      } else if (act.type === 'COMPLETE_OBJECTIVE') {
+        const targetId = act.objectiveId || act.text || act.title;
+        const obj = this.objectives.find(o => o.id === targetId || o.title === targetId || o.type === targetId);
+        if (obj) {
+          obj.isCompleted = true;
+          this.postRadioMessage(`OBJECTIVE UPDATE // ${obj.title.toUpperCase()} COMPLETED`, 4.0);
+          this.onObjectiveCompleted(obj);
+        } else if (this.objectives.length > 0) {
+          // If no specific objective matched, complete first incomplete scripted objective
+          const scriptedObj = this.objectives.find(o => !o.isCompleted && (o.type === 'CUSTOM_SCRIPTED' || o.scripted));
+          if (scriptedObj) {
+            scriptedObj.isCompleted = true;
+            this.postRadioMessage(`OBJECTIVE UPDATE // ${scriptedObj.title.toUpperCase()} COMPLETED`, 4.0);
+            this.onObjectiveCompleted(scriptedObj);
+          }
+        }
       } else if (act.type === 'MISSION_COMPLETE') {
         this.isCompleted = true;
         this.postRadioMessage('MISSION ACCOMPLISHED // ALL OBJECTIVES SECURED', 4.0);

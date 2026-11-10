@@ -54,6 +54,7 @@ TRIGGER_ACTIONS = [
     "DESPAWN_UNIT",
     "RADIO_MESSAGE",
     "SET_AI_ORDER",
+    "COMPLETE_OBJECTIVE",
     "SCRIPTED_END",
     "MISSION_COMPLETE",
     "MISSION_FAILED"
@@ -74,15 +75,24 @@ AI_ORDER_TYPES = [
 ]
 
 
+def get_point_coords(pt):
+    """Safely extract (x, y) whether pt is a [x, y] list/tuple or a {'x': x, 'y': y} dict."""
+    if isinstance(pt, dict):
+        return float(pt.get("x", 0.0)), float(pt.get("y", 0.0))
+    elif isinstance(pt, (list, tuple)) and len(pt) >= 2:
+        return float(pt[0]), float(pt[1])
+    return 0.0, 0.0
+
+
 def is_point_in_polygon(x, y, poly):
     """Ray-casting point-in-polygon test for arbitrary 2D polygons."""
     if not poly or len(poly) < 3:
         return False
     inside = False
     n = len(poly)
-    p1x, p1y = poly[0][0], poly[0][1]
+    p1x, p1y = get_point_coords(poly[0])
     for i in range(1, n + 1):
-        p2x, p2y = poly[i % n][0], poly[i % n][1]
+        p2x, p2y = get_point_coords(poly[i % n])
         if y > min(p1y, p2y):
             if y <= max(p1y, p2y):
                 if x <= max(p1x, p2x):
@@ -162,6 +172,8 @@ class MissionEditorApp(tk.Tk):
 
     def get_empty_mission(self):
         return {
+            "name": "New Tactical Operation",
+            "location": "Sector 04 // Operational Airspace",
             "missionType": "singleplayer",
             "noRespawn": False,
             "playerCount": 1,
@@ -173,6 +185,7 @@ class MissionEditorApp(tk.Tk):
             "map": {
                 "id": "new_mission",
                 "name": "New Tactical Operation",
+                "location": "Sector 04 // Operational Airspace",
                 "size": 30150,
                 "halfMapSize": 15075,
                 "returnLine": {"enabled": False, "side": "bottom", "offset": 0.10},
@@ -385,20 +398,28 @@ class MissionEditorApp(tk.Tk):
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        box_meta = tk.LabelFrame(frame, text=" Map Boundaries & Size ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=8)
+        box_meta = tk.LabelFrame(frame, text=" Mission Info & Map Boundaries ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=8)
         box_meta.pack(fill="x", pady=4)
 
-        tk.Label(box_meta, text="Map Size (meters):", bg="#101c2b", fg="#c0e0d0", font=("Consolas", 9)).grid(row=0, column=0, sticky="w", pady=4)
+        tk.Label(box_meta, text="Map Size (m):", bg="#101c2b", fg="#c0e0d0", font=("Consolas", 9)).grid(row=0, column=0, sticky="w", pady=3)
         self.ent_map_size = ttk.Entry(box_meta, width=14)
-        self.ent_map_size.grid(row=0, column=1, sticky="w", padx=8)
+        self.ent_map_size.grid(row=0, column=1, sticky="w", padx=6, pady=3)
 
         btn_resize = tk.Button(box_meta, text="Resize Map Bounds", bg="#1a3248", fg="#00ffcc", font=("Consolas", 9, "bold"),
                                command=self.apply_map_resize)
-        btn_resize.grid(row=0, column=2, sticky="w", padx=8)
+        btn_resize.grid(row=0, column=2, sticky="w", padx=6, pady=3)
 
-        tk.Label(box_meta, text="Mission ID:", bg="#101c2b", fg="#c0e0d0", font=("Consolas", 9)).grid(row=1, column=0, sticky="w", pady=4)
+        tk.Label(box_meta, text="Mission ID:", bg="#101c2b", fg="#c0e0d0", font=("Consolas", 9)).grid(row=1, column=0, sticky="w", pady=3)
         self.ent_mission_id = ttk.Entry(box_meta, width=18)
-        self.ent_mission_id.grid(row=1, column=1, sticky="w", padx=8)
+        self.ent_mission_id.grid(row=1, column=1, sticky="w", padx=6, pady=3)
+
+        tk.Label(box_meta, text="Mission Name:", bg="#101c2b", fg="#c0e0d0", font=("Consolas", 9)).grid(row=2, column=0, sticky="w", pady=3)
+        self.ent_mission_name = ttk.Entry(box_meta, width=32)
+        self.ent_mission_name.grid(row=2, column=1, columnspan=2, sticky="w", padx=6, pady=3)
+
+        tk.Label(box_meta, text="Location Name:", bg="#101c2b", fg="#c0e0d0", font=("Consolas", 9)).grid(row=3, column=0, sticky="w", pady=3)
+        self.ent_location_name = ttk.Entry(box_meta, width=32)
+        self.ent_location_name.grid(row=3, column=1, columnspan=2, sticky="w", padx=6, pady=3)
 
         # Mission Mode, Player Count & Loadout Configuration
         box_mode = tk.LabelFrame(frame, text=" Mission Mode, Player Count & Loadout Configuration ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=8)
@@ -864,7 +885,8 @@ class MissionEditorApp(tk.Tk):
             "DESTROY_TARGETS",
             "DESTROY_NAMED_TARGET",
             "REACH_AREA",
-            "SURVIVE_TIME"
+            "SURVIVE_TIME",
+            "CUSTOM_SCRIPTED"
         ], state="readonly", width=22)
         self.cb_obj_type.grid(row=0, column=3, sticky="w", padx=4, pady=2)
         self.cb_obj_type.set("DESTROY_TARGETS")
@@ -1313,6 +1335,16 @@ class MissionEditorApp(tk.Tk):
         self.ent_mission_id.delete(0, tk.END)
         self.ent_mission_id.insert(0, str(m.get("id", "test_flight")))
 
+        m_name = self.mission.get("name") or m.get("name") or "New Tactical Operation"
+        if hasattr(self, "ent_mission_name"):
+            self.ent_mission_name.delete(0, tk.END)
+            self.ent_mission_name.insert(0, str(m_name))
+
+        loc_name = m.get("location") or self.mission.get("location") or "Sector 04 // Operational Airspace"
+        if hasattr(self, "ent_location_name"):
+            self.ent_location_name.delete(0, tk.END)
+            self.ent_location_name.insert(0, str(loc_name))
+
         # Mission Mode & Loadout Synchronization
         m_type = self.mission.get("missionType", "singleplayer")
         self.cb_mission_type.set(m_type)
@@ -1432,6 +1464,8 @@ class MissionEditorApp(tk.Tk):
                 pstr = f"(Zone: {o.get('areaId', 'N/A')})"
             elif otype == "SURVIVE_TIME":
                 pstr = f"(Survive {int(o.get('timeLimit', 120))}s)"
+            elif otype == "CUSTOM_SCRIPTED":
+                pstr = "(Scripted)"
             self.objs_listbox.insert(tk.END, f"{pri} {o.get('title', 'Objective')} {pstr}")
 
         # Win & Lose conditions
@@ -1615,8 +1649,12 @@ class MissionEditorApp(tk.Tk):
             # Offset all vertices if this is a polygon island
             if terrain[idx].get("points"):
                 for pt in terrain[idx]["points"]:
-                    pt[0] = round(pt[0] + dx, 1)
-                    pt[1] = round(pt[1] + dy, 1)
+                    if isinstance(pt, dict):
+                        pt["x"] = round(float(pt.get("x", 0)) + dx, 1)
+                        pt["y"] = round(float(pt.get("y", 0)) + dy, 1)
+                    elif isinstance(pt, list):
+                        pt[0] = round(float(pt[0]) + dx, 1)
+                        pt[1] = round(float(pt[1]) + dy, 1)
             self.populate_form_from_mission()
 
     def select_unit(self, kind, idx):
@@ -2336,11 +2374,11 @@ class MissionEditorApp(tk.Tk):
                 if self.selected_vertex_idx < len(pts):
                     del pts[self.selected_vertex_idx]
                     self.selected_vertex_idx = None
-                    cx = sum(p[0] for p in pts) / len(pts)
-                    cy = sum(p[1] for p in pts) / len(pts)
+                    cx = sum(get_point_coords(p)[0] for p in pts) / len(pts)
+                    cy = sum(get_point_coords(p)[1] for p in pts) / len(pts)
                     isl["x"] = round(cx, 1)
                     isl["y"] = round(cy, 1)
-                    isl["radius"] = round(max(math.hypot(p[0] - cx, p[1] - cy) for p in pts) + 30, 1)
+                    isl["radius"] = round(max(math.hypot(get_point_coords(p)[0] - cx, get_point_coords(p)[1] - cy) for p in pts) + 30, 1)
                     self.populate_form_from_mission()
 
     def on_canvas_double_click(self, event):
@@ -2868,6 +2906,11 @@ class MissionEditorApp(tk.Tk):
             self.ent_obj_param1.config(state="normal")
             self.lbl_obj_target.config(text="[Time Goal]")
             self.cb_obj_target.config(state="disabled")
+        elif otype == "CUSTOM_SCRIPTED":
+            self.lbl_obj_param1.config(text="[Scripted Triggers]")
+            self.ent_obj_param1.config(state="disabled")
+            self.lbl_obj_target.config(text="[No Target]")
+            self.cb_obj_target.config(state="disabled")
 
     def refresh_objective_comboboxes(self):
         otype = self.cb_obj_type.get()
@@ -2916,6 +2959,8 @@ class MissionEditorApp(tk.Tk):
             self.ent_obj_param1.insert(0, str(obj.get("requiredCount", 5)))
         elif otype == "SURVIVE_TIME":
             self.ent_obj_param1.insert(0, str(int(obj.get("timeLimit", 120))))
+        elif otype == "CUSTOM_SCRIPTED":
+            self.ent_obj_param1.insert(0, "")
         else:
             self.ent_obj_param1.insert(0, "1")
 
@@ -2974,6 +3019,12 @@ class MissionEditorApp(tk.Tk):
                 raw_a = self.cb_obj_target.get().strip()
                 a_id = raw_a.split(" ")[0].strip() if raw_a else ""
                 obj["areaId"] = a_id
+            elif otype == "CUSTOM_SCRIPTED":
+                obj.pop("requiredCount", None)
+                obj.pop("timeLimit", None)
+                obj.pop("targetUnitId", None)
+                obj.pop("areaId", None)
+                obj["scripted"] = True
 
             cur_idx = self.selected_objective_idx
             self.populate_form_from_mission()
@@ -3318,7 +3369,7 @@ class MissionEditorApp(tk.Tk):
 
             if pts and len(pts) >= 3:
                 # Render polygon island
-                scr_pts = [self.world_to_screen(p[0], p[1]) for p in pts]
+                scr_pts = [self.world_to_screen(*get_point_coords(p)) for p in pts]
                 flat_coords = [c for p in scr_pts for c in p]
                 self.canvas.create_polygon(flat_coords, fill=fill_col, outline=outline_col, width=2 if is_sel else 1)
 
@@ -3585,10 +3636,8 @@ class MissionEditorApp(tk.Tk):
                     return 0.0
                 min_d = float('inf')
                 for i in range(len(pts)):
-                    p1 = pts[i]
-                    p2 = pts[(i + 1) % len(pts)]
-                    x1, y1 = float(p1.get('x', 0)), float(p1.get('y', 0))
-                    x2, y2 = float(p2.get('x', 0)), float(p2.get('y', 0))
+                    x1, y1 = get_point_coords(pts[i])
+                    x2, y2 = get_point_coords(pts[(i + 1) % len(pts)])
                     dx = x2 - x1
                     dy = y2 - y1
                     lsq = dx * dx + dy * dy
@@ -3805,7 +3854,7 @@ class MissionEditorApp(tk.Tk):
                 isl = terrain[s_idx]
                 if isl.get("points"):
                     for v_idx, pt in enumerate(isl["points"]):
-                        vsx, vsy = self.world_to_screen(pt[0], pt[1])
+                        vsx, vsy = self.world_to_screen(*get_point_coords(pt))
                         if math.hypot(event.x - vsx, event.y - vsy) <= 8:
                             self.selected_vertex_idx = v_idx
                             self.drag_start = (event.x, event.y)
@@ -3898,7 +3947,7 @@ class MissionEditorApp(tk.Tk):
                 pts = isl.get("points")
                 if pts and len(pts) >= 3:
                     for v_idx, pt in enumerate(pts):
-                        vsx, vsy = self.world_to_screen(pt[0], pt[1])
+                        vsx, vsy = self.world_to_screen(*get_point_coords(pt))
                         if math.hypot(event.x - vsx, event.y - vsy) <= 8:
                             self.select_island(idx, vertex_idx=v_idx)
                             return
@@ -4016,11 +4065,11 @@ class MissionEditorApp(tk.Tk):
                 pts = isl.get("points", [])
                 if self.selected_vertex_idx < len(pts):
                     pts[self.selected_vertex_idx] = [round(wx, 1), round(wy, 1)]
-                    cx = sum(p[0] for p in pts) / len(pts)
-                    cy = sum(p[1] for p in pts) / len(pts)
+                    cx = sum(get_point_coords(p)[0] for p in pts) / len(pts)
+                    cy = sum(get_point_coords(p)[1] for p in pts) / len(pts)
                     isl["x"] = round(cx, 1)
                     isl["y"] = round(cy, 1)
-                    isl["radius"] = round(max(math.hypot(p[0] - cx, p[1] - cy) for p in pts) + 30, 1)
+                    isl["radius"] = round(max(math.hypot(get_point_coords(p)[0] - cx, get_point_coords(p)[1] - cy) for p in pts) + 30, 1)
                     self.redraw_canvas()
             return
 
@@ -4039,8 +4088,12 @@ class MissionEditorApp(tk.Tk):
                     isl["y"] = round(wy, 1)
                     if isl.get("points"):
                         for pt in isl["points"]:
-                            pt[0] = round(pt[0] + dx, 1)
-                            pt[1] = round(pt[1] + dy, 1)
+                            if isinstance(pt, dict):
+                                pt["x"] = round(float(pt.get("x", 0)) + dx, 1)
+                                pt["y"] = round(float(pt.get("y", 0)) + dy, 1)
+                            elif isinstance(pt, list):
+                                pt[0] = round(float(pt[0]) + dx, 1)
+                                pt[1] = round(float(pt[1]) + dy, 1)
             elif layer == "units":
                 u = self.mission.get("units", {})
                 key = f"{kind}Units" if kind != "spawn" else "playerSpawns"
@@ -4172,6 +4225,17 @@ class MissionEditorApp(tk.Tk):
         self.mission["map"]["id"] = m_id
         self.mission["dynamics"]["meta"]["id"] = m_id
         self.normalize_mission_areas()
+
+        if hasattr(self, "ent_mission_name"):
+            m_name = self.ent_mission_name.get().strip() or "New Tactical Operation"
+            self.mission["name"] = m_name
+            self.mission["map"]["name"] = m_name
+            self.mission.setdefault("dynamics", {}).setdefault("meta", {})["name"] = m_name
+
+        if hasattr(self, "ent_location_name"):
+            loc_name = self.ent_location_name.get().strip() or "Sector 04 // Operational Airspace"
+            self.mission["location"] = loc_name
+            self.mission["map"]["location"] = loc_name
 
         m_type = self.cb_mission_type.get()
         self.mission["missionType"] = m_type

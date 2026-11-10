@@ -524,19 +524,12 @@
 
       <div class="loading-body" id="loading-briefing-body">
         <div class="loading-col directives-col">
-          <div class="loading-section-title">MISSION DIRECTIVES & ROE</div>
+          <div class="loading-section-title">Objective:</div>
           <div id="loading-objectives-list" class="briefing-list">
             <!-- Dynamically populated objectives -->
           </div>
 
-          <div class="loading-section-title roe-title">ENGAGEMENT CRITERIA</div>
-          <div id="loading-conditions-list" class="briefing-conditions">
-            <!-- Dynamically populated win/loss conditions -->
-          </div>
-        </div>
-
-        <div class="loading-col airframe-col">
-          <div class="loading-section-title">SORTIE AIRFRAME & PAYLOAD</div>
+          <div class="loading-section-title airframe-title" style="margin-top: 18px;">SORTIE AIRFRAME &amp; PAYLOAD</div>
           <div class="airframe-card" id="loading-airframe-card">
             <div class="airframe-info-row">
               <span class="lbl">AIRCRAFT:</span>
@@ -555,14 +548,20 @@
               <span class="val" id="loading-flares-info">FLARES (32 UNITS)</span>
             </div>
             <div class="airframe-info-row">
-              <span class="lbl">AVIONICS LINK:</span>
-              <span class="val status-green">IFF SYNCHRONIZED</span>
+              <span class="lbl">LOADOUT STATUS:</span>
+              <span class="val status-green" id="loading-loadout-type">PILOT EQUIPPED LOADOUT</span>
             </div>
           </div>
+        </div>
 
-          <div class="briefing-map-preview">
-            <div class="map-preview-tag">// SECTOR RADAR TOPOGRAPHY ACTIVE</div>
-            <div class="map-preview-sub">CONTOUR MAPPING ENGAGED</div>
+        <div class="loading-col map-col">
+          <div class="loading-section-title">OPERATION THEATER</div>
+          <div class="theater-map-card" id="loading-theater-card">
+            <canvas id="loading-map-canvas" width="400" height="240" class="loading-map-canvas"></canvas>
+            <div class="loading-location-bar">
+              <span class="loc-lbl">LOCATION:</span>
+              <span class="loc-val" id="loading-location-name">SECTOR 04 // OPERATIONAL AIRSPACE</span>
+            </div>
           </div>
         </div>
       </div>
@@ -580,7 +579,7 @@
         <div id="loading-action-container" class="loading-action-container hidden">
           <button id="btn-commence-operation" class="btn-commence">
             <span class="commence-pulse-bracket">&gt;&gt;</span>
-            <span class="commence-label">COMMENCE OPERATION</span>
+            <span class="commence-label">LAUNCH</span>
             <span class="commence-pulse-bracket">&lt;&lt;</span>
           </button>
           <div class="commence-subtext">PRESS [SPACE] OR [ENTER] TO COMMENCE OPERATION // [ESC] ABORT</div>

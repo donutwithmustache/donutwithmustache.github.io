@@ -1,4 +1,6 @@
 {
+  "name": "Operation: Open Ocean & Archipelago",
+  "location": "Barents Strait // Archipelago 04",
   "missionType": "singleplayer",
   "playerCount": 1,
   "loadout": {
@@ -9,6 +11,7 @@
   "map": {
     "id": "test_flight",
     "name": "Open Ocean & Archipelago",
+    "location": "Barents Strait // Archipelago 04",
     "size": 30150,
     "halfMapSize": 15075.0,
     "returnLine": {

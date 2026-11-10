@@ -12,26 +12,27 @@ export const GAME_CREDITS = {
   sections: [
     {
       category: 'LEAD DEVELOPER & ARCHITECT',
-      names: ['Alhussein - System Architecture, Design & Engineering']
+      names: ['DonutWithMustache']
     },
     {
-      category: 'TACTICAL SIMULATION & GAMEPLAY',
-      names: ['Web Legion Flight Mechanics & Avionics Engine']
+      category: 'PHYSICS ENGINE (DDI JETFLOW 1.0)',
+      names: ['DonutWithMustache']
     },
     {
       category: 'AIRCRAFT & ASSET REGISTRY',
-      names: ['Tactical Aircraft & Weapon Design Catalogue']
+      names: ['Aircraft, weapons, and most other assets are drawn by DonutWithMustache',
+        'Terrain and some assets are procedurally generated with Javascript']
     },
     {
       category: 'AUDIO SYSTEMS',
-      names: ['Procedural Web Audio Tactical Sound Synthesizer']
+      names: ['Procedurally generated using Javascript for now. real audio will be added eventually.']
     },
     {
       category: 'DISCLOSURES & NOTICES',
       names: [
-        'Codename: Legion is an autonomous tactical browser flight combat experience.',
-        'Aircraft silhouettes, designations and military systems are inspired by modern and historical aerospace platforms.',
-        'All telemetry and operational profiles are simulated.'
+        'Absolutely ZERO generative AI used in creation of game assets',
+        'Majority of code created by DonutWithMustache, minor CSS/HTML UI work was corrected and checked by Gemini and Github CoPilot.',
+        'Cheers.'
       ]
     }
   ]

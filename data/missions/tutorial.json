@@ -1,4 +1,6 @@
 {
+  "name": "Combat Flight Training & Aerial Gunnery",
+  "location": "San Salvacion // Tactical Proving Grounds",
   "missionType": "singleplayer",
   "playerCount": 1,
   "loadout": {
@@ -8,7 +10,8 @@
   },
   "map": {
     "id": "tutorial",
-    "name": "New Tactical Operation",
+    "name": "Combat Flight Training",
+    "location": "San Salvacion // Tactical Proving Grounds",
     "size": 30150,
     "halfMapSize": 15075,
     "returnLine": {

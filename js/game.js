@@ -650,11 +650,13 @@ class FlightGame {
     const subEl = document.getElementById('loading-mission-subtitle');
     const tagEl = document.getElementById('loading-header-tag');
     const objList = document.getElementById('loading-objectives-list');
-    const condList = document.getElementById('loading-conditions-list');
     const planeNameEl = document.getElementById('loading-aircraft-name');
     const spwNameEl = document.getElementById('loading-spw-name');
     const gunInfoEl = document.getElementById('loading-gun-info');
     const flaresInfoEl = document.getElementById('loading-flares-info');
+    const loadoutTypeEl = document.getElementById('loading-loadout-type');
+    const locEl = document.getElementById('loading-location-name');
+    const mapCanvas = document.getElementById('loading-map-canvas');
     const statusText = document.getElementById('loading-status-text');
     const pctText = document.getElementById('loading-progress-pct');
     const bar = document.getElementById('loading-progress-bar');
@@ -664,17 +666,21 @@ class FlightGame {
 
     if (tagEl) tagEl.textContent = '// TACTICAL SORTIE BRIEFING // TOP SECRET';
     if (titleEl) {
-      const mapName = mData.map?.name || (missionId ? missionId.replace(/_/g, ' ').toUpperCase() : 'COMBAT AIR PATROL');
-      titleEl.textContent = `OPERATION: ${mapName.toUpperCase()}`;
+      const missionName = mData.name || mData.map?.name || (missionId ? missionId.replace(/_/g, ' ').toUpperCase() : 'COMBAT AIR PATROL');
+      titleEl.textContent = missionName.toUpperCase();
     }
     if (subEl) {
-      const theater = mData.dynamics?.meta?.briefing || 'SECTOR 04 // OPERATIONAL AIRSPACE';
-      subEl.textContent = theater;
+      const briefing = mData.dynamics?.meta?.briefing || mData.briefing || 'MISSION BRIEFING PARAMETERS...';
+      subEl.textContent = briefing;
+    }
+    if (locEl) {
+      const locName = mData.map?.location || mData.location || (mData.map?.name ? `${mData.map.name.toUpperCase()} // THEATER` : 'SECTOR 04 // OPERATIONAL AIRSPACE');
+      locEl.textContent = locName.toUpperCase();
     }
 
     if (briefingBody) briefingBody.style.display = 'grid';
 
-    // Populate objectives
+    // Populate objectives dynamically from mission file / dynamics
     if (objList) {
       objList.innerHTML = '';
       const objectives = (mData.dynamics && Array.isArray(mData.dynamics.objectives) && mData.dynamics.objectives.length > 0)
@@ -700,6 +706,8 @@ class FlightGame {
           paramTag = `<span class="briefing-param-tag">[ZONE: ${obj.areaId || 'SECTOR'}]</span>`;
         } else if (obj.type === 'SURVIVE_TIME') {
           paramTag = `<span class="briefing-param-tag">[TIME: ${obj.timeLimit || 120}s]</span>`;
+        } else if (obj.type === 'CUSTOM_SCRIPTED') {
+          paramTag = `<span class="briefing-param-tag">[SCRIPTED]</span>`;
         }
 
         item.innerHTML = `
@@ -716,44 +724,40 @@ class FlightGame {
       });
     }
 
-    // Populate conditions dynamically based on mission dynamics
-    if (condList) {
-      const winRules = [];
-      const wc = mData.dynamics?.winConditions;
-      if (wc?.allPrimaryComplete !== false && mData.dynamics?.objectives?.length > 0) {
-        winRules.push('All designated Primary Objectives secured');
-      }
-      if (wc?.requiredKills > 0) {
-        winRules.push(`Neutralize at least ${wc.requiredKills} hostile units`);
-      }
-      if (winRules.length === 0) {
-        winRules.push('Neutralize all designated hostiles in theater');
-      }
+    // Populate airframe & loadout: if mission uses forced loadout, display forced plane & special weapon regardless of normal plane restrictions
+    const isForced = (mData.loadout && mData.loadout.mode === 'forced');
+    const displayPlaneId = isForced ? mData.loadout.aircraft : (planeId || this.currentAircraftId || 'f15c');
+    const displaySpwId = isForced ? mData.loadout.specialWeapon : (spwId || (this.weapons ? this.weapons.equippedSpwId : null) || 'qaam');
 
-      const loseRules = [];
-      const lc = mData.dynamics?.loseConditions;
-      if (lc?.playerDestroyed || mData.noRespawn) {
-        loseRules.push('Player aircraft destroyed or crashed (No Respawn)');
+    const pData = AIRCRAFT_DATA[displayPlaneId] || { name: (displayPlaneId || 'AIRCRAFT').toUpperCase() };
+    if (planeNameEl) planeNameEl.textContent = pData.name || displayPlaneId.toUpperCase();
+
+    const sData = SPECIAL_WEAPONS[displaySpwId] || { name: (displaySpwId || 'SPECIAL WEAPON').toUpperCase() };
+    const spwAmmoCount = (this.weapons && this.weapons.spwCount !== undefined) ? this.weapons.spwCount : (sData.defaultAmmo || 24);
+    if (spwNameEl) spwNameEl.textContent = `${sData.name || displaySpwId.toUpperCase()} [x${spwAmmoCount}]`;
+
+    if (gunInfoEl) {
+      const gunRounds = (this.weapons && this.weapons.gunAmmo !== undefined) ? this.weapons.gunAmmo : 800;
+      gunInfoEl.textContent = `20MM M61A2 VULCAN (${gunRounds} RDS)`;
+    }
+    if (flaresInfoEl) {
+      const flaresCount = (this.weapons && this.weapons.flareCount !== undefined) ? this.weapons.flareCount : 32;
+      flaresInfoEl.textContent = `FLARES (${flaresCount} UNITS)`;
+    }
+    if (loadoutTypeEl) {
+      if (isForced) {
+        loadoutTypeEl.textContent = 'FORCED MISSION LOADOUT';
+        loadoutTypeEl.className = 'val status-orange';
       } else {
-        loseRules.push('Player aircraft destroyed');
+        loadoutTypeEl.textContent = 'PILOT EQUIPPED LOADOUT';
+        loadoutTypeEl.className = 'val status-green';
       }
-      if (lc?.timeLimit > 0) {
-        loseRules.push(`Sortie operational time exceeds ${lc.timeLimit}s`);
-      }
-
-      condList.innerHTML = `
-        <div class="briefing-item"><span class="briefing-bullet" style="color: #ff4757;">&gt;</span><span><strong style="color: #ffa502;">VICTORY:</strong> ${winRules.join(' // ')}</span></div>
-        <div class="briefing-item"><span class="briefing-bullet" style="color: #ff3344;">&gt;</span><span><strong style="color: #ff4757;">DEFEAT:</strong> ${loseRules.join(' // ')}</span></div>
-      `;
     }
 
-    // Populate airframe info
-    const pData = AIRCRAFT_DATA[planeId] || this.aircraftConfig || {};
-    if (planeNameEl) planeNameEl.textContent = pData.name || 'F-15C EAGLE';
-    const sData = SPECIAL_WEAPONS[spwId] || SPECIAL_WEAPONS[this.weapons.equippedSpecialWeapon] || {};
-    if (spwNameEl) spwNameEl.textContent = `${sData.name || 'QAAM'} [x${this.weapons.spwAmmo}]`;
-    if (gunInfoEl) gunInfoEl.textContent = `20MM AUTOCANNON (${this.weapons.gunAmmo} RDS)`;
-    if (flaresInfoEl) flaresInfoEl.textContent = `FLARES (${this.weapons.flareCount} UNITS)`;
+    // Render simple theater vector map showing only terrain (zero target indicators / zero unit markers)
+    if (mapCanvas) {
+      this.drawLoadingTheaterMap(mapCanvas, mData);
+    }
 
     // Reset progress
     if (bar) bar.style.width = '0%';
@@ -823,6 +827,114 @@ class FlightGame {
         window.addEventListener('keydown', handleKey);
       }
     }, 160);
+  }
+
+  drawLoadingTheaterMap(canvas, mData) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+
+    // Deep tactical ocean background
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+    bgGrad.addColorStop(0, '#060e17');
+    bgGrad.addColorStop(1, '#02060b');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Tactical grid lines in faint red/wine
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 71, 87, 0.12)';
+    ctx.lineWidth = 1;
+    const gridCols = 6;
+    const gridRows = 4;
+    for (let c = 1; c < gridCols; c++) {
+      const gx = (width / gridCols) * c;
+      ctx.beginPath();
+      ctx.moveTo(gx, 0);
+      ctx.lineTo(gx, height);
+      ctx.stroke();
+    }
+    for (let r = 1; r < gridRows; r++) {
+      const gy = (height / gridRows) * r;
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(width, gy);
+      ctx.stroke();
+    }
+
+    // Grid coordinates markers in corners / edges
+    ctx.fillStyle = 'rgba(255, 71, 87, 0.5)';
+    ctx.font = '9px Consolas, monospace';
+    ctx.fillText('THEATER MAP // SECTOR OVERVIEW', 10, 16);
+    ctx.fillText('NO THREAT VECTORS', width - 110, 16);
+
+    // Calculate bounding box of map or terrains
+    const mapSize = (mData.map && mData.map.size) ? mData.map.size : 30150;
+    const padding = 20;
+    const drawW = width - padding * 2;
+    const drawH = height - padding * 2;
+    const scale = Math.min(drawW, drawH) / mapSize;
+
+    const toCanvasX = (worldX) => width / 2 + worldX * scale;
+    const toCanvasY = (worldY) => height / 2 + worldY * scale;
+
+    // Get terrains: from mData.map.terrain or world.islands
+    const terrains = (mData.map && Array.isArray(mData.map.terrain) && mData.map.terrain.length > 0)
+      ? mData.map.terrain
+      : (this.world && Array.isArray(this.world.islands) ? this.world.islands : []);
+
+    for (const t of terrains) {
+      const lType = (t.landType || 'island').toLowerCase();
+      let fillCol = 'rgba(32, 58, 46, 0.85)';
+      let strokeCol = 'rgba(0, 255, 170, 0.7)';
+      if (lType === 'city') {
+        fillCol = 'rgba(50, 56, 70, 0.85)';
+        strokeCol = 'rgba(120, 190, 255, 0.7)';
+      } else if (lType === 'desert') {
+        fillCol = 'rgba(70, 60, 40, 0.85)';
+        strokeCol = 'rgba(255, 210, 110, 0.7)';
+      }
+
+      ctx.fillStyle = fillCol;
+      ctx.strokeStyle = strokeCol;
+      ctx.lineWidth = 1.5;
+
+      const pts = t.points;
+      if (pts && pts.length >= 3) {
+        ctx.beginPath();
+        for (let i = 0; i < pts.length; i++) {
+          const pt = pts[i];
+          const px = Array.isArray(pt) ? pt[0] : (pt.x || 0);
+          const py = Array.isArray(pt) ? pt[1] : (pt.y || 0);
+          const cx = toCanvasX(px);
+          const cy = toCanvasY(py);
+          if (i === 0) ctx.moveTo(cx, cy);
+          else ctx.lineTo(cx, cy);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        const cx = toCanvasX(t.x || 0);
+        const cy = toCanvasY(t.y || 0);
+        const cr = Math.max(3, (t.radius || 1000) * scale);
+        ctx.beginPath();
+        ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    // Outer border
+    ctx.strokeStyle = 'rgba(255, 71, 87, 0.35)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0, 0, width, height);
+
+    ctx.restore();
   }
 
   exitToMainMenu() {

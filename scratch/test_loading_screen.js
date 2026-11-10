@@ -6,8 +6,9 @@ const css = fs.readFileSync('css/menu.css', 'utf8');
 
 // Selector cursor check
 assert(css.includes('.menu-selector-cursor'), "menu-selector-cursor must exist");
-assert(css.includes('rgba(255, 255, 255, 0.38)'), "Selector left gradient must have high transparency (0.38)");
-console.log("PASS: Main menu selector cursor transparency verified.");
+assert(css.includes('rgba(255, 232, 115'), "Selector must have yellowish tint gradient");
+assert(css.includes('.menu-selector-cursor::before'), "Selector must have left indicator block");
+console.log("PASS: Main menu selector cursor yellowish tint & indicator block verified.");
 
 // Loading screen color palette check
 assert(css.includes('rgba(46, 8, 14, 0.97)'), "Loading screen background must use main menu crimson/wine palette");
@@ -22,7 +23,8 @@ assert(gameJs.includes('briefing-param-tag'), "js/game.js must generate briefing
 assert(gameJs.includes('DESTROY_NAMED_TARGET'), "js/game.js must support DESTROY_NAMED_TARGET");
 assert(gameJs.includes('REACH_AREA'), "js/game.js must support REACH_AREA");
 assert(gameJs.includes('SURVIVE_TIME'), "js/game.js must support SURVIVE_TIME");
-assert(gameJs.includes('All designated Primary Objectives secured'), "js/game.js must dynamically evaluate win conditions");
+assert(gameJs.includes('drawLoadingTheaterMap'), "js/game.js must draw tactical theater vector map");
+assert(gameJs.includes('isForced'), "js/game.js must support forced loadout display");
 console.log("PASS: Pre-mission loading screen objective and condition logic verified.");
 
 // 3. Verify Mission Simulator Objective Tracking in js/mission.js

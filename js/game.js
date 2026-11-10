@@ -680,8 +680,8 @@ class FlightGame {
       const objectives = (mData.dynamics && Array.isArray(mData.dynamics.objectives) && mData.dynamics.objectives.length > 0)
         ? mData.dynamics.objectives
         : [
-            { title: 'Engage Hostile Forces', description: 'Eliminate all primary targets within the operational theater.', isPrimary: true },
-            { title: 'Protect Allied Assets', description: 'Maintain fleet airspace perimeter and neutralize bogeys.', isPrimary: false }
+            { title: 'Engage Hostile Forces', description: 'Eliminate all primary targets within the operational theater.', isPrimary: true, type: 'DESTROY_TARGETS', requiredCount: 5 },
+            { title: 'Protect Allied Assets', description: 'Maintain fleet airspace perimeter and neutralize bogeys.', isPrimary: false, type: 'DESTROY_TARGETS', requiredCount: 2 }
           ];
 
       objectives.forEach(obj => {
@@ -689,22 +689,61 @@ class FlightGame {
         item.className = 'briefing-item';
         const badgeClass = obj.isPrimary ? 'briefing-badge-pri' : 'briefing-badge-sec';
         const badgeText = obj.isPrimary ? 'PRIMARY' : 'SECONDARY';
+
+        // Type parameter tag
+        let paramTag = '';
+        if (obj.type === 'DESTROY_TARGETS') {
+          paramTag = `<span class="briefing-param-tag">[REQ: ${obj.requiredCount || 1} KILLS]</span>`;
+        } else if (obj.type === 'DESTROY_NAMED_TARGET') {
+          paramTag = `<span class="briefing-param-tag">[TARGET: ${obj.targetUnitId || 'HOSTILE VIP'}]</span>`;
+        } else if (obj.type === 'REACH_AREA') {
+          paramTag = `<span class="briefing-param-tag">[ZONE: ${obj.areaId || 'SECTOR'}]</span>`;
+        } else if (obj.type === 'SURVIVE_TIME') {
+          paramTag = `<span class="briefing-param-tag">[TIME: ${obj.timeLimit || 120}s]</span>`;
+        }
+
         item.innerHTML = `
           <span class="${badgeClass}">${badgeText}</span>
-          <div>
-            <strong style="color: #ffffff;">${obj.title || 'Neutralize Targets'}</strong>
-            <div style="font-size: 11px; color: #a2b7c7;">${obj.description || ''}</div>
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong style="color: #ffffff; letter-spacing: 1px;">${obj.title || 'Neutralize Targets'}</strong>
+              ${paramTag}
+            </div>
+            <div style="font-size: 11px; color: #ffb8b8; margin-top: 2px;">${obj.description || ''}</div>
           </div>
         `;
         objList.appendChild(item);
       });
     }
 
-    // Populate conditions
+    // Populate conditions dynamically based on mission dynamics
     if (condList) {
+      const winRules = [];
+      const wc = mData.dynamics?.winConditions;
+      if (wc?.allPrimaryComplete !== false && mData.dynamics?.objectives?.length > 0) {
+        winRules.push('All designated Primary Objectives secured');
+      }
+      if (wc?.requiredKills > 0) {
+        winRules.push(`Neutralize at least ${wc.requiredKills} hostile units`);
+      }
+      if (winRules.length === 0) {
+        winRules.push('Neutralize all designated hostiles in theater');
+      }
+
+      const loseRules = [];
+      const lc = mData.dynamics?.loseConditions;
+      if (lc?.playerDestroyed || mData.noRespawn) {
+        loseRules.push('Player aircraft destroyed or crashed (No Respawn)');
+      } else {
+        loseRules.push('Player aircraft destroyed');
+      }
+      if (lc?.timeLimit > 0) {
+        loseRules.push(`Sortie operational time exceeds ${lc.timeLimit}s`);
+      }
+
       condList.innerHTML = `
-        <div class="briefing-item"><span class="briefing-bullet">&gt;</span><span><strong>VICTORY:</strong> All designated hostile units neutralized</span></div>
-        <div class="briefing-item"><span class="briefing-bullet" style="color:#ff4444;">&gt;</span><span><strong>DEFEAT:</strong> Airframe crash or destruction</span></div>
+        <div class="briefing-item"><span class="briefing-bullet" style="color: #ff4757;">&gt;</span><span><strong style="color: #ffa502;">VICTORY:</strong> ${winRules.join(' // ')}</span></div>
+        <div class="briefing-item"><span class="briefing-bullet" style="color: #ff3344;">&gt;</span><span><strong style="color: #ff4757;">DEFEAT:</strong> ${loseRules.join(' // ')}</span></div>
       `;
     }
 

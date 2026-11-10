@@ -760,6 +760,9 @@ export class TargetManager {
     for (const tgt of this.targets) {
       if (tgt.active === false) continue;
       if (tgt.isDestroyed) {
+        if (tgt.canRespawn === false || tgt.respawn === false) {
+          continue;
+        }
         tgt.respawnTimer -= dt;
         if (tgt.respawnTimer <= 0) {
           tgt.isDestroyed = false;

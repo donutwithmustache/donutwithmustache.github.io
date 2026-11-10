@@ -111,6 +111,7 @@ class MissionEditorApp(tk.Tk):
         self.zoom = 0.018  # Canvas pixels per world meter
         self.tool_mode = "select"  # select, island, poly_island, spawn, air, ground, naval, nuke
         self.selected_item = None  # (layer, type, index_or_id)
+        self.selected_objective_idx = None
         self.selected_area_idx = None
         self.selected_trigger_idx = None
         self.drag_start = None
@@ -784,12 +785,21 @@ class MissionEditorApp(tk.Tk):
         self.cb_u_weapon = ttk.Combobox(self.u_insp, values=SPECIAL_WEAPON_TYPES, state="readonly", width=12)
         self.cb_u_weapon.grid(row=1, column=3, sticky="w", padx=4, pady=3)
 
-        # Dormant / Active Checkbox for story spawn/despawn
+        # Row 2: Active / Dormant Checkbox & Respawn After Dying Checkbox
+        chk_frame = tk.Frame(self.u_insp, bg="#101c2b")
+        chk_frame.grid(row=2, column=0, columnspan=4, sticky="w", pady=3)
+
         self.var_u_active = tk.BooleanVar(value=True)
-        self.cb_u_active = tk.Checkbutton(self.u_insp, text="Active at Start (Uncheck to start dormant/spawned via trigger)",
+        self.cb_u_active = tk.Checkbutton(chk_frame, text="Active at Start",
                                           variable=self.var_u_active, bg="#101c2b", fg="#00ffcc", selectcolor="#005522",
                                           font=("Consolas", 9))
-        self.cb_u_active.grid(row=2, column=0, columnspan=4, sticky="w", pady=3)
+        self.cb_u_active.pack(side="left", padx=(0, 16))
+
+        self.var_u_respawn = tk.BooleanVar(value=False)
+        self.cb_u_respawn = tk.Checkbutton(chk_frame, text="Respawn After Dying (Revives on timer)",
+                                           variable=self.var_u_respawn, bg="#101c2b", fg="#00ffcc", selectcolor="#005522",
+                                           font=("Consolas", 9))
+        self.cb_u_respawn.pack(side="left", padx=2)
 
         # AI Order & Pathing
         tk.Label(self.u_insp, text="AI Order / Path:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=3, column=0, sticky="w")
@@ -833,10 +843,62 @@ class MissionEditorApp(tk.Tk):
         o_btns = tk.Frame(box_objs, bg="#101c2b")
         o_btns.pack(fill="x")
         tk.Button(o_btns, text="+ Add Objective", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.add_objective).pack(side="left", padx=2)
+        tk.Button(o_btns, text="Duplicate", bg="#1f3b58", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.duplicate_objective).pack(side="left", padx=2)
         tk.Button(o_btns, text="- Remove", bg="#4a1818", fg="#ff8888", font=("Consolas", 8), command=self.delete_objective).pack(side="left", padx=2)
 
         self.objs_listbox = tk.Listbox(box_objs, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55", exportselection=False, font=("Consolas", 9), height=3, bd=0)
         self.objs_listbox.pack(fill="x", pady=4)
+        self.objs_listbox.bind("<<ListboxSelect>>", self.on_select_objective_item)
+
+        # Objective Inspector inside box_objs
+        self.obj_insp = tk.Frame(box_objs, bg="#101c2b", pady=2)
+        self.obj_insp.pack(fill="x")
+
+        # Row 0: Title & Type
+        tk.Label(self.obj_insp, text="Title:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=0, column=0, sticky="w")
+        self.ent_obj_title = ttk.Entry(self.obj_insp, width=20)
+        self.ent_obj_title.grid(row=0, column=1, sticky="w", padx=4, pady=2)
+
+        tk.Label(self.obj_insp, text="Type:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=0, column=2, sticky="w")
+        self.cb_obj_type = ttk.Combobox(self.obj_insp, values=[
+            "DESTROY_TARGETS",
+            "DESTROY_NAMED_TARGET",
+            "REACH_AREA",
+            "SURVIVE_TIME"
+        ], state="readonly", width=22)
+        self.cb_obj_type.grid(row=0, column=3, sticky="w", padx=4, pady=2)
+        self.cb_obj_type.set("DESTROY_TARGETS")
+        self.cb_obj_type.bind("<<ComboboxSelected>>", self.on_obj_type_changed)
+
+        # Row 1: Description
+        tk.Label(self.obj_insp, text="Briefing:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=1, column=0, sticky="w")
+        self.ent_obj_desc = ttk.Entry(self.obj_insp, width=54)
+        self.ent_obj_desc.grid(row=1, column=1, columnspan=3, sticky="we", padx=4, pady=2)
+
+        # Row 2: Priority Checkbutton & Target Unit / Area
+        self.var_obj_primary = tk.BooleanVar(value=True)
+        self.chk_obj_primary = tk.Checkbutton(
+            self.obj_insp, text="Primary Objective (Required to Win)",
+            variable=self.var_obj_primary, bg="#101c2b", fg="#00ffcc",
+            selectcolor="#005522", activebackground="#101c2b",
+            activeforeground="#00ffcc", font=("Consolas", 8, "bold")
+        )
+        self.chk_obj_primary.grid(row=2, column=0, columnspan=2, sticky="w", padx=4, pady=2)
+
+        self.lbl_obj_target = tk.Label(self.obj_insp, text="Target / Area:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9))
+        self.lbl_obj_target.grid(row=2, column=2, sticky="w")
+        self.cb_obj_target = ttk.Combobox(self.obj_insp, width=22)
+        self.cb_obj_target.grid(row=2, column=3, sticky="w", padx=4, pady=2)
+
+        # Row 3: Param 1 (Kills/Time) & Apply Button
+        self.lbl_obj_param1 = tk.Label(self.obj_insp, text="Req Kills:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9))
+        self.lbl_obj_param1.grid(row=3, column=0, sticky="w")
+        self.ent_obj_param1 = ttk.Entry(self.obj_insp, width=8)
+        self.ent_obj_param1.grid(row=3, column=1, sticky="w", padx=4, pady=2)
+
+        btn_save_obj = tk.Button(self.obj_insp, text="Apply Objective Changes", bg="#1a3248", fg="#00ffcc", font=("Consolas", 8, "bold"),
+                                 command=self.update_objective_from_form)
+        btn_save_obj.grid(row=3, column=2, columnspan=2, sticky="e", padx=4, pady=2)
 
         # 1B. Win & Lose Conditions Panel
         box_conds = tk.LabelFrame(frame, text=" Mission Win / Lose Conditions & Endings ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=6)
@@ -1333,29 +1395,44 @@ class MissionEditorApp(tk.Tk):
         self.units_listbox.delete(0, tk.END)
         for a in u.get("airUnits", []):
             dorm = " [DORMANT]" if (a.get("active") is False or a.get("spawned") is False) else ""
+            resp = " [RESPAWN]" if (a.get("canRespawn") or a.get("respawn")) else ""
             m_str = a.get("model", "plane").upper()
             spw = a.get("specialWeapon")
             spw_str = f"/{spw.upper()}" if spw and spw != "none" else ""
             deg = round(math.degrees(a.get("heading", 0.0))) % 360
-            self.units_listbox.insert(tk.END, f"[AIR/{m_str}{spw_str}] {a.get('name', 'Plane')} ({int(a.get('x',0))}, {int(a.get('y',0))}) HDG {deg}°{dorm}")
+            self.units_listbox.insert(tk.END, f"[AIR/{m_str}{spw_str}] {a.get('name', 'Plane')} ({int(a.get('x',0))}, {int(a.get('y',0))}) HDG {deg}°{dorm}{resp}")
         for g in u.get("groundUnits", []):
             dorm = " [DORMANT]" if (g.get("active") is False or g.get("spawned") is False) else ""
+            resp = " [RESPAWN]" if (g.get("canRespawn") or g.get("respawn")) else ""
             stat = " [STAT]" if (g.get("orders", {}).get("type") == "STATIONARY" or g.get("speed", 0) == 0) else ""
             g_str = (g.get("groundType") or g.get("subType") or "gnd").upper()
             deg = round(math.degrees(g.get("heading", 0.0))) % 360
-            self.units_listbox.insert(tk.END, f"[GND/{g_str}{stat}] {g.get('name', 'Unit')} ({int(g.get('x',0))}, {int(g.get('y',0))}) HDG {deg}°{dorm}")
+            self.units_listbox.insert(tk.END, f"[GND/{g_str}{stat}] {g.get('name', 'Unit')} ({int(g.get('x',0))}, {int(g.get('y',0))}) HDG {deg}°{dorm}{resp}")
         for n in u.get("navalUnits", []):
             dorm = " [DORMANT]" if (n.get("active") is False or n.get("spawned") is False) else ""
+            resp = " [RESPAWN]" if (n.get("canRespawn") or n.get("respawn")) else ""
             stat = " [STAT]" if (n.get("orders", {}).get("type") == "STATIONARY" or n.get("speed", 1) == 0) else ""
             s_str = (n.get("subType") or n.get("shipType") or "ship").upper()
             deg = round(math.degrees(n.get("heading", 0.0))) % 360
-            self.units_listbox.insert(tk.END, f"[NAV/{s_str}{stat}] {n.get('name', 'Ship')} ({int(n.get('x',0))}, {int(n.get('y',0))}) HDG {deg}°{dorm}")
+            self.units_listbox.insert(tk.END, f"[NAV/{s_str}{stat}] {n.get('name', 'Ship')} ({int(n.get('x',0))}, {int(n.get('y',0))}) HDG {deg}°{dorm}{resp}")
 
         # Objectives & Triggers
         d = self.mission.get("dynamics", {})
+        objs = d.get("objectives", [])
         self.objs_listbox.delete(0, tk.END)
-        for o in d.get("objectives", []):
-            self.objs_listbox.insert(tk.END, f"OBJ: {o.get('title')} ({o.get('type')})")
+        for o in objs:
+            pri = "[PRI]" if o.get("isPrimary", True) else "[SEC]"
+            otype = o.get("type", "DESTROY_TARGETS")
+            pstr = ""
+            if otype == "DESTROY_TARGETS":
+                pstr = f"({o.get('requiredCount', 5)} Kills)"
+            elif otype == "DESTROY_NAMED_TARGET":
+                pstr = f"(Target: {o.get('targetUnitId', 'N/A')})"
+            elif otype == "REACH_AREA":
+                pstr = f"(Zone: {o.get('areaId', 'N/A')})"
+            elif otype == "SURVIVE_TIME":
+                pstr = f"(Survive {int(o.get('timeLimit', 120))}s)"
+            self.objs_listbox.insert(tk.END, f"{pri} {o.get('title', 'Objective')} {pstr}")
 
         # Win & Lose conditions
         wc = d.get("winConditions", {})
@@ -1423,6 +1500,17 @@ class MissionEditorApp(tk.Tk):
                         self.units_listbox.selection_set(list_idx)
                         self.units_listbox.activate(list_idx)
                         self.units_listbox.see(list_idx)
+        # Restore Objective selection
+        if self.selected_objective_idx is not None and self.selected_objective_idx < len(objs):
+            self.objs_listbox.selection_clear(0, tk.END)
+            self.objs_listbox.selection_set(self.selected_objective_idx)
+            self.objs_listbox.activate(self.selected_objective_idx)
+            self.objs_listbox.see(self.selected_objective_idx)
+            if hasattr(self, "ent_obj_title"):
+                self.select_objective(self.selected_objective_idx)
+        elif objs and hasattr(self, "ent_obj_title"):
+            self.select_objective(0)
+
         # Restore Area selection
         if self.selected_area_idx is not None and self.selected_area_idx < len(areas):
             self.areas_listbox.selection_clear(0, tk.END)
@@ -1588,6 +1676,9 @@ class MissionEditorApp(tk.Tk):
                 self.cb_u_order.set(orders.get("type", "PATROL_AREA"))
                 is_active = unit.get("active", True) if unit.get("spawned") is None else unit.get("spawned", True)
                 self.var_u_active.set(bool(is_active))
+                is_respawn = unit.get("canRespawn") if unit.get("canRespawn") is not None else unit.get("respawn", False)
+                if hasattr(self, 'var_u_respawn'):
+                    self.var_u_respawn.set(bool(is_respawn))
 
                 if hasattr(self, 'ent_u_heading'):
                     hd = unit.get("heading", 0.0)
@@ -1652,6 +1743,9 @@ class MissionEditorApp(tk.Tk):
             unit["name"] = self.ent_u_name.get().strip()
             unit["aiType"] = self.cb_u_ai.get()
             unit["active"] = bool(self.var_u_active.get())
+            if hasattr(self, 'var_u_respawn'):
+                unit["canRespawn"] = bool(self.var_u_respawn.get())
+                unit["respawn"] = bool(self.var_u_respawn.get())
             unit["orders"] = {"type": self.cb_u_order.get()}
 
             # Save unit model / ship class / weapon
@@ -2328,6 +2422,8 @@ class MissionEditorApp(tk.Tk):
             "aiType": "rookie",
             "team": "enemy",
             "active": True,
+            "canRespawn": bool(self.var_u_respawn.get()) if hasattr(self, 'var_u_respawn') else False,
+            "respawn": bool(self.var_u_respawn.get()) if hasattr(self, 'var_u_respawn') else False,
             "x": float(x),
             "y": float(y),
             "heading": 0.0,
@@ -2371,6 +2467,8 @@ class MissionEditorApp(tk.Tk):
             "subType": g_type,
             "team": "enemy",
             "active": True,
+            "canRespawn": bool(self.var_u_respawn.get()) if hasattr(self, 'var_u_respawn') else False,
+            "respawn": bool(self.var_u_respawn.get()) if hasattr(self, 'var_u_respawn') else False,
             "x": float(x),
             "y": float(y),
             "heading": 0.0,
@@ -2425,6 +2523,8 @@ class MissionEditorApp(tk.Tk):
             "shipType": s_class,
             "team": "enemy",
             "active": True,
+            "canRespawn": bool(self.var_u_respawn.get()) if hasattr(self, 'var_u_respawn') else False,
+            "respawn": bool(self.var_u_respawn.get()) if hasattr(self, 'var_u_respawn') else False,
             "x": float(x),
             "y": float(y),
             "heading": 0.0,
@@ -2744,25 +2844,182 @@ class MissionEditorApp(tk.Tk):
             self.selected_item = None
             self.populate_form_from_mission()
 
+    def on_obj_type_changed(self, event=None):
+        otype = self.cb_obj_type.get()
+        if otype == "DESTROY_TARGETS":
+            self.lbl_obj_param1.config(text="Req Kills:")
+            self.ent_obj_param1.config(state="normal")
+            self.lbl_obj_target.config(text="[Any Target]")
+            self.cb_obj_target.config(state="disabled")
+        elif otype == "DESTROY_NAMED_TARGET":
+            self.lbl_obj_param1.config(text="[Kills: 1]")
+            self.ent_obj_param1.config(state="disabled")
+            self.lbl_obj_target.config(text="Target Unit:")
+            self.cb_obj_target.config(state="normal")
+            self.refresh_objective_comboboxes()
+        elif otype == "REACH_AREA":
+            self.lbl_obj_param1.config(text="[Area Goal]")
+            self.ent_obj_param1.config(state="disabled")
+            self.lbl_obj_target.config(text="Target Zone:")
+            self.cb_obj_target.config(state="normal")
+            self.refresh_objective_comboboxes()
+        elif otype == "SURVIVE_TIME":
+            self.lbl_obj_param1.config(text="Survive (s):")
+            self.ent_obj_param1.config(state="normal")
+            self.lbl_obj_target.config(text="[Time Goal]")
+            self.cb_obj_target.config(state="disabled")
+
+    def refresh_objective_comboboxes(self):
+        otype = self.cb_obj_type.get()
+        if otype == "DESTROY_NAMED_TARGET":
+            u = self.mission.get("units", {})
+            unit_items = []
+            for a in u.get("airUnits", []):
+                unit_items.append(f"{a.get('id', 'air')} - {a.get('name', 'Air Unit')}")
+            for g in u.get("groundUnits", []):
+                unit_items.append(f"{g.get('id', 'gnd')} - {g.get('name', 'Ground Unit')}")
+            for n in u.get("navalUnits", []):
+                unit_items.append(f"{n.get('id', 'nav')} - {n.get('name', 'Naval Unit')}")
+            self.cb_obj_target["values"] = unit_items
+        elif otype == "REACH_AREA":
+            areas = self.mission.get("dynamics", {}).get("areas", [])
+            area_items = [f"{a.get('id', 'area')} - {a.get('name', 'Area')}" for a in areas]
+            self.cb_obj_target["values"] = area_items
+
+    def select_objective(self, idx):
+        objs = self.mission.get("dynamics", {}).get("objectives", [])
+        if idx is None or idx < 0 or idx >= len(objs):
+            self.selected_objective_idx = None
+            return
+        self.selected_objective_idx = idx
+        obj = objs[idx]
+
+        self.objs_listbox.selection_clear(0, tk.END)
+        self.objs_listbox.selection_set(idx)
+        self.objs_listbox.activate(idx)
+        self.objs_listbox.see(idx)
+
+        self.ent_obj_title.delete(0, tk.END)
+        self.ent_obj_title.insert(0, obj.get("title", f"Objective #{idx+1}"))
+
+        otype = obj.get("type", "DESTROY_TARGETS")
+        self.cb_obj_type.set(otype)
+
+        self.ent_obj_desc.delete(0, tk.END)
+        self.ent_obj_desc.insert(0, obj.get("description", ""))
+
+        self.var_obj_primary.set(bool(obj.get("isPrimary", True)))
+
+        self.ent_obj_param1.config(state="normal")
+        self.ent_obj_param1.delete(0, tk.END)
+        if otype == "DESTROY_TARGETS":
+            self.ent_obj_param1.insert(0, str(obj.get("requiredCount", 5)))
+        elif otype == "SURVIVE_TIME":
+            self.ent_obj_param1.insert(0, str(int(obj.get("timeLimit", 120))))
+        else:
+            self.ent_obj_param1.insert(0, "1")
+
+        self.refresh_objective_comboboxes()
+
+        if otype == "DESTROY_NAMED_TARGET":
+            self.cb_obj_target.set(obj.get("targetUnitId", ""))
+        elif otype == "REACH_AREA":
+            self.cb_obj_target.set(obj.get("areaId", ""))
+        else:
+            self.cb_obj_target.set("")
+
+        self.on_obj_type_changed()
+
+    def on_select_objective_item(self, event=None):
+        sel = self.objs_listbox.curselection()
+        if not sel: return
+        new_idx = sel[0]
+        if self.selected_objective_idx is not None and self.selected_objective_idx != new_idx:
+            objs = self.mission.get("dynamics", {}).get("objectives", [])
+            if self.selected_objective_idx < len(objs):
+                self.update_objective_from_form(auto_select=False)
+        self.select_objective(new_idx)
+
+    def update_objective_from_form(self, auto_select=True):
+        if self.selected_objective_idx is None:
+            objs = self.mission.get("dynamics", {}).get("objectives", [])
+            if objs:
+                self.selected_objective_idx = 0
+            else:
+                return
+        objs = self.mission["dynamics"].setdefault("objectives", [])
+        if self.selected_objective_idx < len(objs):
+            obj = objs[self.selected_objective_idx]
+            obj["title"] = self.ent_obj_title.get().strip() or f"Objective #{self.selected_objective_idx+1}"
+            obj["type"] = self.cb_obj_type.get()
+            obj["description"] = self.ent_obj_desc.get().strip() or "Tactical operational directive."
+            obj["isPrimary"] = bool(self.var_obj_primary.get())
+
+            otype = obj["type"]
+            if otype == "DESTROY_TARGETS":
+                try:
+                    obj["requiredCount"] = max(1, int(self.ent_obj_param1.get().strip()))
+                except (ValueError, TypeError):
+                    obj["requiredCount"] = 5
+            elif otype == "SURVIVE_TIME":
+                try:
+                    obj["timeLimit"] = max(1.0, float(self.ent_obj_param1.get().strip()))
+                except (ValueError, TypeError):
+                    obj["timeLimit"] = 120.0
+            elif otype == "DESTROY_NAMED_TARGET":
+                raw_t = self.cb_obj_target.get().strip()
+                t_id = raw_t.split(" ")[0].strip() if raw_t else ""
+                obj["targetUnitId"] = t_id
+            elif otype == "REACH_AREA":
+                raw_a = self.cb_obj_target.get().strip()
+                a_id = raw_a.split(" ")[0].strip() if raw_a else ""
+                obj["areaId"] = a_id
+
+            cur_idx = self.selected_objective_idx
+            self.populate_form_from_mission()
+            if auto_select and cur_idx < len(objs):
+                self.select_objective(cur_idx)
+
     def add_objective(self):
         objs = self.mission["dynamics"].setdefault("objectives", [])
+        new_idx = len(objs)
         objs.append({
-            "id": f"obj_{len(objs) + 1}",
-            "title": f"Objective #{len(objs) + 1}",
-            "description": "Engage primary targets in theater.",
+            "id": f"obj_{new_idx + 1}",
+            "title": f"Objective #{new_idx + 1}",
+            "description": "Engage designated hostile assets in theater.",
             "type": "DESTROY_TARGETS",
             "requiredCount": 5,
             "isPrimary": True
         })
+        self.selected_objective_idx = new_idx
         self.populate_form_from_mission()
+        self.select_objective(new_idx)
+
+    def duplicate_objective(self):
+        if self.selected_objective_idx is None: return
+        objs = self.mission["dynamics"].get("objectives", [])
+        if self.selected_objective_idx < len(objs):
+            src = copy.deepcopy(objs[self.selected_objective_idx])
+            new_idx = len(objs)
+            src["id"] = f"obj_{new_idx + 1}"
+            src["title"] = f"{src.get('title', 'Objective')} (Copy)"
+            objs.append(src)
+            self.selected_objective_idx = new_idx
+            self.populate_form_from_mission()
+            self.select_objective(new_idx)
 
     def delete_objective(self):
         sel = self.objs_listbox.curselection()
-        if not sel: return
+        idx = sel[0] if sel else self.selected_objective_idx
+        if idx is None: return
         objs = self.mission["dynamics"].get("objectives", [])
-        if sel[0] < len(objs):
-            del objs[sel[0]]
+        if idx < len(objs):
+            del objs[idx]
+            new_idx = min(idx, len(objs) - 1) if objs else None
+            self.selected_objective_idx = new_idx
             self.populate_form_from_mission()
+            if new_idx is not None:
+                self.select_objective(new_idx)
 
     def delete_trigger(self):
         sel = self.trigs_listbox.curselection()
@@ -3322,6 +3579,30 @@ class MissionEditorApp(tk.Tk):
             else:
                 return (wx - cx) ** 2 + (wy - cy) ** 2 <= (rad * 0.85) ** 2
 
+        def dist_to_border(wx, wy):
+            if is_poly:
+                if not is_point_in_polygon(wx, wy, pts):
+                    return 0.0
+                min_d = float('inf')
+                for i in range(len(pts)):
+                    p1 = pts[i]
+                    p2 = pts[(i + 1) % len(pts)]
+                    x1, y1 = float(p1.get('x', 0)), float(p1.get('y', 0))
+                    x2, y2 = float(p2.get('x', 0)), float(p2.get('y', 0))
+                    dx = x2 - x1
+                    dy = y2 - y1
+                    lsq = dx * dx + dy * dy
+                    if lsq == 0:
+                        d = math.hypot(wx - x1, wy - y1)
+                    else:
+                        t = max(0.0, min(1.0, ((wx - x1) * dx + (wy - y1) * dy) / lsq))
+                        d = math.hypot(wx - (x1 + t * dx), wy - (y1 + t * dy))
+                    if d < min_d:
+                        min_d = d
+                return min_d
+            else:
+                return max(0.0, rad - math.hypot(wx - cx, wy - cy))
+
         if land_type == "island":
             # Vegetation: clusters of lush tree canopies
             num_clusters = min(35, max(8, int(rad / 25)))
@@ -3379,42 +3660,45 @@ class MissionEditorApp(tk.Tk):
                                             fill=r_col, outline="#2a1e12")
 
         elif land_type == "city":
-            # City: Street grid and rectangular building blocks
-            # 1. Road lines
-            grid_spacing = max(60, min(140, int(rad / 4)))
+            # City: Street grid and rectangular building blocks strictly >= 200m inside the border
+            grid_spacing = max(80, min(140, int(rad / 4)))
             min_x, max_x = cx - rad, cx + rad
             min_y, max_y = cy - rad, cy + rad
 
+            # 1. Road lines (only drawn where points are >= 200m inside border)
             gx = min_x + (abs(min_x) % grid_spacing)
             while gx < max_x:
-                if is_inside(gx, cy - rad * 0.6) or is_inside(gx, cy + rad * 0.6):
-                    s1 = self.world_to_screen(gx, cy - rad * 0.65)
-                    s2 = self.world_to_screen(gx, cy + rad * 0.65)
+                if dist_to_border(gx, cy - rad * 0.5) >= 200 and dist_to_border(gx, cy + rad * 0.5) >= 200:
+                    s1 = self.world_to_screen(gx, cy - rad * 0.5)
+                    s2 = self.world_to_screen(gx, cy + rad * 0.5)
                     self.canvas.create_line(s1[0], s1[1], s2[0], s2[1], fill="#262a33", width=max(1, int(3 * self.zoom)))
                 gx += grid_spacing
 
             gy = min_y + (abs(min_y) % grid_spacing)
             while gy < max_y:
-                if is_inside(cx - rad * 0.6, gy) or is_inside(cx + rad * 0.6, gy):
-                    s1 = self.world_to_screen(cx - rad * 0.65, gy)
-                    s2 = self.world_to_screen(cx + rad * 0.65, gy)
+                if dist_to_border(cx - rad * 0.5, gy) >= 200 and dist_to_border(cx + rad * 0.5, gy) >= 200:
+                    s1 = self.world_to_screen(cx - rad * 0.5, gy)
+                    s2 = self.world_to_screen(cx + rad * 0.5, gy)
                     self.canvas.create_line(s1[0], s1[1], s2[0], s2[1], fill="#262a33", width=max(1, int(3 * self.zoom)))
                 gy += grid_spacing
 
-            # 2. Buildings
-            num_bldgs = min(40, max(10, int(rad / 22)))
-            bldg_colors = ["#484e5b", "#545b69", "#3d424e", "#5f6675", "#6a7282"]
+            # 2. Buildings (strictly >= 200m inside border, with helipad rate < 2%)
+            num_bldgs = min(35, max(8, int(rad / 26)))
+            bldg_colors = ["#484e5b", "#545b69", "#3d424e", "#5f6675", "#6a7282", "#353f4d", "#2e3b4a"]
             for _ in range(num_bldgs * 2):
                 bwx = cx + (rng.random() * 2 - 1) * rad * 0.78
                 bwy = cy + (rng.random() * 2 - 1) * rad * 0.78
-                bw = (25 + rng.random() * 55)
-                bh = (25 + rng.random() * 55)
-                if is_inside(bwx - bw * 0.5, bwy - bh * 0.5) and is_inside(bwx + bw * 0.5, bwy + bh * 0.5):
+                bw = (25 + rng.random() * 50)
+                bh = (25 + rng.random() * 50)
+                # Check that all 4 corners are at least 200m inside the boundary
+                if (dist_to_border(bwx - bw * 0.5, bwy - bh * 0.5) >= 200 and
+                    dist_to_border(bwx + bw * 0.5, bwy + bh * 0.5) >= 200):
                     s1 = self.world_to_screen(bwx - bw * 0.5, bwy - bh * 0.5)
                     s2 = self.world_to_screen(bwx + bw * 0.5, bwy + bh * 0.5)
                     bcol = rng.choice(bldg_colors)
                     self.canvas.create_rectangle(s1[0], s1[1], s2[0], s2[1], fill=bcol, outline="#20242b", width=1)
-                    if rng.random() < 0.25 and (s2[0] - s1[0] > 10):
+                    # Low helipad chance (< 2%)
+                    if rng.random() < 0.02 and (s2[0] - s1[0] > 10):
                         mid_x = (s1[0] + s2[0]) * 0.5
                         mid_y = (s1[1] + s2[1]) * 0.5
                         hr = max(2, int(4 * self.zoom))

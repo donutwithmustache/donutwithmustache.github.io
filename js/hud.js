@@ -1456,7 +1456,7 @@ export class FlightHUD {
     return sx >= -margin && sx <= canvasWidth + margin && sy >= -margin && sy <= canvasHeight + margin;
   }
 
-  // Draw Ace Combat Style Topographical Radar Terrain Contours (Islands, Cities, Deserts)
+  // Draw Radar Terrain (Crisp Shoreline Borders & Subtle Land Shading)
   drawRadarTerrain(ctx, world, transformFn, scale, isExpanded = false) {
     if (!world || !Array.isArray(world.islands) || world.islands.length === 0) return;
 
@@ -1465,26 +1465,19 @@ export class FlightHUD {
     for (const isl of world.islands) {
       const landType = isl.landType || (isl.theme || 'island');
 
+      const strokeColor = (landType === 'city')
+        ? 'rgba(0, 255, 200, 0.88)'
+        : (landType === 'desert')
+          ? 'rgba(215, 255, 130, 0.82)'
+          : 'rgba(0, 255, 102, 0.88)';
+
+      const fillColor = (landType === 'city')
+        ? 'rgba(0, 255, 200, 0.13)'
+        : (landType === 'desert')
+          ? 'rgba(215, 255, 130, 0.11)'
+          : 'rgba(0, 255, 102, 0.12)';
+
       if (isl.type === 'polygon' && Array.isArray(isl.points) && isl.points.length >= 3) {
-        // Compute Centroid
-        let sumX = 0, sumY = 0;
-        for (const pt of isl.points) {
-          sumX += pt.x;
-          sumY += pt.y;
-        }
-        const centX = sumX / isl.points.length;
-        const centY = sumY / isl.points.length;
-
-        // 1. Shoreline outer boundary contour
-        const strokeColor = (landType === 'city')
-          ? 'rgba(0, 255, 200, 0.82)'
-          : (landType === 'desert')
-            ? 'rgba(215, 255, 130, 0.78)'
-            : 'rgba(0, 255, 102, 0.78)';
-
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = isExpanded ? 1.4 : 1.6;
-
         ctx.beginPath();
         for (let i = 0; i < isl.points.length; i++) {
           const pt = isl.points[i];
@@ -1493,52 +1486,15 @@ export class FlightHUD {
           else ctx.lineTo(rx, ry);
         }
         ctx.closePath();
+
+        // 1. Slightly shade in inside the island to indicate land
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+
+        // 2. Island border
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = isExpanded ? 1.4 : 1.6;
         ctx.stroke();
-
-        // 2. Concentric Elevation Contour Lines (Topographical loops)
-        const contourScales = [0.68, 0.38];
-        const contourAlphas = [0.42, 0.22];
-
-        for (let c = 0; c < contourScales.length; c++) {
-          const cScale = contourScales[c];
-          ctx.strokeStyle = `rgba(0, 255, 102, ${contourAlphas[c]})`;
-          ctx.lineWidth = 1.0;
-          ctx.beginPath();
-
-          for (let i = 0; i < isl.points.length; i++) {
-            const pt = isl.points[i];
-            const wx = centX + (pt.x - centX) * cScale;
-            const wy = centY + (pt.y - centY) * cScale;
-            const [rx, ry] = transformFn(wx, wy);
-            if (i === 0) ctx.moveTo(rx, ry);
-            else ctx.lineTo(rx, ry);
-          }
-          ctx.closePath();
-          ctx.stroke();
-        }
-
-        // 3. City & Desert Internal Tactical Contours
-        if (landType === 'city') {
-          const [crx, cry] = transformFn(centX, centY);
-          const rad = (isl.radius || 400) * scale * 0.35;
-          ctx.strokeStyle = 'rgba(0, 255, 200, 0.28)';
-          ctx.lineWidth = 0.9;
-          ctx.setLineDash([3, 4]);
-          ctx.beginPath();
-          ctx.moveTo(crx - rad, cry); ctx.lineTo(crx + rad, cry);
-          ctx.moveTo(crx, cry - rad); ctx.lineTo(crx, cry + rad);
-          ctx.stroke();
-          ctx.setLineDash([]);
-        } else if (landType === 'desert') {
-          // Curved dune ridges across the desert
-          const [crx, cry] = transformFn(centX, centY);
-          const rad = (isl.radius || 400) * scale * 0.38;
-          ctx.strokeStyle = 'rgba(215, 255, 130, 0.28)';
-          ctx.lineWidth = 0.9;
-          ctx.beginPath();
-          ctx.arc(crx, cry - rad * 0.2, rad * 0.7, 0.2, Math.PI - 0.2);
-          ctx.stroke();
-        }
 
       } else {
         // Circular Island
@@ -1546,27 +1502,16 @@ export class FlightHUD {
         const r = (isl.radius || 350) * scale;
         if (r < 0.8) continue;
 
-        // Outer shoreline
-        ctx.strokeStyle = (landType === 'city')
-          ? 'rgba(0, 255, 200, 0.82)'
-          : (landType === 'desert')
-            ? 'rgba(215, 255, 130, 0.78)'
-            : 'rgba(0, 255, 102, 0.78)';
-        ctx.lineWidth = isExpanded ? 1.4 : 1.6;
         ctx.beginPath();
         ctx.arc(crx, cry, r, 0, Math.PI * 2);
-        ctx.stroke();
 
-        // Inner elevation contours
-        ctx.strokeStyle = 'rgba(0, 255, 102, 0.40)';
-        ctx.lineWidth = 1.0;
-        ctx.beginPath();
-        ctx.arc(crx, cry, r * 0.65, 0, Math.PI * 2);
-        ctx.stroke();
+        // 1. Slightly shade in inside the island to indicate land
+        ctx.fillStyle = fillColor;
+        ctx.fill();
 
-        ctx.strokeStyle = 'rgba(0, 255, 102, 0.22)';
-        ctx.beginPath();
-        ctx.arc(crx, cry, r * 0.35, 0, Math.PI * 2);
+        // 2. Island border
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = isExpanded ? 1.4 : 1.6;
         ctx.stroke();
       }
     }

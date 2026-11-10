@@ -312,17 +312,42 @@ export class MissionManager {
     this.evaluateTriggers('TARGET_DESTROYED');
 
     // 5. Track Objectives Progress
-    const tm = this.game.targetManager;
-    if (tm && this.objectives.length > 0) {
-      const destroyedCount = tm.targets.filter(t => t.active !== false && t.isDestroyed).length;
+    if (this.objectives.length > 0) {
+      const tm = this.game.targetManager;
+      const destroyedCount = tm ? tm.targets.filter(t => t.active !== false && t.isDestroyed).length : 0;
+
       for (const obj of this.objectives) {
+        if (obj.isCompleted) continue;
+
         if (obj.type === 'DESTROY_TARGETS') {
           obj.currentKills = destroyedCount;
           if (obj.currentKills >= (obj.requiredCount || 1)) {
-            if (!obj.isCompleted) {
+            obj.isCompleted = true;
+            this.onObjectiveCompleted(obj);
+          }
+        } else if (obj.type === 'DESTROY_NAMED_TARGET') {
+          if (tm && obj.targetUnitId) {
+            const tgt = tm.targets.find(t => t.id === obj.targetUnitId);
+            if (tgt && tgt.isDestroyed) {
               obj.isCompleted = true;
               this.onObjectiveCompleted(obj);
             }
+          }
+        } else if (obj.type === 'REACH_AREA') {
+          if (flightState && obj.areaId) {
+            const area = this.getArea(obj.areaId);
+            if (area) {
+              const d = Math.hypot(flightState.x - area.x, flightState.y - area.y);
+              if (d <= (area.radius || 2000)) {
+                obj.isCompleted = true;
+                this.onObjectiveCompleted(obj);
+              }
+            }
+          }
+        } else if (obj.type === 'SURVIVE_TIME') {
+          if (this.elapsedTime >= (obj.timeLimit || 120)) {
+            obj.isCompleted = true;
+            this.onObjectiveCompleted(obj);
           }
         }
       }

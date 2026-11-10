@@ -13,8 +13,8 @@
     "halfMapSize": 15075,
     "returnLine": {
       "enabled": true,
-      "side": "bottom",
-      "offset": 0.1
+      "side": "top",
+      "offset": 0.06
     },
     "oceanTheme": {
       "gradTop": "#050e18",
@@ -342,7 +342,264 @@
           ]
         ],
         "color": "#1a382d",
-        "sandColor": "#45594b"
+        "sandColor": "#45594b",
+        "landType": "island"
+      },
+      {
+        "id": "poly_island_3",
+        "type": "polygon",
+        "landType": "city",
+        "x": 10942.9,
+        "y": -6666.0,
+        "radius": 6894.1,
+        "points": [
+          [
+            11297.3,
+            -6483.4
+          ],
+          [
+            12597.3,
+            -5158.4
+          ],
+          [
+            12710.0,
+            -4379.2
+          ],
+          [
+            12734.9,
+            -3919.1
+          ],
+          [
+            13070.6,
+            -3384.4
+          ],
+          [
+            13518.3,
+            -3073.5
+          ],
+          [
+            13779.5,
+            -2538.8
+          ],
+          [
+            14102.8,
+            -2240.3
+          ],
+          [
+            14923.5,
+            -2153.3
+          ],
+          [
+            15868.6,
+            -2426.9
+          ],
+          [
+            16614.7,
+            -2799.9
+          ],
+          [
+            17050.0,
+            -3707.7
+          ],
+          [
+            17124.6,
+            -4590.6
+          ],
+          [
+            15520.4,
+            -6157.5
+          ],
+          [
+            15097.6,
+            -5834.2
+          ],
+          [
+            14451.0,
+            -6418.6
+          ],
+          [
+            13580.5,
+            -5473.5
+          ],
+          [
+            13294.5,
+            -5709.8
+          ],
+          [
+            12697.6,
+            -5274.6
+          ],
+          [
+            11429.2,
+            -6567.9
+          ],
+          [
+            11715.2,
+            -6878.7
+          ],
+          [
+            11205.3,
+            -7774.1
+          ],
+          [
+            11963.9,
+            -8259.1
+          ],
+          [
+            11702.7,
+            -8644.6
+          ],
+          [
+            11093.4,
+            -9166.9
+          ],
+          [
+            11267.5,
+            -9676.7
+          ],
+          [
+            11391.9,
+            -10273.6
+          ],
+          [
+            10931.8,
+            -10895.4
+          ],
+          [
+            10359.7,
+            -11057.0
+          ],
+          [
+            9352.5,
+            -10883.0
+          ],
+          [
+            9066.4,
+            -10211.4
+          ],
+          [
+            8171.1,
+            -10547.2
+          ],
+          [
+            7574.2,
+            -9913.0
+          ],
+          [
+            8855.0,
+            -8632.1
+          ],
+          [
+            8183.5,
+            -8321.3
+          ],
+          [
+            8544.2,
+            -7724.4
+          ],
+          [
+            8942.1,
+            -7761.7
+          ],
+          [
+            9128.6,
+            -7463.2
+          ],
+          [
+            8755.6,
+            -7301.6
+          ],
+          [
+            8332.8,
+            -7575.1
+          ],
+          [
+            7885.1,
+            -7637.3
+          ],
+          [
+            7188.7,
+            -7226.9
+          ],
+          [
+            7280.7,
+            -7108.4
+          ],
+          [
+            7930.7,
+            -7483.4
+          ],
+          [
+            8280.7,
+            -7033.4
+          ],
+          [
+            7555.7,
+            -6658.4
+          ],
+          [
+            7605.7,
+            -6566.7
+          ],
+          [
+            8589.0,
+            -7083.4
+          ],
+          [
+            9055.7,
+            -6566.7
+          ],
+          [
+            8039.0,
+            -6008.4
+          ],
+          [
+            8089.0,
+            -5916.7
+          ],
+          [
+            9130.7,
+            -6475.1
+          ],
+          [
+            9480.7,
+            -6083.4
+          ],
+          [
+            9664.0,
+            -6191.7
+          ],
+          [
+            9997.3,
+            -6208.4
+          ],
+          [
+            10189.0,
+            -6291.7
+          ],
+          [
+            10272.3,
+            -6683.4
+          ],
+          [
+            10639.0,
+            -6741.7
+          ],
+          [
+            10630.7,
+            -6483.4
+          ],
+          [
+            10889.0,
+            -6408.4
+          ],
+          [
+            11122.3,
+            -6516.7
+          ]
+        ],
+        "color": "#383d47",
+        "sandColor": "#252930"
       }
     ],
     "weather": {
@@ -350,15 +607,16 @@
       "waveCount": 1500,
       "windHeading": -0.45,
       "windSpeed": 10
-    }
+    },
+    "areas": []
   },
   "units": {
     "playerSpawns": [
       {
         "id": "spawn_p1",
         "team": "friendly",
-        "x": -9942.6,
-        "y": 10017.1,
+        "x": 3421.1,
+        "y": 13385.4,
         "heading": -0.785,
         "speed": 335,
         "altitude": 1.0,
@@ -368,88 +626,163 @@
     ],
     "airUnits": [
       {
-        "id": "tut_tgt_1",
-        "name": "Target Drone Alpha",
-        "code": "TGT",
+        "id": "fighter_custom_1",
+        "name": "Firebee Drone",
+        "code": "TGT [AIR]",
         "type": "air",
         "model": "mig21",
-        "aiType": "rookie",
-        "isEnemy": true,
-        "x": -8200.0,
-        "y": 8200.0,
-        "heading": -0.785,
-        "speed": 180,
-        "baseSpeed": 180,
-        "hp": 30,
-        "maxHp": 30
+        "aiType": "dummy",
+        "team": "enemy",
+        "active": true,
+        "x": -9912.9,
+        "y": -7779.9,
+        "heading": 0.0,
+        "speed": 210,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 32,
+        "orders": {
+          "type": "PATROL_AREA"
+        },
+        "specialWeapon": null
       },
       {
-        "id": "tut_tgt_2",
-        "name": "Target Drone Bravo",
-        "code": "TGT",
+        "id": "fighter_custom_1_copy1",
+        "name": "Firebee Drone",
+        "code": "TGT [AIR]",
         "type": "air",
         "model": "mig21",
-        "aiType": "rookie",
-        "isEnemy": true,
-        "x": -7200.0,
-        "y": 7200.0,
-        "heading": -0.785,
-        "speed": 180,
-        "baseSpeed": 180,
-        "hp": 30,
-        "maxHp": 30
-      },
-      {
-        "id": "tut_tgt_3",
-        "name": "Target Drone Charlie",
-        "code": "TGT",
-        "type": "air",
-        "model": "mig21",
-        "aiType": "rookie",
-        "isEnemy": true,
-        "x": -6200.0,
-        "y": 6200.0,
-        "heading": -0.785,
-        "speed": 180,
-        "baseSpeed": 180,
-        "hp": 30,
-        "maxHp": 30
-      },
-      {
-        "id": "tut_tgt_4",
-        "name": "Target Drone Delta",
-        "code": "TGT",
-        "type": "air",
-        "model": "mig21",
-        "aiType": "rookie",
-        "isEnemy": true,
-        "x": -5200.0,
-        "y": 5200.0,
-        "heading": -0.785,
-        "speed": 180,
-        "baseSpeed": 180,
-        "hp": 30,
-        "maxHp": 30
-      },
-      {
-        "id": "tut_tgt_5",
-        "name": "Target Drone Echo",
-        "code": "TGT",
-        "type": "air",
-        "model": "mig21",
-        "aiType": "rookie",
-        "isEnemy": true,
-        "x": -4200.0,
-        "y": 4200.0,
-        "heading": -0.785,
-        "speed": 180,
-        "baseSpeed": 180,
-        "hp": 30,
-        "maxHp": 30
+        "aiType": "dummy",
+        "team": "enemy",
+        "active": true,
+        "x": -9920.9,
+        "y": -7563.6,
+        "heading": 0.0,
+        "speed": 210,
+        "hp": 48,
+        "maxHp": 48,
+        "hitRadius": 32,
+        "orders": {
+          "type": "PATROL_AREA"
+        },
+        "specialWeapon": null
       }
     ],
-    "navalUnits": [],
-    "groundUnits": []
+    "navalUnits": [
+      {
+        "id": "destroyer_custom_1",
+        "name": "Destroyer DDG #1",
+        "code": "TGT [NAV]",
+        "type": "naval",
+        "subType": "destroyer",
+        "team": "enemy",
+        "active": true,
+        "x": 8311.1,
+        "y": -6533.0,
+        "heading": 0.0,
+        "speed": 18,
+        "hp": 190,
+        "maxHp": 190,
+        "hitRadius": 44,
+        "hasCIWS": true,
+        "ciwsChannels": 1,
+        "ciwsRange": 850,
+        "hasSAM": true,
+        "samRange": 3400,
+        "orders": {
+          "type": "FORMATION_ORBIT"
+        },
+        "aiType": "rookie",
+        "shipType": "destroyer",
+        "weaponType": "standard_armament"
+      }
+    ],
+    "groundUnits": [
+      {
+        "id": "sam_custom_1",
+        "name": "Radar Array",
+        "code": "TGT [SAM]",
+        "type": "ground",
+        "team": "enemy",
+        "active": true,
+        "x": 7324.8,
+        "y": -7217.5,
+        "hp": 40,
+        "maxHp": 40,
+        "hitRadius": 32,
+        "range": 3400,
+        "fireInterval": 9.0,
+        "orders": {
+          "type": "DEFEND_POINT"
+        },
+        "aiType": "rookie",
+        "groundType": "radar_station",
+        "weaponType": "standard_missiles"
+      },
+      {
+        "id": "sam_custom_1_copy1",
+        "name": "Flak Gun",
+        "code": "TGT [SAM]",
+        "type": "ground",
+        "team": "enemy",
+        "active": true,
+        "x": 11548.0,
+        "y": -6350.6,
+        "hp": 40,
+        "maxHp": 40,
+        "hitRadius": 32,
+        "range": 3400,
+        "fireInterval": 9.0,
+        "orders": {
+          "type": "DEFEND_POINT"
+        },
+        "aiType": "rookie",
+        "groundType": "radar_station",
+        "weaponType": "rapid_flak"
+      },
+      {
+        "id": "sam_custom_1_copy2",
+        "name": "Flak Gun",
+        "code": "TGT [SAM]",
+        "type": "ground",
+        "team": "enemy",
+        "active": true,
+        "x": 8277.4,
+        "y": -8276.6,
+        "hp": 40,
+        "maxHp": 40,
+        "hitRadius": 32,
+        "range": 3400,
+        "fireInterval": 9.0,
+        "orders": {
+          "type": "DEFEND_POINT"
+        },
+        "aiType": "rookie",
+        "groundType": "radar_station",
+        "weaponType": "rapid_flak"
+      },
+      {
+        "id": "sam_custom_4",
+        "name": "SAM Battery",
+        "code": "TGT [SAM]",
+        "type": "ground",
+        "team": "enemy",
+        "active": true,
+        "x": 8360.7,
+        "y": -7018.3,
+        "hp": 40,
+        "maxHp": 40,
+        "hitRadius": 32,
+        "range": 3400,
+        "fireInterval": 9.0,
+        "orders": {
+          "type": "DEFEND_POINT"
+        },
+        "aiType": "rookie",
+        "groundType": "sam_battery",
+        "weaponType": "heavy_sam"
+      }
+    ]
   },
   "dynamics": {
     "meta": {
@@ -469,43 +802,79 @@
       }
     ],
     "winConditions": {
-      "allPrimaryComplete": true
+      "allPrimaryComplete": false,
+      "requiredKills": 0
     },
     "loseConditions": {
       "playerDestroyed": false,
-      "timeLimit": 0
+      "timeLimit": 0,
+      "noRespawn": false
     },
-    "areas": [
-      {
-        "id": "area_training_sector",
-        "name": "Alpha Training Sector",
-        "x": 0.0,
-        "y": 0.0,
-        "radius": 2500.0,
-        "color": "#00e5ff"
-      }
-    ],
+    "areas": [],
     "triggers": [
       {
-        "id": "trig_start",
-        "name": "Start Radio Comm",
-        "event": "ON_START",
+        "id": "trig_dia_1",
+        "name": "Story Dialogue #1",
+        "event": "TIMER",
+        "time": 10.0,
         "actions": [
           {
-            "type": "RADIO_MESSAGE",
-            "text": "HQ // Tactical operation underway."
-          },
-          {
             "type": "DIALOGUE",
-            "speaker": "PIXY",
-            "aircraft": "F-15C",
-            "squadron": "1ST BUDDY AIRFORCE",
-            "portrait": "./assets/portraits/pilot_pixy.png",
-            "text": "Yo buddy, still alive?",
-            "duration": 5.5
+            "speaker": "ASTRA",
+            "aircraft": "E-767",
+            "squadron": "DONUT MERCENARY LEGION",
+            "duration": 5.5,
+            "text": "10",
+            "portrait": "./assets/portraits/awacs_astra.png"
           }
         ]
+      },
+      {
+        "id": "trig_dia_1_copy1",
+        "name": "Story Dialogue #1 (Copy)",
+        "event": "TARGET_DESTROYED",
+        "time": 10.0,
+        "actions": [
+          {
+            "type": "DIALOGUE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767",
+            "squadron": "DONUT MERCENARY LEGION",
+            "duration": 5.5,
+            "text": "10",
+            "portrait": "./assets/portraits/awacs_astra.png"
+          }
+        ],
+        "targetId": "Firebee Drone"
+      },
+      {
+        "id": "trig_end_3",
+        "name": "Scripted Mission Ending #3",
+        "event": "TARGET_DESTROYED",
+        "actions": [
+          {
+            "type": "SCRIPTED_END",
+            "title": "OPERATION CONCLUDED",
+            "text": "TUTORIAL COMPLETE",
+            "fadeTime": 2.0
+          }
+        ],
+        "targetId": "Destroyer"
       }
     ]
+  },
+  "noRespawn": false,
+  "playerTweakables": {
+    "startingHp": 100,
+    "maxHp": 100,
+    "invulnerable": false,
+    "unlimitedAmmo": false,
+    "gunAmmo": 800,
+    "mslCount": 120,
+    "spwCount": 24,
+    "flareCount": 30,
+    "abilityCharges": 1,
+    "startSpeed": 335.0,
+    "startAltitude": 1.0
   }
 }

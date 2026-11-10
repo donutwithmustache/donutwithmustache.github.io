@@ -202,6 +202,24 @@ class FlightGame {
       abilityMaxRecharge: w.abilityRecharge || abilityDef.cooldown || abilityDef.rechargeTime || 10.0
     };
 
+    // Cache baseline normal aircraft loadout before any mission starting tweakables
+    this.normalLoadout = {
+      hp: 100,
+      maxHp: 100,
+      gunAmmo: w.maxGunAmmo || w.gunAmmo || 800,
+      maxGunAmmo: w.maxGunAmmo || w.gunAmmo || 800,
+      mslCount: w.maxMslCount || w.mslCount || 120,
+      maxMslCount: w.maxMslCount || w.mslCount || 120,
+      spwCount: spwAmmoCount,
+      maxSpwCount: spwAmmoCount,
+      flareCount: w.maxFlareCount || w.flareCount || 30,
+      maxFlareCount: w.maxFlareCount || w.flareCount || 30,
+      abilityCharges: w.maxAbilityCharges || abilityDef.charges || 1,
+      maxAbilityCharges: w.maxAbilityCharges || abilityDef.charges || 1,
+      unlimitedAmmo: false,
+      invulnerable: false
+    };
+
     this.abilityState = {
       active: false,
       id: abilityId,
@@ -231,6 +249,10 @@ class FlightGame {
       : (spwDef.defaultAmmo || 24);
     this.weapons.spwCount = ammo;
     this.weapons.maxSpwCount = ammo;
+    if (this.normalLoadout) {
+      this.normalLoadout.spwCount = ammo;
+      this.normalLoadout.maxSpwCount = ammo;
+    }
 
     const spwPoolSize = spwDef.pool || ({
       '4aam': 4,
@@ -363,6 +385,83 @@ class FlightGame {
     const targetId = this.equippedAircraftId || 'f15c';
     if (AIRCRAFT_DATA[targetId] && this.currentAircraftId !== targetId) {
       this.selectAircraft(targetId, false);
+    }
+  }
+
+  // Apply Player Tweakables & Initial State (Health, Ammo, Godmode, Unlimited Ammo, Speed, Altitude)
+  applyPlayerTweakables(tweakables) {
+    this.playerTweakables = tweakables;
+    if (!this.weapons) return;
+
+    // Checkbox check: if tweakables is omitted or not enabled, retain authentic plane defaults!
+    if (!tweakables || !tweakables.enabled) {
+      if (this.normalLoadout) {
+        this.weapons.hp = this.normalLoadout.hp || 100;
+        this.weapons.maxHp = this.normalLoadout.maxHp || 100;
+        this.weapons.gunAmmo = this.normalLoadout.maxGunAmmo || this.normalLoadout.gunAmmo || 800;
+        this.weapons.maxGunAmmo = this.weapons.gunAmmo;
+        this.weapons.mslCount = this.normalLoadout.maxMslCount || this.normalLoadout.mslCount || 120;
+        this.weapons.maxMslCount = this.weapons.mslCount;
+        this.weapons.spwCount = this.normalLoadout.maxSpwCount || this.normalLoadout.spwCount || 24;
+        this.weapons.maxSpwCount = this.weapons.spwCount;
+        this.weapons.flareCount = this.normalLoadout.maxFlareCount || this.normalLoadout.flareCount || 30;
+        this.weapons.maxFlareCount = this.weapons.flareCount;
+        this.weapons.abilityCharges = this.normalLoadout.maxAbilityCharges || this.normalLoadout.abilityCharges || 1;
+        this.weapons.maxAbilityCharges = this.weapons.abilityCharges;
+        this.weapons.unlimitedAmmo = false;
+        this.weapons.invulnerable = false;
+      }
+      return;
+    }
+
+    if (tweakables.maxHp !== undefined && tweakables.maxHp !== null && !isNaN(tweakables.maxHp)) {
+      this.weapons.maxHp = Math.max(1, Number(tweakables.maxHp));
+    }
+    if (tweakables.startingHp !== undefined && tweakables.startingHp !== null && !isNaN(tweakables.startingHp)) {
+      this.weapons.hp = Math.max(0, Math.min(this.weapons.maxHp || 100, Number(tweakables.startingHp)));
+    }
+    if (tweakables.invulnerable !== undefined) {
+      this.weapons.invulnerable = !!tweakables.invulnerable;
+    }
+    if (tweakables.unlimitedAmmo !== undefined) {
+      this.weapons.unlimitedAmmo = !!tweakables.unlimitedAmmo;
+    }
+    if (tweakables.gunAmmo !== undefined && tweakables.gunAmmo !== null && tweakables.gunAmmo !== '') {
+      const val = Number(tweakables.gunAmmo);
+      this.weapons.gunAmmo = val;
+      this.weapons.maxGunAmmo = Math.max(this.weapons.maxGunAmmo || 800, val);
+    }
+    if (tweakables.mslCount !== undefined && tweakables.mslCount !== null && tweakables.mslCount !== '') {
+      const val = Number(tweakables.mslCount);
+      this.weapons.mslCount = val;
+      this.weapons.maxMslCount = Math.max(this.weapons.maxMslCount || 120, val);
+    }
+    if (tweakables.spwCount !== undefined && tweakables.spwCount !== null && tweakables.spwCount !== '') {
+      const val = Number(tweakables.spwCount);
+      this.weapons.spwCount = val;
+      this.weapons.maxSpwCount = Math.max(this.weapons.maxSpwCount || 24, val);
+    }
+    if (tweakables.flareCount !== undefined && tweakables.flareCount !== null && tweakables.flareCount !== '') {
+      const val = Number(tweakables.flareCount);
+      this.weapons.flareCount = val;
+      this.weapons.maxFlareCount = Math.max(this.weapons.maxFlareCount || 30, val);
+    }
+    if (tweakables.abilityCharges !== undefined && tweakables.abilityCharges !== null && tweakables.abilityCharges !== '') {
+      const val = Number(tweakables.abilityCharges);
+      this.weapons.abilityCharges = val;
+      this.weapons.maxAbilityCharges = Math.max(this.weapons.maxAbilityCharges || 1, val);
+    }
+    if (tweakables.startSpeed !== undefined && tweakables.startSpeed !== null && !isNaN(tweakables.startSpeed) && this.physics) {
+      this.physics.speed = Number(tweakables.startSpeed);
+    }
+    if (tweakables.startAltitude !== undefined && tweakables.startAltitude !== null && !isNaN(tweakables.startAltitude) && this.flightState) {
+      this.flightState.altitude = Math.max(0.0, Math.min(1.0, Number(tweakables.startAltitude)));
+    }
+  }
+
+  consumeSpw(count = 1) {
+    if (this.weapons && !this.weapons.unlimitedAmmo) {
+      this.weapons.spwCount = Math.max(0, this.weapons.spwCount - count);
     }
   }
 
@@ -550,7 +649,7 @@ class FlightGame {
 
   triggerFlares() {
     if (this.crashHandled || this.physics.isCrashed || this.playerDying) return;
-    if (this.weapons.flareCount <= 0) {
+    if (this.weapons.flareCount <= 0 && !this.weapons.unlimitedAmmo) {
       this.triggerWeaponEmpty('flr');
       return;
     }
@@ -564,7 +663,9 @@ class FlightGame {
       readySlot.reload = readySlot.maxReload;
     }
     this.weapons.flareCooldown = 0.2;
-    this.weapons.flareCount = Math.max(0, this.weapons.flareCount - 1);
+    if (!this.weapons.unlimitedAmmo) {
+      this.weapons.flareCount = Math.max(0, this.weapons.flareCount - 1);
+    }
     this.particles.spawnFlares(
       this.physics.x,
       this.physics.y,
@@ -577,7 +678,7 @@ class FlightGame {
 
   triggerMissile() {
     if (this.crashHandled || this.physics.isCrashed || this.playerDying) return;
-    if (this.weapons.mslCount <= 0) {
+    if (this.weapons.mslCount <= 0 && !this.weapons.unlimitedAmmo) {
       this.triggerWeaponEmpty('msl');
       return;
     }
@@ -591,7 +692,9 @@ class FlightGame {
       readySlot.reload = readySlot.maxReload || (this.aircraftConfig?.weapons?.mslCooldown || 4.4);
     }
     this.weapons.mslReload = 0.12;
-    this.weapons.mslCount = Math.max(0, this.weapons.mslCount - 1);
+    if (!this.weapons.unlimitedAmmo) {
+      this.weapons.mslCount = Math.max(0, this.weapons.mslCount - 1);
+    }
 
     const isLocked = (this.targeting.lockState === 'LOCKED' && this.targeting.designatedTarget && !this.targeting.designatedTarget.isDestroyed && !this.targeting.designatedTarget.isFalling);
 
@@ -646,7 +749,7 @@ class FlightGame {
 
   triggerSpecialWeapon() {
     if (this.crashHandled || this.physics.isCrashed || this.playerDying) return;
-    if (this.weapons.spwCount <= 0) {
+    if (this.weapons.spwCount <= 0 && !this.weapons.unlimitedAmmo) {
       this.triggerWeaponEmpty('spw');
       return;
     }
@@ -718,7 +821,7 @@ class FlightGame {
 
         // Consume 1 ready slot and 1 ammo per missile fired
         availableReadySlots[i].reload = availableReadySlots[i].maxReload;
-        this.weapons.spwCount = Math.max(0, this.weapons.spwCount - 1);
+        this.consumeSpw(1);
 
         this.particles.spawnMissile(
           this.physics.x + perpX * lateralOffsets[i],
@@ -753,7 +856,7 @@ class FlightGame {
     switch (spwId) {
       case 'qaam': {
         // Single agile high-turn missile: can loop around 180° to re-engage target if initial pass misses
-        this.weapons.spwCount = Math.max(0, this.weapons.spwCount - 1);
+        this.consumeSpw(1);
         this.missileRailSide = (this.missileRailSide === 1) ? -1 : 1;
         const spawnX = this.physics.x + perpX * (this.missileRailSide * 16);
         const spawnY = this.physics.y + perpY * (this.missileRailSide * 16);
@@ -783,7 +886,7 @@ class FlightGame {
       }
       case 'saam': {
         // Semi-Active Air-to-Air Missile: requires pilot to keep boresight illumination on target
-        this.weapons.spwCount = Math.max(0, this.weapons.spwCount - 1);
+        this.consumeSpw(1);
         this.missileRailSide = (this.missileRailSide === 1) ? -1 : 1;
         const spawnX = this.physics.x + perpX * (this.missileRailSide * 15);
         const spawnY = this.physics.y + perpY * (this.missileRailSide * 15);
@@ -812,7 +915,7 @@ class FlightGame {
       }
       case 'hpaa': {
         // Heavy high-power kinetic air-to-air missile
-        this.weapons.spwCount = Math.max(0, this.weapons.spwCount - 1);
+        this.consumeSpw(1);
         this.particles.spawnMissile(
           this.physics.x,
           this.physics.y,
@@ -837,7 +940,7 @@ class FlightGame {
       }
       case 'lasm': {
         // Long-range anti-surface cruise missile (naval / ground targets only)
-        this.weapons.spwCount = Math.max(0, this.weapons.spwCount - 1);
+        this.consumeSpw(1);
         this.particles.spawnMissile(
           this.physics.x,
           this.physics.y,
@@ -862,7 +965,7 @@ class FlightGame {
       }
       case 'ugb': {
         // Unguided heavy free-fall bomb forward along motion vector: explodes at impact point with splash damage
-        this.weapons.spwCount = Math.max(0, this.weapons.spwCount - 1);
+        this.consumeSpw(1);
         this.particles.spawnMissile(
           this.physics.x,
           this.physics.y,
@@ -889,7 +992,7 @@ class FlightGame {
       case 'sffs': {
         // Submunition dispenser (3 cluster bomblets in spread) with splash damage
         const count = Math.min(3, this.weapons.spwCount);
-        this.weapons.spwCount = Math.max(0, this.weapons.spwCount - count);
+        this.consumeSpw(count);
         [-0.12, 0, 0.12].forEach((spread, i) => {
           this.particles.spawnMissile(
             this.physics.x + perpX * (i - 1) * 14,
@@ -916,7 +1019,7 @@ class FlightGame {
       }
       case 'mpbm': {
         // Multi-Purpose Burst Missile: high-velocity burst missile with massive expanding thermal detonation
-        this.weapons.spwCount = Math.max(0, this.weapons.spwCount - 1);
+        this.consumeSpw(1);
         this.particles.spawnMissile(
           this.physics.x,
           this.physics.y,
@@ -943,7 +1046,7 @@ class FlightGame {
         break;
       }
       default: {
-        this.weapons.spwCount = Math.max(0, this.weapons.spwCount - 1);
+        this.consumeSpw(1);
         this.particles.spawnMissile(
           this.physics.x,
           this.physics.y,
@@ -1248,7 +1351,7 @@ class FlightGame {
 
   // Damage applied to player from missiles, AA fire, guns, or collisions
   applyPlayerDamage(damage, reason = 'SAM_KILL') {
-    if (this.crashHandled || this.physics.isCrashed || this.playerDying) return;
+    if (this.crashHandled || this.physics.isCrashed || this.playerDying || (this.weapons && this.weapons.invulnerable)) return;
 
     this.weapons.hp = Math.max(0, this.weapons.hp - damage);
     // Ace Combat HP bar flash red and shake effect
@@ -1302,6 +1405,9 @@ class FlightGame {
     this.boundaryTimer = 0;
     this.crashHandled = false;
     this.crashReason = null;
+    if (this.playerTweakables) {
+      this.applyPlayerTweakables(this.playerTweakables);
+    }
   }
 
   // Get active mission's Return Line configuration
@@ -1309,22 +1415,40 @@ class FlightGame {
     return (this.missionManager && this.missionManager.getReturnLine) ? this.missionManager.getReturnLine() : null;
   }
 
-  // Ace Combat Return Line Rearm Sequence (Rearms 100%, does NOT repair HP)
+  // Ace Combat Return Line Replenish Sequence (Replenishes to what plane normally has)
   triggerReturnLineRearm(side, lineCoord) {
     if (this.returnLineCooldown > 0 || this.playerDying || this.crashHandled || this.physics.isCrashed) return;
 
     this.returnLineCooldown = 4.0;
     this.returnLineRearmedNotice = 3.5;
 
-    // 1. Rearm completely: Gun ammo, standard missiles, SP weapons, flares, and ability charges
-    // NOTE: In strict accordance with Ace Combat mechanics, HP IS NOT REPAIRED!
-    if (this.aircraftConfig && this.aircraftConfig.weapons && this.weapons) {
-      const cfgW = this.aircraftConfig.weapons;
-      this.weapons.gunAmmo = cfgW.gunAmmo !== undefined ? cfgW.gunAmmo : 900;
-      this.weapons.mslCount = cfgW.mslCount !== undefined ? cfgW.mslCount : 120;
-      this.weapons.spwCount = cfgW.spwCount !== undefined ? cfgW.spwCount : 36;
-      this.weapons.flareCount = cfgW.flareCount !== undefined ? cfgW.flareCount : 30;
-      this.weapons.abilityCharges = cfgW.abilityCharges !== undefined ? cfgW.abilityCharges : 1;
+    // 1. Replenish weapons, ammunition, and aircraft to what the plane normally has
+    if (this.weapons) {
+      const norm = this.normalLoadout || {};
+      const cfgW = (this.aircraftConfig && this.aircraftConfig.weapons) ? this.aircraftConfig.weapons : {};
+      const equippedSpw = this.weapons.equippedSpwId || (cfgW.specialWeapons && cfgW.specialWeapons[0]) || 'qaam';
+      const normalSpw = norm.maxSpwCount || (cfgW.spwAmmo && cfgW.spwAmmo[equippedSpw]) || (SPECIAL_WEAPONS[equippedSpw]?.defaultAmmo) || 24;
+      const normalAbility = norm.maxAbilityCharges || cfgW.maxAbilityCharges || cfgW.abilityCharges || 1;
+
+      // Restored to plane's normal ammunition counts
+      this.weapons.gunAmmo = norm.maxGunAmmo || cfgW.maxGunAmmo || cfgW.gunAmmo || 800;
+      this.weapons.maxGunAmmo = this.weapons.gunAmmo;
+      this.weapons.mslCount = norm.maxMslCount || cfgW.maxMslCount || cfgW.mslCount || 120;
+      this.weapons.maxMslCount = this.weapons.mslCount;
+      this.weapons.spwCount = normalSpw;
+      this.weapons.maxSpwCount = normalSpw;
+      this.weapons.flareCount = norm.maxFlareCount || cfgW.maxFlareCount || cfgW.flareCount || 30;
+      this.weapons.maxFlareCount = this.weapons.flareCount;
+      this.weapons.abilityCharges = normalAbility;
+      this.weapons.maxAbilityCharges = normalAbility;
+
+      // NOTE: In strict accordance with Ace Combat mechanics, HP IS NOT REPAIRED!
+      // (Any damage sustained or low starting health is preserved; only weapons/ammo are replenished)
+
+      // Mission starting cheat/tweak overrides (e.g. infinite ammo, invulnerability) are only for mission start;
+      // return line resets to standard operational plane status
+      this.weapons.unlimitedAmmo = false;
+      this.weapons.invulnerable = false;
 
       // Reset reload timers for all weapon slots to instantly ready
       if (this.weapons.mslSlots) this.weapons.mslSlots.forEach(s => s.reload = 0);
@@ -1527,7 +1651,7 @@ class FlightGame {
 
     // 2. Machine Gun fire
     if (this.input.lmb && !this.crashHandled && !this.physics.isCrashed && !this.playerDying) {
-      if (this.weapons.gunAmmo <= 0) {
+      if (this.weapons.gunAmmo <= 0 && !this.weapons.unlimitedAmmo) {
         this.gunDryFireTimer = (this.gunDryFireTimer || 0) + dt;
         if (this.gunDryFireTimer >= 0.35) {
           this.gunDryFireTimer = 0;
@@ -1538,9 +1662,11 @@ class FlightGame {
         this.gunTimer += dt;
         const fireInterval = 60 / (this.weapons.gunRpm || 1500);
         let fired = false;
-        while (this.gunTimer >= fireInterval && this.weapons.gunAmmo > 0) {
+        while (this.gunTimer >= fireInterval && (this.weapons.gunAmmo > 0 || this.weapons.unlimitedAmmo)) {
           this.gunTimer -= fireInterval;
-          this.weapons.gunAmmo = Math.max(0, this.weapons.gunAmmo - 1);
+          if (!this.weapons.unlimitedAmmo) {
+            this.weapons.gunAmmo = Math.max(0, this.weapons.gunAmmo - 1);
+          }
           this.particles.spawnBullet(
             this.physics.x,
             this.physics.y,

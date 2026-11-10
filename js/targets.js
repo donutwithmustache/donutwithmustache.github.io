@@ -881,7 +881,12 @@ export class TargetManager {
         this.updateAirTargetAI(tgt, dt, playerX, playerY, particles, audio, flightState);
         continue;
       } else if (tgt.type === 'naval') {
-        if (tgt.isCarrierFleet) {
+        const isStationary = (tgt.orders && (tgt.orders.type === 'STATIONARY' || tgt.orders.stationary)) || tgt.speed === 0;
+
+        if (isStationary) {
+          tgt.speed = 0;
+          // Warship remains anchored / stationary: no position or heading translation, no water wake
+        } else if (tgt.isCarrierFleet) {
           const fleetCX = 8500;
           const fleetCY = -8500;
           const fleetR = 2800 + (tgt.radialOffset || 0);
@@ -895,7 +900,9 @@ export class TargetManager {
           if (particles && Math.random() < 0.35) {
             const cosH = Math.cos(tgt.heading);
             const sinH = Math.sin(tgt.heading);
-            const wakeDist = (tgt.subType === 'carrier' ? 70 : (tgt.subType === 'cruiser' ? 45 : 30));
+            const sub = (tgt.subType || tgt.shipType || '').toLowerCase();
+            const wakeDist = (sub === 'carrier' ? 70 : (sub === 'light_carrier' ? 48 : (sub === 'cargo' ? 55 : (sub === 'cruiser' ? 45 : (sub === 'landing_craft' ? 20 : 30)))));
+            const wakeSize = (sub === 'carrier' ? 14 : (sub === 'light_carrier' || sub === 'cargo' ? 11 : (sub === 'landing_craft' ? 6 : 9)));
             particles.particles.push({
               x: tgt.x - cosH * wakeDist,
               y: tgt.y - sinH * wakeDist,
@@ -903,185 +910,291 @@ export class TargetManager {
               vy: (Math.random() - 0.5) * 6,
               life: 1.1,
               maxLife: 1.1,
-              size: (tgt.subType === 'carrier' ? 14 : 9) + Math.random() * 5,
+              size: wakeSize + Math.random() * 5,
               color: 'rgba(210, 240, 255, 0.40)',
               type: 'smoke'
             });
           }
+        } else if (tgt.orders && (tgt.orders.type === 'FORMATION_ORBIT' || tgt.orders.type === 'DEFEND_AREA')) {
+          const cx = tgt.orders.centerX !== undefined ? tgt.orders.centerX : (tgt.patrolCenterX || tgt.x);
+          const cy = tgt.orders.centerY !== undefined ? tgt.orders.centerY : (tgt.patrolCenterY || tgt.y);
+          const radius = tgt.orders.radius || tgt.patrolRadius || 2000;
+          const curAngle = Math.atan2(tgt.y - cy, tgt.x - cx);
+          const spd = tgt.speed || 16;
+          const angularSpeed = spd / radius;
+          const newAngle = curAngle + angularSpeed * dt;
+          tgt.x = cx + Math.cos(newAngle) * radius;
+          tgt.y = cy + Math.sin(newAngle) * radius;
+          tgt.heading = newAngle + Math.PI * 0.5;
 
-          // 1. CIWS defense: Carrier, Cruiser, Destroyer
-          if (tgt.hasCIWS && particles && particles.missiles) {
-            tgt.ciwsCooldown = (tgt.ciwsCooldown || 0) - dt;
-            tgt.ciwsOverloadTimer = (tgt.ciwsOverloadTimer || 0) - dt;
+          if (particles && Math.random() < 0.30) {
+            const cosH = Math.cos(tgt.heading);
+            const sinH = Math.sin(tgt.heading);
+            particles.particles.push({
+              x: tgt.x - cosH * 32,
+              y: tgt.y - sinH * 32,
+              vx: (Math.random() - 0.5) * 6,
+              vy: (Math.random() - 0.5) * 6,
+              life: 0.9,
+              maxLife: 0.9,
+              size: 10 + Math.random() * 5,
+              color: 'rgba(210, 240, 255, 0.35)',
+              type: 'smoke'
+            });
+          }
+        } else if (tgt.orders && (tgt.orders.type === 'MOVE_TO_POINT' || tgt.orders.type === 'ADVANCE_AND_ATTACK') && (tgt.orders.targetX !== undefined || tgt.orders.centerX !== undefined)) {
+          const tx = tgt.orders.targetX !== undefined ? tgt.orders.targetX : tgt.orders.centerX;
+          const ty = tgt.orders.targetY !== undefined ? tgt.orders.targetY : tgt.orders.centerY;
+          const dx = tx - tgt.x;
+          const dy = ty - tgt.y;
+          const dist = Math.hypot(dx, dy);
+          const spd = tgt.orders.speed || tgt.speed || 14;
+          if (dist > 30) {
+            const targetHeading = Math.atan2(dy, dx);
+            let diff = targetHeading - tgt.heading;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            tgt.heading += Math.sign(diff) * Math.min(Math.abs(diff), 0.5 * dt);
+            tgt.x += Math.cos(tgt.heading) * spd * dt;
+            tgt.y += Math.sin(tgt.heading) * spd * dt;
 
-            // Scan for active missiles threatening this ship
-            const maxRange = tgt.ciwsRange || 900;
-            const inboundThreats = [];
-
-            for (const m of particles.missiles) {
-              if (m.isEnemy || m.isBomb || m.isSFFS || m.isIntercepted || m.life <= 0.1) continue;
-              const mDist = Math.hypot(m.x - tgt.x, m.y - tgt.y);
-              if (mDist <= maxRange) {
-                const dx = tgt.x - m.x;
-                const dy = tgt.y - m.y;
-                const forwardDot = (Math.cos(m.heading) * dx + Math.sin(m.heading) * dy) / (mDist || 1);
-                const isTargetingMe = (m.target === tgt);
-                // Threat qualification: directly targeted, or very close (< 55% range) and heading straight at ship
-                if (isTargetingMe || (forwardDot > 0.35 && mDist <= (maxRange * 0.55))) {
-                  inboundThreats.push({ missile: m, dist: mDist });
-                }
-              }
+            if (particles && Math.random() < 0.25) {
+              const cosH = Math.cos(tgt.heading);
+              const sinH = Math.sin(tgt.heading);
+              particles.particles.push({
+                x: tgt.x - cosH * 28,
+                y: tgt.y - sinH * 28,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6,
+                life: 0.8,
+                maxLife: 0.8,
+                size: 8 + Math.random() * 5,
+                color: 'rgba(210, 240, 255, 0.35)',
+                type: 'smoke'
+              });
             }
+          }
+        } else {
+          // Slow circular/patrol drifting in deep open water (or PATROL_AREA)
+          const pCX = tgt.patrolCenterX !== undefined ? tgt.patrolCenterX : (tgt.orders?.centerX !== undefined ? tgt.orders.centerX : (tgt.orders?.targetX !== undefined ? tgt.orders.targetX : tgt.x));
+          const pCY = tgt.patrolCenterY !== undefined ? tgt.patrolCenterY : (tgt.orders?.centerY !== undefined ? tgt.orders.centerY : (tgt.orders?.targetY !== undefined ? tgt.orders.targetY : tgt.y));
+          const dx = tgt.x - pCX;
+          const dy = tgt.y - pCY;
+          const dist = Math.hypot(dx, dy);
+          const pRad = tgt.patrolRadius || tgt.orders?.radius || 400;
 
-            if (tgt.ciwsCooldown <= 0 && inboundThreats.length > 0) {
-              inboundThreats.sort((a, b) => a.dist - b.dist);
-              const channels = tgt.ciwsChannels || (tgt.subType === 'carrier' ? 2 : 1);
+          if (dist > pRad) {
+            const toCenter = Math.atan2(pCY - tgt.y, pCX - tgt.x);
+            let diff = toCenter - tgt.heading;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            tgt.heading += Math.sign(diff) * Math.min(Math.abs(diff), 0.6 * dt);
+          } else {
+            tgt.heading += 0.08 * dt; // Slow gentle patrol arc
+          }
 
-              // Overload mechanics:
-              // 1. Channel saturation: Ship can only engage up to 'channels' missiles simultaneously.
-              //    Excess missiles (inboundThreats.length > channels) bypass CIWS unmolested.
-              // 2. Fire-control degradation: Accuracy drops with threat saturation
-              const overloadMult = Math.max(0.20, 1.0 - (inboundThreats.length - 1) * 0.40);
-              const engagedThreats = inboundThreats.slice(0, channels);
+          const spd = tgt.speed !== undefined ? tgt.speed : 10;
+          if (spd > 0) {
+            tgt.x += Math.cos(tgt.heading) * spd * dt;
+            tgt.y += Math.sin(tgt.heading) * spd * dt;
 
-              for (const { missile: m, dist: mDist } of engagedThreats) {
-                // Fire CIWS tracers
-                particles.spawnCIWSTracers(tgt.x, tgt.y, m.x, m.y);
-                if (audio && audio.playGunSound && Math.random() < 0.40) {
-                  audio.playGunSound();
-                }
+            // Subtle water wake
+            if (particles && Math.random() < 0.25) {
+              const cosH = Math.cos(tgt.heading);
+              const sinH = Math.sin(tgt.heading);
+              particles.particles.push({
+                x: tgt.x - cosH * 32,
+                y: tgt.y - sinH * 32,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 8,
+                life: 0.8,
+                maxLife: 0.8,
+                size: 8 + Math.random() * 6,
+                color: 'rgba(210, 240, 255, 0.35)',
+                type: 'smoke'
+              });
+            }
+          }
+        }
 
-                // Intercept test only in terminal intercept zone (< 65% of max CIWS range)
-                if (mDist <= (maxRange * 0.65)) {
-                  const baseBurstChance = tgt.ciwsBurstChance || 0.14;
-                  const effectiveChance = baseBurstChance * overloadMult;
+        // Shared Defenses (active whether stationary or mobile):
+        // 1. CIWS defense: Carrier, Cruiser, Destroyer, Light Carrier
+        if (tgt.hasCIWS && particles && particles.missiles) {
+          tgt.ciwsCooldown = (tgt.ciwsCooldown || 0) - dt;
+          tgt.ciwsOverloadTimer = (tgt.ciwsOverloadTimer || 0) - dt;
 
-                  if (Math.random() < effectiveChance) {
-                    particles.spawnExplosion(m.x, m.y);
-                    m.isIntercepted = true;
-                    m.life = 0;
-                    if (audio && audio.playMissileHitSound) {
-                      audio.playMissileHitSound(false);
-                    }
-                    this.destroyedNotifications.push({
-                      text: `CIWS // ${tgt.name.split(' ')[0]} INTERCEPTED MISSILE`,
-                      code: 'DEFENSE',
-                      life: 1.4
-                    });
-                  }
-                }
+          // Scan for active missiles threatening this ship
+          const maxRange = tgt.ciwsRange || 900;
+          const inboundThreats = [];
+
+          for (const m of particles.missiles) {
+            if (m.isEnemy || m.isBomb || m.isSFFS || m.isIntercepted || m.life <= 0.1) continue;
+            const mDist = Math.hypot(m.x - tgt.x, m.y - tgt.y);
+            if (mDist <= maxRange) {
+              const dx = tgt.x - m.x;
+              const dy = tgt.y - m.y;
+              const forwardDot = (Math.cos(m.heading) * dx + Math.sin(m.heading) * dy) / (mDist || 1);
+              const isTargetingMe = (m.target === tgt);
+              // Threat qualification: directly targeted, or very close (< 55% range) and heading straight at ship
+              if (isTargetingMe || (forwardDot > 0.35 && mDist <= (maxRange * 0.55))) {
+                inboundThreats.push({ missile: m, dist: mDist });
               }
-
-              // Overloaded HUD warning when player saturates defenses
-              if (inboundThreats.length > channels && tgt.ciwsOverloadTimer <= 0) {
-                tgt.ciwsOverloadTimer = 2.2;
-                this.destroyedNotifications.push({
-                  text: `CIWS OVERLOADED // ${tgt.name.split(' ')[0]} [${inboundThreats.length} THREATS]`,
-                  code: 'WARNING',
-                  life: 1.5
-                });
-              }
-
-              tgt.ciwsCooldown = tgt.ciwsInterval || 0.28;
             }
           }
 
-          // 2. SAM firing: Cruiser and Destroyer
-          if (tgt.hasSAM) {
-            tgt.samCooldown = (tgt.samCooldown || 0) - dt;
-            const distToPlayer = Math.hypot(playerX - tgt.x, playerY - tgt.y);
-            if (distToPlayer <= (tgt.samRange || 3400) && tgt.samCooldown <= 0) {
-              tgt.samCooldown = tgt.samInterval || 9.0;
-              this.launchSAMMissile(tgt, playerX, playerY, particles, audio);
-            }
-          }
+          if (tgt.ciwsCooldown <= 0 && inboundThreats.length > 0) {
+            inboundThreats.sort((a, b) => a.dist - b.dist);
+            const channels = tgt.ciwsChannels || (tgt.subType === 'carrier' ? 2 : 1);
 
-          // 3. AA Flak firing: Frigate and Destroyer
-          if (tgt.hasFlak) {
-            tgt.flakCooldown = (tgt.flakCooldown || 0) - dt;
-            const distToPlayer = Math.hypot(playerX - tgt.x, playerY - tgt.y);
-            if (distToPlayer <= (tgt.flakRange || 2100) && tgt.flakCooldown <= 0) {
-              tgt.flakCooldown = tgt.flakInterval || 1.8;
-              if (particles && particles.spawnFlakShell) {
-                particles.spawnFlakShell(tgt.x, tgt.y, playerX, playerY, flightState);
-              }
-              if (audio && audio.playGunSound && Math.random() < 0.35) {
+            // Overload mechanics:
+            // 1. Channel saturation: Ship can only engage up to 'channels' missiles simultaneously.
+            const overloadMult = Math.max(0.20, 1.0 - (inboundThreats.length - 1) * 0.40);
+            const engagedThreats = inboundThreats.slice(0, channels);
+
+            for (const { missile: m, dist: mDist } of engagedThreats) {
+              // Fire CIWS tracers
+              particles.spawnCIWSTracers(tgt.x, tgt.y, m.x, m.y);
+              if (audio && audio.playGunSound && Math.random() < 0.40) {
                 audio.playGunSound();
               }
+
+              // Intercept test only in terminal intercept zone (< 65% of max CIWS range)
+              if (mDist <= (maxRange * 0.65)) {
+                const baseBurstChance = tgt.ciwsBurstChance || 0.14;
+                const effectiveChance = baseBurstChance * overloadMult;
+
+                if (Math.random() < effectiveChance) {
+                  particles.spawnExplosion(m.x, m.y);
+                  m.isIntercepted = true;
+                  m.life = 0;
+                  if (audio && audio.playMissileHitSound) {
+                    audio.playMissileHitSound(false);
+                  }
+                  this.destroyedNotifications.push({
+                    text: `CIWS // ${tgt.name.split(' ')[0]} INTERCEPTED MISSILE`,
+                    code: 'DEFENSE',
+                    life: 1.4
+                  });
+                }
+              }
+            }
+
+            // Overloaded HUD warning when player saturates defenses
+            if (inboundThreats.length > channels && tgt.ciwsOverloadTimer <= 0) {
+              tgt.ciwsOverloadTimer = 2.2;
+              this.destroyedNotifications.push({
+                text: `CIWS OVERLOADED // ${tgt.name.split(' ')[0]} [${inboundThreats.length} THREATS]`,
+                code: 'WARNING',
+                life: 1.5
+              });
+            }
+
+            tgt.ciwsCooldown = tgt.ciwsInterval || 0.28;
+          }
+        }
+
+        // 2. SAM firing: Cruiser, Destroyer, or custom SAM-equipped warship
+        if (tgt.hasSAM) {
+          tgt.samCooldown = (tgt.samCooldown || 0) - dt;
+          const distToPlayer = Math.hypot(playerX - tgt.x, playerY - tgt.y);
+          if (distToPlayer <= (tgt.samRange || 3400) && tgt.samCooldown <= 0) {
+            tgt.samCooldown = tgt.samInterval || 9.0;
+            this.launchSAMMissile(tgt, playerX, playerY, particles, audio);
+          }
+        }
+
+        // 3. AA Flak firing: Frigate, Destroyer, Light Carrier
+        if (tgt.hasFlak) {
+          tgt.flakCooldown = (tgt.flakCooldown || 0) - dt;
+          const distToPlayer = Math.hypot(playerX - tgt.x, playerY - tgt.y);
+          if (distToPlayer <= (tgt.flakRange || 2100) && tgt.flakCooldown <= 0) {
+            tgt.flakCooldown = tgt.flakInterval || 1.8;
+            if (particles && particles.spawnFlakShell) {
+              particles.spawnFlakShell(tgt.x, tgt.y, playerX, playerY, flightState);
+            }
+            if (audio && audio.playGunSound && Math.random() < 0.35) {
+              audio.playGunSound();
             }
           }
-
-          continue;
         }
 
-        // Slow circular/patrol drifting in deep open water without straying onto islands
-        const dx = tgt.x - tgt.patrolCenterX;
-        const dy = tgt.y - tgt.patrolCenterY;
-        const dist = Math.hypot(dx, dy);
-
-        if (dist > tgt.patrolRadius) {
-          const toCenter = Math.atan2(tgt.patrolCenterY - tgt.y, tgt.patrolCenterX - tgt.x);
-          let diff = toCenter - tgt.heading;
-          while (diff > Math.PI) diff -= Math.PI * 2;
-          while (diff < -Math.PI) diff += Math.PI * 2;
-          tgt.heading += Math.sign(diff) * Math.min(Math.abs(diff), 0.6 * dt);
-        } else {
-          tgt.heading += 0.08 * dt; // Slow gentle patrol arc
-        }
-
-        tgt.x += Math.cos(tgt.heading) * tgt.speed * dt;
-        tgt.y += Math.sin(tgt.heading) * tgt.speed * dt;
-
-        // Subtle water wake
-        if (Math.random() < 0.25) {
-          const cosH = Math.cos(tgt.heading);
-          const sinH = Math.sin(tgt.heading);
-          particles.particles.push({
-            x: tgt.x - cosH * 32,
-            y: tgt.y - sinH * 32,
-            vx: (Math.random() - 0.5) * 8,
-            vy: (Math.random() - 0.5) * 8,
-            life: 0.8,
-            maxLife: 0.8,
-            size: 8 + Math.random() * 6,
-            color: 'rgba(210, 240, 255, 0.35)',
-            type: 'smoke'
-          });
-        }
+        continue;
       } else if (tgt.type === 'ground') {
-        // Ground unit scripted movement & pathing (mobile SAMs, convoys, advancing armor, area orders)
-        if (tgt.orders && (tgt.orders.type === 'MOVE_TO_POINT' || tgt.orders.type === 'ADVANCE_AND_ATTACK' || tgt.orders.type === 'FLY_TO_AREA' || tgt.orders.type === 'MOVE_TO_AREA' || tgt.orders.type === 'STAY_IN_AREA' || tgt.orders.type === 'DEFEND_AREA')) {
-          const tx = tgt.orders.targetX !== undefined ? tgt.orders.targetX : tgt.x;
-          const ty = tgt.orders.targetY !== undefined ? tgt.orders.targetY : tgt.y;
+        const isStationary = (tgt.orders && (tgt.orders.type === 'STATIONARY' || tgt.orders.stationary)) || tgt.speed === 0;
+        const gType = ((tgt.groundType || tgt.subType) || 'sam_battery').toLowerCase();
+        const isStructure = gType === 'pillbox' || gType === 'bunker' || gType === 'sam_battery' || gType === 'radar_station';
+
+        // Mobile ground vehicle scripted movement & pathing (APCs, Tanks, convoys)
+        if (!isStationary && !isStructure && tgt.orders && (tgt.orders.type === 'MOVE_TO_POINT' || tgt.orders.type === 'ADVANCE_AND_ATTACK' || tgt.orders.type === 'FLY_TO_AREA' || tgt.orders.type === 'MOVE_TO_AREA' || tgt.orders.type === 'STAY_IN_AREA' || tgt.orders.type === 'DEFEND_AREA' || tgt.orders.type === 'PATROL_AREA')) {
+          const tx = tgt.orders.targetX !== undefined ? tgt.orders.targetX : (tgt.orders.centerX !== undefined ? tgt.orders.centerX : tgt.x);
+          const ty = tgt.orders.targetY !== undefined ? tgt.orders.targetY : (tgt.orders.centerY !== undefined ? tgt.orders.centerY : tgt.y);
           const dx = tx - tgt.x;
           const dy = ty - tgt.y;
           const dist = Math.hypot(dx, dy);
           if (dist > 15) {
-            const sp = tgt.orders.speed || tgt.speed || 35;
+            const sp = tgt.orders.speed || tgt.speed || (gType === 'tank' ? 22 : 32);
             tgt.heading = Math.atan2(dy, dx);
             tgt.x += (dx / dist) * sp * dt;
             tgt.y += (dy / dist) * sp * dt;
+
+            // Vehicle ground dust trail
+            if (particles && Math.random() < 0.22) {
+              const cosH = Math.cos(tgt.heading);
+              const sinH = Math.sin(tgt.heading);
+              particles.particles.push({
+                x: tgt.x - cosH * 14,
+                y: tgt.y - sinH * 14,
+                vx: (Math.random() - 0.5) * 5,
+                vy: (Math.random() - 0.5) * 5,
+                life: 0.6,
+                maxLife: 0.6,
+                size: 6 + Math.random() * 4,
+                color: 'rgba(160, 140, 110, 0.35)',
+                type: 'smoke'
+              });
+            }
           }
         }
 
-        // SAM Site radar dish rotation
-        tgt.radarAngle = (tgt.radarAngle || 0) + 1.8 * dt;
-
-        // Engagement check against player (reduced by player's stealth rating)
-        const distToPlayer = Math.hypot(playerX - tgt.x, playerY - tgt.y);
-        let maxRadarRange = tgt.radarRange || tgt.range || 3400;
-        if (flightState && flightState.stealth !== undefined && flightState.stealth > 0) {
-          const pStealth = flightState.stealth;
-          if (pStealth === 1) maxRadarRange *= 0.85;
-          else if (pStealth === 2) maxRadarRange *= 0.70;
-          else if (pStealth === 3) maxRadarRange *= 0.50;
-          else if (pStealth >= 4) maxRadarRange *= 0.35;
+        // Radar dish rotation for SAM Sites and Radar Stations
+        if (gType === 'sam_battery' || gType === 'radar_station') {
+          tgt.radarAngle = (tgt.radarAngle || 0) + 1.8 * dt;
         }
-        if (distToPlayer <= maxRadarRange) {
-          tgt.fireCooldown -= dt;
-          if (tgt.fireCooldown <= 0) {
-            tgt.fireCooldown = tgt.fireInterval;
-            this.launchSAMMissile(tgt, playerX, playerY, particles, audio);
+
+        // SAM Engagement check (only SAM sites or units with hasSAM)
+        const canFireSAM = tgt.hasSAM || gType === 'sam_battery';
+        if (canFireSAM) {
+          const distToPlayer = Math.hypot(playerX - tgt.x, playerY - tgt.y);
+          let maxRadarRange = tgt.radarRange || tgt.range || 3400;
+          if (flightState && flightState.stealth !== undefined && flightState.stealth > 0) {
+            const pStealth = flightState.stealth;
+            if (pStealth === 1) maxRadarRange *= 0.85;
+            else if (pStealth === 2) maxRadarRange *= 0.70;
+            else if (pStealth === 3) maxRadarRange *= 0.50;
+            else if (pStealth >= 4) maxRadarRange *= 0.35;
+          }
+          if (distToPlayer <= maxRadarRange) {
+            tgt.fireCooldown = (tgt.fireCooldown || 0) - dt;
+            if (tgt.fireCooldown <= 0) {
+              tgt.fireCooldown = tgt.fireInterval || 7.5;
+              this.launchSAMMissile(tgt, playerX, playerY, particles, audio);
+            }
+          }
+        }
+
+        // Flak AA engagement check (only flak_aa or units with hasFlak)
+        const canFireFlak = tgt.hasFlak || gType === 'flak_aa';
+        if (canFireFlak) {
+          tgt.flakCooldown = (tgt.flakCooldown || 0) - dt;
+          const distToPlayer = Math.hypot(playerX - tgt.x, playerY - tgt.y);
+          if (distToPlayer <= (tgt.flakRange || 2100) && tgt.flakCooldown <= 0) {
+            tgt.flakCooldown = tgt.flakInterval || 2.0;
+            if (particles && particles.spawnFlakShell) {
+              particles.spawnFlakShell(tgt.x, tgt.y, playerX, playerY, flightState);
+            }
+            if (audio && audio.playGunSound && Math.random() < 0.35) {
+              audio.playGunSound();
+            }
           }
         }
       }
@@ -1263,7 +1376,6 @@ export class TargetManager {
 
       case 'strike': {
         // 3. STRIKE AI: Prioritizes friendly ground targets (hostile to the striker).
-        // In test flight without friendly ground targets, patrols its assigned southern sector.
         let groundTarget = null;
         let minGroundDist = Infinity;
         for (const t of this.targets) {
@@ -2155,14 +2267,30 @@ export class TargetManager {
       }
 
       if (tgt.type === 'air') {
-        const isSu27 = tgt.model === 'su27';
-        const isF22 = tgt.model === 'f22';
-        let sprite = null;
-        if (isSu27) sprite = this.su27Sprite;
-        else if (isF22) sprite = this.f22Sprite;
-        else sprite = this.migSprite;
+        const modelId = tgt.model || 'mig21';
+        this.modelSprites = this.modelSprites || {};
+        if (!this.modelSprites[modelId] && typeof Image !== 'undefined') {
+          const img = new Image();
+          const fileMap = {
+            'mig21': 'mig21bis.png',
+            'a4': 'a4e.png',
+            'etendard': 'etendard_iv.png'
+          };
+          const fileName = fileMap[modelId] || `${modelId}.png`;
+          img.src = `./assets/planes/${fileName}`;
+          this.modelSprites[modelId] = img;
+        }
+
+        let sprite = this.modelSprites[modelId];
+        const isSu27 = modelId === 'su27';
+        const isF22 = modelId === 'f22';
+        if (!sprite || !sprite.complete || sprite.naturalWidth === 0) {
+          if (isSu27) sprite = this.su27Sprite;
+          else if (isF22) sprite = this.f22Sprite;
+          else sprite = this.migSprite;
+        }
         const hasSprite = sprite && sprite.complete && sprite.naturalWidth > 0;
-        const baseSize = isF22 ? 104 : (isSu27 ? 110 : 80);
+        const baseSize = (modelId === 'f22' || modelId === 'su57' || modelId === 'f111f') ? 104 : (modelId === 'su27' || modelId === 'f15c' || modelId === 'f15manx' ? 110 : (modelId === 'a4' || modelId === 'mig17' ? 76 : 84));
 
         const alt = (tgt.isFalling && tgt.altitude !== undefined)
           ? Math.max(0.0, Math.min(1.0, tgt.altitude))
@@ -2220,8 +2348,8 @@ export class TargetManager {
         // Warship Hull & Turrets
         this.drawWarshipShape(ctx, tgt);
       } else if (tgt.type === 'ground') {
-        // SAM Site Launcher Battery & Radar
-        this.drawSAMSiteShape(ctx, tgt);
+        // Ground Unit (APC, Tank, Pillbox, Bunker, SAM Site, Flak AA, Radar Station)
+        this.drawGroundUnitShape(ctx, tgt);
       }
 
       ctx.restore();
@@ -2301,7 +2429,7 @@ export class TargetManager {
   }
 
   drawWarshipShape(ctx, tgt) {
-    const sub = tgt ? tgt.subType : 'gunboat';
+    const sub = ((tgt && (tgt.subType || tgt.shipType)) || 'gunboat').toLowerCase();
     ctx.save();
 
     if (sub === 'carrier') {
@@ -2374,6 +2502,292 @@ export class TargetManager {
       ctx.arc(-72, -18, 2.5, 0, Math.PI * 2);
       ctx.arc(-72, 18, 2.5, 0, Math.PI * 2);
       ctx.fill();
+
+    } else if (sub === 'light_carrier' || sub === 'lst') {
+      // Light Aircraft Carrier / LST Amphibious Assault Ship
+      // Straight flight deck, starboard island superstructure, helo landing spots, bow ramp seam, stern well deck
+      ctx.fillStyle = '#2f363d';
+      ctx.strokeStyle = '#181e23';
+      ctx.lineWidth = 2.0;
+
+      // Flight Deck / Outer Hull
+      ctx.beginPath();
+      ctx.moveTo(68, -12);
+      ctx.lineTo(68, 12);
+      ctx.lineTo(56, 15);
+      ctx.lineTo(-58, 15);
+      ctx.lineTo(-65, 11);
+      ctx.lineTo(-65, -11);
+      ctx.lineTo(-58, -15);
+      ctx.lineTo(56, -15);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Amphibious Bow Notch / LST Bow Ramp Doors
+      ctx.strokeStyle = '#13181d';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(68, -5);
+      ctx.lineTo(58, 0);
+      ctx.lineTo(68, 5);
+      ctx.stroke();
+
+      // Flight Deck Centerline / Port Runways
+      ctx.strokeStyle = '#d4ac0d'; // Yellow flight line
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.moveTo(60, -5);
+      ctx.lineTo(-55, -5);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Helicopter / VTOL Landing Spots (3 Helo Circles with inner H/T)
+      const heloSpots = [24, -4, -32];
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.lineWidth = 1.2;
+      for (const hx of heloSpots) {
+        ctx.beginPath();
+        ctx.arc(hx, -5, 5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(hx - 2.5, -5);
+        ctx.lineTo(hx + 2.5, -5);
+        ctx.moveTo(hx, -7);
+        ctx.lineTo(hx, -3);
+        ctx.stroke();
+      }
+
+      // Starboard Island Superstructure
+      ctx.fillStyle = '#485561';
+      ctx.strokeStyle = '#1a2128';
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(-2, 7, 24, 7);
+      ctx.strokeRect(-2, 7, 24, 7);
+
+      // Island Mast & Radome
+      ctx.fillStyle = '#1c242c';
+      ctx.fillRect(8, 8, 4, 5);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(18, 10.5, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Aircraft Elevator / Lift Cutout (Starboard aft)
+      ctx.fillStyle = '#22282f';
+      ctx.fillRect(-38, 4, 14, 9);
+      ctx.strokeStyle = '#3a444e';
+      ctx.lineWidth = 1.0;
+      ctx.strokeRect(-38, 4, 14, 9);
+
+      // Stern Well-Deck Transom Gate (Amphibious Vehicle launch ramp)
+      ctx.fillStyle = '#181e23';
+      ctx.fillRect(-64, -7, 5, 14);
+      ctx.strokeStyle = '#d4ac0d';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(-64, -7, 5, 14);
+
+      // Phalanx CIWS mounts on sponsons (Forward Port & Aft Port/Starboard)
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(48, -13, 2.2, 0, Math.PI * 2);
+      ctx.arc(-54, -13, 2.2, 0, Math.PI * 2);
+      ctx.arc(-54, 13, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+
+    } else if (sub === 'cargo' || sub === 'cargoship' || sub === 'merchant') {
+      // Ocean Cargo / Commercial Container Vessel
+      // Elongated broad hull, colorful container blocks, deck cranes, aft bridge & funnel
+      ctx.fillStyle = '#282f36';
+      ctx.strokeStyle = '#14191e';
+      ctx.lineWidth = 2.0;
+
+      // Outer Merchant Hull
+      ctx.beginPath();
+      ctx.moveTo(58, 0);
+      ctx.lineTo(50, -11);
+      ctx.lineTo(40, -13);
+      ctx.lineTo(-46, -13);
+      ctx.lineTo(-54, -9);
+      ctx.lineTo(-54, 9);
+      ctx.lineTo(-46, 13);
+      ctx.lineTo(40, 13);
+      ctx.lineTo(50, 11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Forecastle & Bow Winch Deck
+      ctx.fillStyle = '#3a434c';
+      ctx.beginPath();
+      ctx.moveTo(56, 0);
+      ctx.lineTo(46, -10);
+      ctx.lineTo(34, -10);
+      ctx.lineTo(34, 10);
+      ctx.lineTo(46, 10);
+      ctx.closePath();
+      ctx.fill();
+
+      // Bow Anchor Winches & V-breakwater
+      ctx.strokeStyle = '#161c22';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(33, -7);
+      ctx.lineTo(38, 0);
+      ctx.lineTo(33, 7);
+      ctx.stroke();
+
+      // Stacks of Shipping Containers (3 Main Bays, 2 rows each)
+      // Bay 1: Forward (x: 18 to 31)
+      ctx.fillStyle = '#b03a2e'; // Rust Red
+      ctx.fillRect(18, -10, 13, 9);
+      ctx.fillStyle = '#2874a6'; // Marine Blue
+      ctx.fillRect(18, 1, 13, 9);
+
+      // Bay 2: Midships (x: 1 to 14)
+      ctx.fillStyle = '#1e8449'; // Emerald Green
+      ctx.fillRect(1, -10, 13, 9);
+      ctx.fillStyle = '#d35400'; // Safety Orange
+      ctx.fillRect(1, 1, 13, 9);
+
+      // Bay 3: Aft (x: -16 to -3)
+      ctx.fillStyle = '#b7950b'; // Mustard Gold
+      ctx.fillRect(-16, -10, 13, 9);
+      ctx.fillStyle = '#2e4053'; // Dark Slate
+      ctx.fillRect(-16, 1, 13, 9);
+
+      // Container Grid / Seam Outlines
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.lineWidth = 1.0;
+      ctx.strokeRect(18, -10, 13, 9);
+      ctx.strokeRect(18, 1, 13, 9);
+      ctx.strokeRect(1, -10, 13, 9);
+      ctx.strokeRect(1, 1, 13, 9);
+      ctx.strokeRect(-16, -10, 13, 9);
+      ctx.strokeRect(-16, 1, 13, 9);
+
+      // Deck Cargo Boom Cranes between container holds
+      const cranePosts = [16, -1];
+      ctx.fillStyle = '#e5e8e8';
+      ctx.strokeStyle = '#1c2833';
+      ctx.lineWidth = 1.0;
+      for (const cx of cranePosts) {
+        ctx.beginPath();
+        ctx.arc(cx, 0, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - 3, 0);
+        ctx.lineTo(cx + 3, 0);
+        ctx.stroke();
+      }
+
+      // Aft Superstructure / Accommodation Bridge (x: -35 to -21)
+      ctx.fillStyle = '#d5dbdb';
+      ctx.strokeStyle = '#212f3d';
+      ctx.lineWidth = 1.6;
+      ctx.fillRect(-35, -10, 14, 20);
+      ctx.strokeRect(-35, -10, 14, 20);
+
+      // Bridge Glass Windows (cyan glass strip)
+      ctx.fillStyle = '#3498db';
+      ctx.fillRect(-24, -8, 2.5, 16);
+
+      // Radar Scanner Mast on Bridge Roof
+      ctx.strokeStyle = '#1b2631';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(-29, -4);
+      ctx.lineTo(-29, 4);
+      ctx.stroke();
+
+      // Smokestack / Funnel (x: -45 to -37)
+      ctx.fillStyle = '#2c3e50';
+      ctx.fillRect(-45, -4, 8, 8);
+      // Crimson Shipping Line Band
+      ctx.fillStyle = '#c0392b';
+      ctx.fillRect(-43, -4, 4, 8);
+
+      // Orange Stern Lifeboat
+      ctx.fillStyle = '#e67e22';
+      ctx.fillRect(-51, 4, 6, 3);
+
+    } else if (sub === 'landing_craft' || sub === 'lcu' || sub === 'lcm') {
+      // Tactical Landing Craft (LCU / LCM)
+      // Squared bow with heavy drop ramp, open vehicle well deck, military vehicle inside, stern pilot house
+      ctx.fillStyle = '#3a443e';
+      ctx.strokeStyle = '#1d231f';
+      ctx.lineWidth = 1.8;
+
+      // Heavy Landing Craft Hull
+      ctx.beginPath();
+      ctx.moveTo(22, -8);
+      ctx.lineTo(22, 8);
+      ctx.lineTo(16, 9.5);
+      ctx.lineTo(-22, 9.5);
+      ctx.lineTo(-22, -9.5);
+      ctx.lineTo(16, -9.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Reinforced Drop Ramp (Front Bow)
+      ctx.fillStyle = '#252d28';
+      ctx.strokeStyle = '#121614';
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(17, -7, 5, 14);
+      ctx.strokeRect(17, -7, 5, 14);
+
+      // Ramp Cable / Hinge Notches
+      ctx.fillStyle = '#e59866';
+      ctx.fillRect(16, -8, 2, 2);
+      ctx.fillRect(16, 6, 2, 2);
+
+      // Open Cargo / Vehicle Well Deck (Recessed interior bay)
+      ctx.fillStyle = '#222824';
+      ctx.fillRect(-11, -7, 26, 14);
+      ctx.strokeStyle = '#2d3630';
+      ctx.lineWidth = 1.0;
+      ctx.strokeRect(-11, -7, 26, 14);
+
+      // Vehicle Payload inside Well Deck (Olive Military Armored Carrier)
+      ctx.fillStyle = '#4d5942'; // Olive drab
+      ctx.fillRect(-5, -4.5, 15, 9);
+      // Windshield & Roof Hatch
+      ctx.fillStyle = '#2c3e50';
+      ctx.fillRect(4, -3.5, 2.5, 7);
+      ctx.fillStyle = '#384131';
+      ctx.fillRect(-2, -3, 4, 6);
+      // Front Bumper / Winch
+      ctx.fillStyle = '#1c221a';
+      ctx.fillRect(10, -3.5, 1.5, 7);
+
+      // Elevated Stern Pilot House / Helm (x: -20 to -12)
+      ctx.fillStyle = '#4a574f';
+      ctx.strokeStyle = '#1d231f';
+      ctx.lineWidth = 1.4;
+      ctx.fillRect(-20, -8, 8, 16);
+      ctx.strokeRect(-20, -8, 8, 8); // Cabin on port side
+      // Pilot House Windows
+      ctx.fillStyle = '#5dade2';
+      ctx.fillRect(-13, -7, 1.5, 6);
+
+      // Engine Compartment Exhaust Louvers (Starboard stern)
+      ctx.fillStyle = '#1c221e';
+      ctx.fillRect(-19, 1, 6, 6);
+
+      // Machine Gun Mount on Forward Bulwark
+      ctx.fillStyle = '#151b18';
+      ctx.beginPath();
+      ctx.arc(15, -7.5, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(15, -7.5);
+      ctx.lineTo(21, -7.5);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#0f1411';
+      ctx.stroke();
 
     } else if (sub === 'cruiser') {
       // Aegis Missile Cruiser (CG) - Long sleek stealth hull, phased array deckhouse, VLS cells, 5-inch gun
@@ -2560,6 +2974,376 @@ export class TargetManager {
       ctx.lineTo(17, 0);
       ctx.lineWidth = 1.5;
       ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  drawGroundUnitShape(ctx, tgt) {
+    const gType = ((tgt && (tgt.groundType || tgt.subType)) || 'sam_battery').toLowerCase();
+    ctx.save();
+
+    if (gType === 'apc') {
+      // Armored Personnel Carrier (8x8 tactical wheeled / tracked IFV)
+      // Main APC chassis
+      ctx.fillStyle = '#42523b'; // Tactical olive
+      ctx.strokeStyle = '#1b2318';
+      ctx.lineWidth = 1.8;
+
+      ctx.beginPath();
+      ctx.moveTo(14, -6);
+      ctx.lineTo(14, 6);
+      ctx.lineTo(11, 7.5);
+      ctx.lineTo(-14, 7.5);
+      ctx.lineTo(-14, -7.5);
+      ctx.lineTo(11, -7.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Sloped front glacis plate
+      ctx.fillStyle = '#34412e';
+      ctx.beginPath();
+      ctx.moveTo(14, -6);
+      ctx.lineTo(8, -6);
+      ctx.lineTo(8, 6);
+      ctx.lineTo(14, 6);
+      ctx.closePath();
+      ctx.fill();
+
+      // 8 Wheels / Road Tire Blocks (4 on each side)
+      ctx.fillStyle = '#181c16';
+      ctx.strokeStyle = '#2b3328';
+      ctx.lineWidth = 1.0;
+      const wheelXs = [9, 3, -4, -10];
+      for (const wx of wheelXs) {
+        // Left wheel
+        ctx.fillRect(wx - 2, -9.5, 4, 2.5);
+        ctx.strokeRect(wx - 2, -9.5, 4, 2.5);
+        // Right wheel
+        ctx.fillRect(wx - 2, 7.0, 4, 2.5);
+        ctx.strokeRect(wx - 2, 7.0, 4, 2.5);
+      }
+
+      // Small Autocannon / Machine Gun Turret (at midships)
+      ctx.fillStyle = '#2f3b2a';
+      ctx.strokeStyle = '#151b12';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Gun Barrel pointing forward
+      ctx.strokeStyle = '#11160e';
+      ctx.lineWidth = 2.0;
+      ctx.beginPath();
+      ctx.moveTo(3, 0);
+      ctx.lineTo(11, 0);
+      ctx.stroke();
+
+      // Driver's Vision Blocks / Periscope
+      ctx.fillStyle = '#5dade2';
+      ctx.fillRect(7, -3, 1.5, 6);
+
+      // Rear troop doors seam
+      ctx.strokeStyle = '#1b2318';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-14, -4);
+      ctx.lineTo(-14, 4);
+      ctx.stroke();
+
+    } else if (gType === 'tank') {
+      // Main Battle Tank (Heavy tracks, sloped armor, rotating turret, long 125mm cannon)
+      // Heavy Track Assemblies (Left and Right)
+      ctx.fillStyle = '#242825'; // Track rubber/steel
+      ctx.strokeStyle = '#121513';
+      ctx.lineWidth = 1.5;
+
+      // Left Track
+      ctx.fillRect(-15, -11, 30, 4.5);
+      ctx.strokeRect(-15, -11, 30, 4.5);
+      // Right Track
+      ctx.fillRect(-15, 6.5, 30, 4.5);
+      ctx.strokeRect(-15, 6.5, 30, 4.5);
+
+      // Track pads / rib lines
+      ctx.strokeStyle = '#383e39';
+      ctx.lineWidth = 1.0;
+      for (let tx = -13; tx <= 13; tx += 4) {
+        ctx.beginPath();
+        ctx.moveTo(tx, -11);
+        ctx.lineTo(tx, -6.5);
+        ctx.moveTo(tx, 6.5);
+        ctx.lineTo(tx, 11);
+        ctx.stroke();
+      }
+
+      // Main Armored Hull
+      ctx.fillStyle = '#46543f'; // Military camo green
+      ctx.strokeStyle = '#1c2219';
+      ctx.lineWidth = 1.8;
+
+      ctx.beginPath();
+      ctx.moveTo(16, -6.5);
+      ctx.lineTo(16, 6.5);
+      ctx.lineTo(14, 7);
+      ctx.lineTo(-15, 7);
+      ctx.lineTo(-15, -7);
+      ctx.lineTo(14, -7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Reactive Armor ERA Bricks on Front Glacis
+      ctx.fillStyle = '#394633';
+      ctx.fillRect(11, -5.5, 4, 11);
+
+      // Long 125mm Tank Cannon (drawn extending forward from turret)
+      ctx.strokeStyle = '#161d14';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(3, 0);
+      ctx.lineTo(24, 0);
+      ctx.stroke();
+
+      // Muzzle Brake / Bore Evacuator
+      ctx.fillStyle = '#10140e';
+      ctx.fillRect(14, -1.8, 3, 3.6);
+      ctx.fillRect(22, -1.5, 2.5, 3);
+
+      // Rotating Angular Turret
+      ctx.fillStyle = '#52634a';
+      ctx.strokeStyle = '#192016';
+      ctx.lineWidth = 1.8;
+
+      ctx.beginPath();
+      ctx.moveTo(8, -6);
+      ctx.lineTo(8, 6);
+      ctx.lineTo(-4, 7);
+      ctx.lineTo(-9, 5);
+      ctx.lineTo(-9, -5);
+      ctx.lineTo(-4, -7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Commander's Cupola & Hatch
+      ctx.fillStyle = '#2f3b2a';
+      ctx.beginPath();
+      ctx.arc(-2, -3, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Anti-Aircraft Machine Gun on Cupola
+      ctx.strokeStyle = '#121610';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(-2, -3);
+      ctx.lineTo(4, -3);
+      ctx.stroke();
+
+      // Rear Engine Grilles & Exhaust
+      ctx.fillStyle = '#273123';
+      ctx.fillRect(-14, -4.5, 3, 9);
+
+    } else if (gType === 'pillbox') {
+      // Reinforced Concrete Pillbox (Ballistic dome, embrasure slits, sandbag berm)
+      // Outer Sandbag / Earthen Protective Ring
+      ctx.fillStyle = '#655f4c'; // Earth / sandbags
+      ctx.strokeStyle = '#3a362b';
+      ctx.lineWidth = 2.0;
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Sandbag segment indentations
+      ctx.strokeStyle = '#4e493a';
+      ctx.lineWidth = 1.0;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 11, Math.sin(a) * 11);
+        ctx.lineTo(Math.cos(a) * 16, Math.sin(a) * 16);
+        ctx.stroke();
+      }
+
+      // Reinforced Concrete Ballistic Bunker Dome
+      ctx.fillStyle = '#505650'; // Fortified concrete
+      ctx.strokeStyle = '#222622';
+      ctx.lineWidth = 2.2;
+
+      ctx.beginPath();
+      const r = 11;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const x = Math.cos(a) * r;
+        const y = Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Central Cupola / Air Vent on Roof
+      ctx.fillStyle = '#373c37';
+      ctx.beginPath();
+      ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#1e211e';
+      ctx.lineWidth = 1.0;
+      ctx.stroke();
+
+      // Narrow Firing Embrasures / Slits with protruding gun barrels (3 directions: 0, 0.9, -0.9)
+      const embrasureAngles = [0, 0.9, -0.9];
+      for (const ea of embrasureAngles) {
+        const cosA = Math.cos(ea);
+        const sinA = Math.sin(ea);
+        // Dark firing slit
+        ctx.fillStyle = '#0f120e';
+        ctx.beginPath();
+        ctx.arc(cosA * 8, sinA * 8, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        // Gun barrel poking out through slit
+        ctx.strokeStyle = '#121511';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(cosA * 7, sinA * 7);
+        ctx.lineTo(cosA * 14, sinA * 14);
+        ctx.stroke();
+      }
+
+    } else if (gType === 'bunker') {
+      // Hardened Military Command & Munitions Bunker
+      // Heavy blast-proof concrete envelope, armored steel blast door, HVAC vents, comms dish
+      // Outer Sloped Blast Berm / Revetment
+      ctx.fillStyle = '#484439'; // Berm soil
+      ctx.strokeStyle = '#28251e';
+      ctx.lineWidth = 2.0;
+
+      ctx.beginPath();
+      ctx.moveTo(22, -18);
+      ctx.lineTo(22, 18);
+      ctx.lineTo(-22, 18);
+      ctx.lineTo(-22, -18);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Main Ballistic Concrete Bunker Block
+      ctx.fillStyle = '#414749'; // Ballistic concrete
+      ctx.strokeStyle = '#1c2022';
+      ctx.lineWidth = 2.2;
+
+      ctx.beginPath();
+      ctx.moveTo(17, -13);
+      ctx.lineTo(17, 13);
+      ctx.lineTo(-17, 13);
+      ctx.lineTo(-17, -13);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Reinforced Steel Roof Armor Slab
+      ctx.fillStyle = '#2e3538';
+      ctx.fillRect(-12, -9, 24, 18);
+      ctx.strokeStyle = '#181d1f';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(-12, -9, 24, 18);
+
+      // Recessed Entrance Trench & Steel Blast Doors (Aft)
+      ctx.fillStyle = '#171b1d';
+      ctx.fillRect(-17, -4, 5, 8);
+      // Warning Chevron Striping on Blast Door
+      ctx.fillStyle = '#e67e22';
+      ctx.fillRect(-16, -3, 3, 2);
+      ctx.fillRect(-16, 1, 3, 2);
+
+      // Air Filtration Mushroom Vents (Left & Right roof)
+      ctx.fillStyle = '#607d8b';
+      ctx.beginPath();
+      ctx.arc(-5, -6, 2.5, 0, Math.PI * 2);
+      ctx.arc(5, -6, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tactical Communications / Radar Satellite Dish on Corner Sponson
+      ctx.fillStyle = '#cfd8dc';
+      ctx.beginPath();
+      ctx.arc(8, 5, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#263238';
+      ctx.lineWidth = 1.0;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(8, 2);
+      ctx.lineTo(8, 8);
+      ctx.stroke();
+
+    } else if (gType === 'flak_aa') {
+      // Anti-Aircraft Flak Gun Battery (Round revetment, dual flak autocannons)
+      ctx.fillStyle = '#3f4741';
+      ctx.strokeStyle = '#242a25';
+      ctx.lineWidth = 2.0;
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Rotating Gun Tub
+      ctx.fillStyle = '#28302b';
+      ctx.beginPath();
+      ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#151b17';
+      ctx.stroke();
+
+      // Twin Flak Barrels pointing forward
+      ctx.strokeStyle = '#121614';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(2, -3);
+      ctx.lineTo(16, -3);
+      ctx.moveTo(2, 3);
+      ctx.lineTo(16, 3);
+      ctx.stroke();
+
+      // Muzzle flash hiders
+      ctx.fillStyle = '#0a0d0b';
+      ctx.fillRect(14, -4.5, 3, 3);
+      ctx.fillRect(14, 1.5, 3, 3);
+
+    } else if (gType === 'radar_station') {
+      // Radar Station (Concrete blockhouse with large rotating parabolic radar dish)
+      ctx.fillStyle = '#3c4448';
+      ctx.strokeStyle = '#1d2326';
+      ctx.lineWidth = 2.0;
+      ctx.fillRect(-12, -12, 24, 24);
+      ctx.strokeRect(-12, -12, 24, 24);
+
+      // Rotating Large Parabolic Dish
+      ctx.save();
+      ctx.rotate(tgt.radarAngle || 0);
+      ctx.strokeStyle = '#e0e6ed';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 12, -0.85, 0.85);
+      ctx.stroke();
+      // Feed horn
+      ctx.strokeStyle = '#ffcc00';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(7, 0);
+      ctx.stroke();
+      ctx.restore();
+
+    } else {
+      // Default to SAM Site Launcher Battery
+      this.drawSAMSiteShape(ctx, tgt);
     }
 
     ctx.restore();

@@ -2,7 +2,9 @@
   "missionType": "singleplayer",
   "playerCount": 1,
   "loadout": {
-    "mode": "player"
+    "mode": "player",
+    "aircraft": "f15c",
+    "specialWeapon": "qaam"
   },
   "map": {
     "id": "test_flight",
@@ -21,471 +23,624 @@
     },
     "terrain": [
       {
-        "id": "fortress_poly_atoll",
+        "id": "poly_island_1",
         "type": "polygon",
-        "x": 50.8,
-        "y": -1579.9,
-        "radius": 680.0,
+        "landType": "island",
+        "x": -11155.2,
+        "y": -1152.3,
+        "radius": 3148.9,
         "points": [
           [
-            -299.2,
-            -1829.9
+            -10968.2,
+            -3530.7
           ],
           [
-            100.8,
-            -1929.9
+            -11582.1,
+            -3347.8
           ],
           [
-            400.8,
-            -1779.9
+            -11856.4,
+            -3073.5
           ],
           [
-            350.8,
-            -1379.9
+            -11921.7,
+            -2590.2
           ],
           [
-            0.8,
-            -1249.9
+            -11895.6,
+            -2237.6
           ],
           [
-            -269.2,
-            -1509.9
+            -12091.5,
+            -1937.1
+          ],
+          [
+            -12378.9,
+            -1702.0
+          ],
+          [
+            -12509.5,
+            -1493.0
+          ],
+          [
+            -12600.9,
+            -1009.7
+          ],
+          [
+            -12535.6,
+            -591.7
+          ],
+          [
+            -12483.4,
+            -343.6
+          ],
+          [
+            -12587.9,
+            9.1
+          ],
+          [
+            -12731.6,
+            387.9
+          ],
+          [
+            -12718.5,
+            766.7
+          ],
+          [
+            -12261.3,
+            1132.5
+          ],
+          [
+            -11869.5,
+            1315.3
+          ],
+          [
+            -11529.9,
+            1524.3
+          ],
+          [
+            -11007.4,
+            1929.2
+          ],
+          [
+            -10184.5,
+            1811.7
+          ],
+          [
+            -9818.7,
+            1341.4
+          ],
+          [
+            -9831.8,
+            779.8
+          ],
+          [
+            -10249.8,
+            361.8
+          ],
+          [
+            -10419.6,
+            100.5
+          ],
+          [
+            -10367.3,
+            -382.8
+          ],
+          [
+            -10249.8,
+            -1009.7
+          ],
+          [
+            -10406.5,
+            -1401.6
+          ],
+          [
+            -10497.9,
+            -1649.8
+          ],
+          [
+            -10393.5,
+            -2093.9
+          ],
+          [
+            -10080.0,
+            -2485.7
+          ],
+          [
+            -9792.6,
+            -2864.5
+          ],
+          [
+            -9727.3,
+            -3256.4
+          ],
+          [
+            -9792.6,
+            -3609.1
+          ],
+          [
+            -10132.2,
+            -3765.8
+          ],
+          [
+            -10341.2,
+            -3778.9
+          ],
+          [
+            -10615.5,
+            -3635.2
           ]
         ],
         "color": "#1a382d",
         "sandColor": "#45594b"
       },
       {
-        "id": "island_1",
-        "type": "island",
-        "x": -1103.8,
-        "y": -842.0,
-        "radius": 504.2,
+        "id": "poly_island_2",
+        "type": "polygon",
+        "landType": "island",
+        "x": -367.6,
+        "y": 191.7,
+        "radius": 3098.8,
+        "points": [
+          [
+            -1801.7,
+            1023.2
+          ],
+          [
+            -1826.7,
+            1131.6
+          ],
+          [
+            -1826.7,
+            1289.9
+          ],
+          [
+            -1751.7,
+            1498.2
+          ],
+          [
+            -1643.4,
+            1714.9
+          ],
+          [
+            -1518.4,
+            1856.6
+          ],
+          [
+            -1285.0,
+            1956.6
+          ],
+          [
+            -1060.0,
+            2048.2
+          ],
+          [
+            -876.7,
+            2131.6
+          ],
+          [
+            -793.4,
+            2248.2
+          ],
+          [
+            -801.7,
+            2373.2
+          ],
+          [
+            -843.4,
+            2439.9
+          ],
+          [
+            -926.7,
+            2439.9
+          ],
+          [
+            -1143.4,
+            2381.6
+          ],
+          [
+            -1260.0,
+            2281.6
+          ],
+          [
+            -1410.0,
+            2148.2
+          ],
+          [
+            -1610.0,
+            2098.2
+          ],
+          [
+            -1776.7,
+            2098.2
+          ],
+          [
+            -1943.4,
+            2023.2
+          ],
+          [
+            -2085.0,
+            1839.9
+          ],
+          [
+            -2176.7,
+            1539.9
+          ],
+          [
+            -2193.4,
+            1289.9
+          ],
+          [
+            -2326.7,
+            1114.9
+          ],
+          [
+            -2426.7,
+            998.2
+          ],
+          [
+            -2626.7,
+            873.2
+          ],
+          [
+            -2760.0,
+            664.9
+          ],
+          [
+            -2793.4,
+            406.6
+          ],
+          [
+            -2751.7,
+            39.9
+          ],
+          [
+            -2510.0,
+            -143.4
+          ],
+          [
+            -2326.7,
+            -185.1
+          ],
+          [
+            -2068.4,
+            -310.1
+          ],
+          [
+            -1935.0,
+            -510.1
+          ],
+          [
+            -1818.4,
+            -826.8
+          ],
+          [
+            -1810.0,
+            -1126.8
+          ],
+          [
+            -1876.7,
+            -1493.4
+          ],
+          [
+            -1776.7,
+            -1851.8
+          ],
+          [
+            -1618.4,
+            -2035.1
+          ],
+          [
+            -1260.0,
+            -2076.8
+          ],
+          [
+            -968.4,
+            -1943.4
+          ],
+          [
+            -751.7,
+            -1901.8
+          ],
+          [
+            -460.0,
+            -1951.8
+          ],
+          [
+            -301.7,
+            -2035.1
+          ],
+          [
+            -43.4,
+            -2176.8
+          ],
+          [
+            556.6,
+            -2285.1
+          ],
+          [
+            1190.0,
+            -2185.1
+          ],
+          [
+            1381.6,
+            -2018.4
+          ],
+          [
+            1456.6,
+            -1751.8
+          ],
+          [
+            1456.6,
+            -1476.8
+          ],
+          [
+            1615.0,
+            -1201.8
+          ],
+          [
+            2106.6,
+            -960.1
+          ],
+          [
+            2456.6,
+            -835.1
+          ],
+          [
+            2590.0,
+            -626.8
+          ],
+          [
+            2598.3,
+            -360.1
+          ],
+          [
+            2565.0,
+            -135.1
+          ],
+          [
+            2481.6,
+            164.9
+          ],
+          [
+            2456.6,
+            381.6
+          ],
+          [
+            2490.0,
+            639.9
+          ],
+          [
+            2465.0,
+            931.6
+          ],
+          [
+            2281.6,
+            1081.6
+          ],
+          [
+            1948.3,
+            1114.9
+          ],
+          [
+            1690.0,
+            889.9
+          ],
+          [
+            1706.6,
+            698.2
+          ],
+          [
+            1940.0,
+            456.6
+          ],
+          [
+            1981.6,
+            256.6
+          ],
+          [
+            1823.3,
+            -1.8
+          ],
+          [
+            1606.6,
+            -143.4
+          ],
+          [
+            1248.3,
+            -293.4
+          ],
+          [
+            1115.0,
+            -543.4
+          ],
+          [
+            1023.3,
+            -726.8
+          ],
+          [
+            756.6,
+            -851.8
+          ],
+          [
+            515.0,
+            -868.4
+          ],
+          [
+            290.0,
+            -726.8
+          ],
+          [
+            223.3,
+            -301.8
+          ],
+          [
+            198.3,
+            -76.8
+          ],
+          [
+            65.0,
+            73.2
+          ],
+          [
+            -293.4,
+            81.6
+          ],
+          [
+            -443.4,
+            6.6
+          ],
+          [
+            -676.7,
+            -118.4
+          ],
+          [
+            -943.4,
+            -118.4
+          ],
+          [
+            -1201.7,
+            -18.4
+          ],
+          [
+            -1301.7,
+            114.9
+          ],
+          [
+            -1326.7,
+            314.9
+          ],
+          [
+            -1335.0,
+            431.6
+          ],
+          [
+            -1393.4,
+            556.6
+          ],
+          [
+            -1510.0,
+            698.2
+          ],
+          [
+            -1701.7,
+            839.9
+          ]
+        ],
         "color": "#1a382d",
         "sandColor": "#45594b"
       },
       {
-        "id": "island_2",
-        "type": "island",
-        "x": 708.9,
-        "y": 1289.1,
-        "radius": 614.6,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_3",
-        "type": "island",
-        "x": 1744.0,
-        "y": -278.5,
-        "radius": 335.1,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_4",
-        "type": "island",
-        "x": 1518.7,
-        "y": -1551.2,
-        "radius": 368.7,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_5",
-        "type": "island",
-        "x": -1462.4,
-        "y": -307.4,
-        "radius": 475.8,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_6",
-        "type": "island",
-        "x": 596.8,
-        "y": -870.4,
-        "radius": 407.1,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_7",
-        "type": "island",
-        "x": 1084.7,
-        "y": -832.7,
-        "radius": 459.2,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_8",
-        "type": "island",
-        "x": -1682.0,
-        "y": 657.3,
-        "radius": 600.8,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_9",
-        "type": "island",
-        "x": -2282.5,
-        "y": -236.8,
-        "radius": 429.3,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_10",
-        "type": "island",
-        "x": -761.0,
-        "y": -1661.6,
-        "radius": 318.7,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_11",
-        "type": "island",
-        "x": -7252.1,
-        "y": -5720.8,
-        "radius": 751.7,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_12",
-        "type": "island",
-        "x": -4993.0,
-        "y": -4713.8,
-        "radius": 382.8,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_13",
-        "type": "island",
-        "x": -1606.0,
-        "y": 233.8,
-        "radius": 522.4,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_14",
-        "type": "island",
-        "x": -6315.7,
-        "y": -4291.0,
-        "radius": 655.0,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_15",
-        "type": "island",
-        "x": -5939.2,
-        "y": -4304.0,
-        "radius": 515.8,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_16",
-        "type": "island",
-        "x": -7676.6,
-        "y": -5568.2,
-        "radius": 362.4,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_17",
-        "type": "island",
-        "x": -7812.8,
-        "y": -3721.1,
-        "radius": 598.0,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_18",
-        "type": "island",
-        "x": -8000.9,
-        "y": -6129.9,
-        "radius": 384.3,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_19",
-        "type": "island",
-        "x": 7735.5,
-        "y": 6035.0,
-        "radius": 617.4,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_20",
-        "type": "island",
-        "x": 8373.2,
-        "y": 3545.8,
-        "radius": 454.8,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_21",
-        "type": "island",
-        "x": 5884.9,
-        "y": 5391.5,
-        "radius": 769.4,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_22",
-        "type": "island",
-        "x": 7963.0,
-        "y": 5303.2,
-        "radius": 607.4,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_23",
-        "type": "island",
-        "x": 5300.1,
-        "y": 5505.5,
-        "radius": 655.4,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_24",
-        "type": "island",
-        "x": 7725.3,
-        "y": 6029.8,
-        "radius": 437.3,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_25",
-        "type": "island",
-        "x": 8670.3,
-        "y": 3320.3,
-        "radius": 328.0,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_26",
-        "type": "island",
-        "x": 7679.1,
-        "y": 3188.2,
-        "radius": 413.6,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_27",
-        "type": "island",
-        "x": -9927.1,
-        "y": 1038.0,
-        "radius": 542.1,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_28",
-        "type": "island",
-        "x": -9867.5,
-        "y": -1586.4,
-        "radius": 562.7,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_29",
-        "type": "island",
-        "x": -10264.5,
-        "y": 412.9,
-        "radius": 745.4,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_30",
-        "type": "island",
-        "x": -11259.3,
-        "y": -593.1,
-        "radius": 616.2,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_31",
-        "type": "island",
-        "x": -11402.9,
-        "y": 714.1,
-        "radius": 735.9,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_32",
-        "type": "island",
-        "x": -11412.7,
-        "y": -1388.0,
-        "radius": 637.9,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_33",
-        "type": "island",
-        "x": -10114.6,
-        "y": 240.3,
-        "radius": 533.3,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_34",
-        "type": "island",
-        "x": -10643.7,
-        "y": 33.3,
-        "radius": 718.2,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_35",
-        "type": "island",
-        "x": -11314.9,
-        "y": -228.9,
-        "radius": 624.6,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_36",
-        "type": "island",
-        "x": -10680.4,
-        "y": 217.3,
-        "radius": 668.3,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_37",
-        "type": "island",
-        "x": -9627.2,
-        "y": -1125.5,
-        "radius": 499.0,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_38",
-        "type": "island",
-        "x": -10791.6,
-        "y": 1528.8,
-        "radius": 301.3,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_39",
-        "type": "island",
-        "x": -9833.8,
-        "y": 603.3,
-        "radius": 543.5,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_40",
-        "type": "island",
-        "x": -10026.6,
-        "y": 611.8,
-        "radius": 584.0,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_41",
-        "type": "island",
-        "x": -9356.8,
-        "y": -822.8,
-        "radius": 713.1,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_42",
-        "type": "island",
-        "x": -9745.8,
-        "y": 832.4,
-        "radius": 553.7,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_43",
-        "type": "island",
-        "x": -9156.7,
-        "y": 1046.2,
-        "radius": 656.8,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_44",
-        "type": "island",
-        "x": 3679.2,
-        "y": -1285.7,
-        "radius": 502.5,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_45",
-        "type": "island",
-        "x": 4561.4,
-        "y": -1566.9,
-        "radius": 528.8,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_46",
-        "type": "island",
-        "x": 5460.4,
-        "y": -361.8,
-        "radius": 673.8,
-        "color": "#162e24",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_47",
-        "type": "island",
-        "x": 3429.8,
-        "y": -2412.7,
-        "radius": 559.2,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
-      },
-      {
-        "id": "island_48",
-        "type": "island",
-        "x": 4926.5,
-        "y": -1719.8,
-        "radius": 378.6,
-        "color": "#1a382d",
-        "sandColor": "#45594b"
+        "id": "poly_island_3",
+        "type": "polygon",
+        "landType": "city",
+        "x": -11730.9,
+        "y": -2180.8,
+        "radius": 1319.7,
+        "points": [
+          [
+            -10611.9,
+            -2822.2
+          ],
+          [
+            -10653.5,
+            -1580.5
+          ],
+          [
+            -11078.5,
+            -1580.5
+          ],
+          [
+            -11078.5,
+            -1222.2
+          ],
+          [
+            -12286.9,
+            -1180.5
+          ],
+          [
+            -12311.9,
+            -1397.2
+          ],
+          [
+            -12311.9,
+            -1480.5
+          ],
+          [
+            -12278.5,
+            -1605.5
+          ],
+          [
+            -12245.2,
+            -1655.5
+          ],
+          [
+            -12128.5,
+            -1755.5
+          ],
+          [
+            -12011.9,
+            -1855.5
+          ],
+          [
+            -11895.2,
+            -1980.5
+          ],
+          [
+            -11820.2,
+            -2105.5
+          ],
+          [
+            -11770.2,
+            -2205.5
+          ],
+          [
+            -11753.5,
+            -2322.2
+          ],
+          [
+            -11753.5,
+            -2472.2
+          ],
+          [
+            -11753.5,
+            -2588.8
+          ],
+          [
+            -12436.9,
+            -2580.5
+          ],
+          [
+            -12436.9,
+            -2672.2
+          ],
+          [
+            -11736.9,
+            -2672.2
+          ],
+          [
+            -11745.2,
+            -2805.5
+          ],
+          [
+            -11578.5,
+            -2930.5
+          ],
+          [
+            -11470.2,
+            -2997.2
+          ],
+          [
+            -11286.9,
+            -3022.2
+          ],
+          [
+            -10836.9,
+            -3030.5
+          ]
+        ],
+        "color": "#383d47",
+        "sandColor": "#252930"
       }
     ],
     "weather": {
@@ -496,11 +651,11 @@
     },
     "areas": [
       {
-        "id": "area_carrier_strike",
-        "name": "Carrier Defense Perimeter",
-        "x": 8500.0,
-        "y": -8500.0,
-        "radius": 4500.0,
+        "id": "area_formation",
+        "name": "MiG-21 Formation Patrol",
+        "x": -9322.6,
+        "y": -8817.4,
+        "radius": 4495.0,
         "color": "#00e5ff"
       },
       {
@@ -510,6 +665,30 @@
         "y": 0.0,
         "radius": 3000.0,
         "color": "#00ff66"
+      },
+      {
+        "id": "area_carrier_strike_copy",
+        "name": "Carrier Defense Perimeter (Copy)",
+        "x": 8767.0,
+        "y": -8373.3,
+        "radius": 4500.0,
+        "color": "#00e5ff"
+      },
+      {
+        "id": "area_city_sams",
+        "name": "SAM Range",
+        "x": -9526.0,
+        "y": -56.0,
+        "radius": 4500.0,
+        "color": "#00e5ff"
+      },
+      {
+        "id": "area_ace",
+        "name": "F-22 Ace area",
+        "x": -8908.0,
+        "y": 9390.0,
+        "radius": 4495.0,
+        "color": "#00e5ff"
       }
     ]
   },
@@ -518,23 +697,12 @@
       {
         "id": "spawn_p1",
         "team": "friendly",
-        "x": 0.0,
-        "y": 0.0,
+        "x": -5072.7,
+        "y": 5146.8,
         "heading": -0.785,
         "speed": 335,
         "altitude": 1.0,
         "isPrimary": true,
-        "allowedTags": []
-      },
-      {
-        "id": "spawn_p2",
-        "team": "friendly",
-        "x": 84.8,
-        "y": 169.7,
-        "heading": -0.785,
-        "speed": 335,
-        "altitude": 1.0,
-        "isPrimary": false,
         "allowedTags": []
       }
     ],
@@ -888,11 +1056,11 @@
       },
       {
         "id": "ace_f22",
-        "name": "F-22A Raptor [ACE]",
+        "name": "Mobius 1",
         "code": "TGT [AIR]",
         "type": "air",
         "model": "f22",
-        "aiType": "ace",
+        "aiType": "boss",
         "isEnemy": true,
         "x": -11186.6,
         "y": 10027.3,
@@ -928,11 +1096,10 @@
         "respawnTimer": 0,
         "team": "enemy",
         "orders": {
-          "type": "PATROL_AREA",
-          "centerX": -11000,
-          "centerY": 11000,
-          "radius": 2000
-        }
+          "type": "PATROL_AREA"
+        },
+        "active": true,
+        "specialWeapon": "qaam"
       }
     ],
     "navalUnits": [
@@ -1388,6 +1555,58 @@
           "targetX": -10600,
           "targetY": 1200
         }
+      },
+      {
+        "id": "tank_custom_5",
+        "name": "Tank",
+        "code": "TGT [GND]",
+        "type": "ground",
+        "groundType": "tank",
+        "subType": "tank",
+        "team": "enemy",
+        "active": true,
+        "x": -11286.9,
+        "y": -2855.5,
+        "heading": 0.0,
+        "speed": 22,
+        "hp": 64,
+        "maxHp": 64,
+        "hitRadius": 22,
+        "range": 0,
+        "fireInterval": 0,
+        "hasSAM": false,
+        "hasFlak": false,
+        "orders": {
+          "type": "DEFEND_POINT"
+        },
+        "aiType": "rookie",
+        "weaponType": "standard_cannon"
+      },
+      {
+        "id": "tank_custom_5_copy1",
+        "name": "APC",
+        "code": "TGT [GND]",
+        "type": "ground",
+        "groundType": "tank",
+        "subType": "tank",
+        "team": "enemy",
+        "active": true,
+        "x": -11261.9,
+        "y": -2222.2,
+        "heading": 0.0,
+        "speed": 22,
+        "hp": 64,
+        "maxHp": 64,
+        "hitRadius": 22,
+        "range": 0,
+        "fireInterval": 0,
+        "hasSAM": false,
+        "hasFlak": false,
+        "orders": {
+          "type": "DEFEND_POINT"
+        },
+        "aiType": "rookie",
+        "weaponType": "standard_cannon"
       }
     ]
   },
@@ -1419,11 +1638,11 @@
     },
     "areas": [
       {
-        "id": "area_carrier_strike",
-        "name": "Carrier Defense Perimeter",
-        "x": 8500.0,
-        "y": -8500.0,
-        "radius": 4500.0,
+        "id": "area_formation",
+        "name": "MiG-21 Formation Patrol",
+        "x": -9322.6,
+        "y": -8817.4,
+        "radius": 4495.0,
         "color": "#00e5ff"
       },
       {
@@ -1433,6 +1652,30 @@
         "y": 0.0,
         "radius": 3000.0,
         "color": "#00ff66"
+      },
+      {
+        "id": "area_carrier_strike_copy",
+        "name": "Carrier Defense Perimeter (Copy)",
+        "x": 8767.0,
+        "y": -8373.3,
+        "radius": 4500.0,
+        "color": "#00e5ff"
+      },
+      {
+        "id": "area_city_sams",
+        "name": "SAM Range",
+        "x": -9526.0,
+        "y": -56.0,
+        "radius": 4500.0,
+        "color": "#00e5ff"
+      },
+      {
+        "id": "area_ace",
+        "name": "F-22 Ace area",
+        "x": -8908.0,
+        "y": 9390.0,
+        "radius": 4495.0,
+        "color": "#00e5ff"
       }
     ],
     "triggers": [
@@ -1447,9 +1690,9 @@
             "speaker": "ASTRA",
             "aircraft": "E-767 AWACS",
             "squadron": "OADF",
-            "portrait": "./assets/portraits/awacs_astra.png",
             "duration": 4.5,
-            "text": "Tac-Com online. You have entered the live-fire weapons proving ground."
+            "text": "Welcome to the testing range. Blow stuff up to your heart's content!",
+            "portrait": "./assets/portraits/awacs_astra.png"
           }
         ]
       },
@@ -1482,8 +1725,72 @@
             "text": "THIS IS THE TESTING RANGE. USE THIS TO PRACTICE AGAINST VARIOUS TARGETS."
           }
         ]
+      },
+      {
+        "id": "trig_proving_grounds_copy1",
+        "name": "Proving Grounds Airspace Entry (Copy)",
+        "event": "PLAYER_ENTER_AREA",
+        "areaId": "area_formation",
+        "actions": [
+          {
+            "type": "DIALOGUE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767 AWACS",
+            "squadron": "OADF",
+            "duration": 4.5,
+            "text": "Patrol Formation coming up. Use them as target practice for your multi-lock missiles!",
+            "portrait": "./assets/portraits/awacs_astra.png"
+          }
+        ]
+      },
+      {
+        "id": "trig_proving_grounds_copy2",
+        "name": "Proving Grounds Airspace Entry (Copy 2)",
+        "event": "PLAYER_ENTER_AREA",
+        "areaId": "area_ace",
+        "actions": [
+          {
+            "type": "DIALOGUE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767 AWACS",
+            "squadron": "OADF",
+            "duration": 4.5,
+            "text": "There is an enemy ace patrolling this sector. Feel free to practice against him.",
+            "portrait": "./assets/portraits/awacs_astra.png"
+          }
+        ]
+      },
+      {
+        "id": "trig_proving_grounds_copy3",
+        "name": "Proving Grounds Airspace Entry (Copy 3)",
+        "event": "PLAYER_ENTER_AREA",
+        "areaId": "area_city_sams",
+        "actions": [
+          {
+            "type": "DIALOGUE",
+            "speaker": "ASTRA",
+            "aircraft": "E-767 AWACS",
+            "squadron": "OADF",
+            "duration": 4.5,
+            "text": "You are nearing the live-fire proving grounds! Watch out for SAM sites while attacking the ground targets!",
+            "portrait": "./assets/portraits/awacs_astra.png"
+          }
+        ]
       }
     ]
   },
-  "noRespawn": false
+  "noRespawn": false,
+  "playerTweakables": {
+    "startingHp": 100,
+    "maxHp": 100,
+    "invulnerable": false,
+    "unlimitedAmmo": false,
+    "gunAmmo": 800,
+    "mslCount": 120,
+    "spwCount": 24,
+    "flareCount": 30,
+    "abilityCharges": 1,
+    "startSpeed": 335.0,
+    "startAltitude": 1.0
+  }
 }

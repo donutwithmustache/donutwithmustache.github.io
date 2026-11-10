@@ -1265,7 +1265,8 @@ export class FlightHUD {
     ctx.fillStyle = gunColors.text;
     ctx.shadowColor = gunColors.glow;
     ctx.shadowBlur = gunColors.shadowBlur;
-    ctx.fillText(`${weapons.gunAmmo}`, col1X, ammoY + 40);
+    const gunStr = weapons.unlimitedAmmo ? 'INF' : `${weapons.gunAmmo}`;
+    ctx.fillText(gunStr, col1X, ammoY + 40);
 
     // Column 2 & 3: Weapon Selection (MSL vs SPW - switched via [X], fired via [Space])
     const col2X = col1X + colSpacing;
@@ -1291,8 +1292,9 @@ export class FlightHUD {
     ctx.fillStyle = mslColors.text;
     ctx.shadowColor = mslColors.glow;
     ctx.shadowBlur = mslColors.shadowBlur;
-    ctx.fillText(`${weapons.mslCount}`, col2X, ammoY + 40);
-    const mslW = ctx.measureText(`${weapons.mslCount}`).width;
+    const mslStr = weapons.unlimitedAmmo ? 'INF' : `${weapons.mslCount}`;
+    ctx.fillText(mslStr, col2X, ammoY + 40);
+    const mslW = ctx.measureText(mslStr).width;
     drawSlotBars(
       col2X + mslW / 2,
       ammoY + 48,
@@ -1320,8 +1322,9 @@ export class FlightHUD {
     ctx.fillStyle = spwColors.text;
     ctx.shadowColor = spwColors.glow;
     ctx.shadowBlur = spwColors.shadowBlur;
-    ctx.fillText(`${weapons.spwCount}`, col3X, ammoY + 40);
-    const spwW = ctx.measureText(`${weapons.spwCount}`).width;
+    const spwStr = weapons.unlimitedAmmo ? 'INF' : `${weapons.spwCount}`;
+    ctx.fillText(spwStr, col3X, ammoY + 40);
+    const spwW = ctx.measureText(spwStr).width;
     drawSlotBars(
       col3X + spwW / 2,
       ammoY + 48,
@@ -1348,8 +1351,9 @@ export class FlightHUD {
     ctx.fillStyle = flrColors.text;
     ctx.shadowColor = flrColors.glow;
     ctx.shadowBlur = flrColors.shadowBlur;
-    ctx.fillText(`${weapons.flareCount}`, col4X, ammoY + 40);
-    const flrW = ctx.measureText(`${weapons.flareCount}`).width;
+    const flrStr = weapons.unlimitedAmmo ? 'INF' : `${weapons.flareCount}`;
+    ctx.fillText(flrStr, col4X, ammoY + 40);
+    const flrW = ctx.measureText(flrStr).width;
     drawSlotBars(
       col4X + flrW / 2,
       ammoY + 48,

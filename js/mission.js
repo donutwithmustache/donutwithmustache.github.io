@@ -97,14 +97,18 @@ export class MissionManager {
       }
       if (Array.isArray(m.terrain) && m.terrain.length > 0) {
         this.game.world.islands = m.terrain.map(t => {
+          const lType = t.landType || (t.theme || 'island');
+          const defaultColor = (lType === 'desert') ? '#b89558' : (lType === 'city' ? '#383d47' : '#1a382d');
+          const defaultSandColor = (lType === 'desert') ? '#d4b373' : (lType === 'city' ? '#252930' : '#45594b');
           const isl = {
             id: t.id,
             type: (t.points && t.points.length >= 3) ? 'polygon' : (t.type || 'island'),
+            landType: lType,
             x: t.x !== undefined ? t.x : 0,
             y: t.y !== undefined ? t.y : 0,
             radius: t.radius || 350,
-            color: t.color || '#1a382d',
-            sandColor: t.sandColor || '#45594b'
+            color: t.color || defaultColor,
+            sandColor: t.sandColor || defaultSandColor
           };
           if (Array.isArray(t.points) && t.points.length >= 3) {
             isl.points = t.points.map(p => Array.isArray(p) ? { x: p[0], y: p[1] } : { x: p.x, y: p.y });
@@ -162,7 +166,18 @@ export class MissionManager {
         if (allTargets.length > 0) {
           // Initialize fresh targets with active/dormant spawn tracking
           this.game.targetManager.targets = allTargets.map(t => {
-            const defaultHp = (t.type === 'air' && t.aiType) ? getAIPlaneHealth(t.aiType) : 100;
+            let defaultHp = 100;
+            if (t.type === 'air' && t.aiType) {
+              defaultHp = getAIPlaneHealth(t.aiType);
+            } else if (t.type === 'ground') {
+              const gt = (t.groundType || t.subType || '').toLowerCase();
+              if (gt === 'apc') defaultHp = 32;
+              else if (gt === 'tank') defaultHp = 64;
+              else if (gt === 'pillbox') defaultHp = 96;
+              else if (gt === 'bunker') defaultHp = 128;
+              else if (gt === 'flak_aa') defaultHp = 48;
+              else defaultHp = 64;
+            }
             const finalMaxHp = t.maxHp || t.hp || defaultHp;
             return Object.assign({}, t, {
               active: (t.active !== undefined ? t.active : (t.spawned !== undefined ? t.spawned : true)),
@@ -197,6 +212,12 @@ export class MissionManager {
       if (this.game && this.game.restoreEquippedLoadout) {
         this.game.restoreEquippedLoadout();
       }
+    }
+
+    // Apply Player Tweakables & Initial State (Health, Ammo, God Mode, Unlimited Ammo, Speed, Altitude)
+    const pt = data.playerTweakables || (data.player && data.player.tweakables) || null;
+    if (this.game && this.game.applyPlayerTweakables) {
+      this.game.applyPlayerTweakables(pt);
     }
 
     this.areas = (data.dynamics && data.dynamics.areas) || (data.map && data.map.areas) || data.areas || [];

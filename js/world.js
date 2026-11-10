@@ -79,6 +79,7 @@ export class World {
           x: clampedX,
           y: clampedY,
           radius,
+          landType: 'island',
           color: rng() > 0.3 ? '#1a382d' : '#162e24',
           sandColor: '#45594b'
         });
@@ -195,6 +196,12 @@ export class World {
         ctx.fillStyle = isl.color || '#1a382d';
         ctx.fill();
 
+        // 5. Land decorations (Vegetation, Dunes/Rocks, City Buildings)
+        ctx.save();
+        ctx.clip();
+        this.drawLandDecorations(ctx, isl);
+        ctx.restore();
+
         ctx.restore();
         continue;
       }
@@ -221,6 +228,12 @@ export class World {
       ctx.beginPath();
       ctx.arc(isl.x, isl.y, isl.radius, 0, Math.PI * 2);
       ctx.fill();
+
+      // 4. Land decorations (Vegetation, Dunes/Rocks, City Buildings)
+      ctx.save();
+      ctx.clip();
+      this.drawLandDecorations(ctx, isl);
+      ctx.restore();
     }
     ctx.restore();
 
@@ -230,6 +243,203 @@ export class World {
     // 5. Cloud Layers (Atmospheric Depth - Permanently static geographic landmarks)
     this.drawCloudLayer(ctx, this.cloudsLayer1, camera, viewWidth, viewHeight);
     this.drawCloudLayer(ctx, this.cloudsLayer2, camera, viewWidth, viewHeight);
+  }
+
+  // Deterministic internal terrain decoration rendering (vegetation, desert dunes/rocks, city buildings)
+  drawLandDecorations(ctx, isl) {
+    const landType = isl.landType || (isl.theme || 'island');
+    const rad = isl.radius || 350;
+    const cx = isl.x;
+    const cy = isl.y;
+    const seed = Math.abs(Math.floor((cx * 137.0) ^ (cy * 313.0) ^ (rad * 19.0))) || 1;
+    const rng = createSeededRandom(seed);
+
+    if (landType === 'island') {
+      // Vegetation: Dense clusters of lush tropical / temperate tree canopies
+      const clusterCount = Math.min(45, Math.max(10, Math.floor(rad / 22)));
+      const foliageColors = [
+        'rgba(18, 48, 32, 0.95)',
+        'rgba(26, 68, 45, 0.95)',
+        'rgba(36, 88, 58, 0.92)',
+        'rgba(48, 112, 74, 0.90)',
+        'rgba(62, 142, 94, 0.85)'
+      ];
+
+      for (let i = 0; i < clusterCount; i++) {
+        const dist = Math.sqrt(rng()) * rad * 0.82;
+        const angle = rng() * Math.PI * 2;
+        const wx = cx + Math.cos(angle) * dist;
+        const wy = cy + Math.sin(angle) * dist;
+        const subPuffs = 3 + Math.floor(rng() * 3);
+
+        for (let p = 0; p < subPuffs; p++) {
+          const ox = (rng() - 0.5) * 36;
+          const oy = (rng() - 0.5) * 36;
+          const puffRad = 14 + rng() * 32;
+          const col = foliageColors[Math.floor(rng() * foliageColors.length)];
+
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.arc(wx + ox, wy + oy, puffRad, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    } else if (landType === 'desert') {
+      // Desert: Warm windblown sand dune ridges and rocky mesa outcroppings
+      // 1. Sand Dunes (layered curved wave crests)
+      const duneCount = Math.min(14, Math.max(4, Math.floor(rad / 55)));
+      for (let i = 0; i < duneCount; i++) {
+        const dist = Math.sqrt(rng()) * rad * 0.75;
+        const angle = rng() * Math.PI * 2;
+        const dwx = cx + Math.cos(angle) * dist;
+        const dwy = cy + Math.sin(angle) * dist;
+        const duneLen = 70 + rng() * 160;
+        const windAngle = 0.52 + (rng() - 0.5) * 0.25;
+        const dx = Math.cos(windAngle) * duneLen;
+        const dy = Math.sin(windAngle) * duneLen;
+        const cpOffset = (rng() - 0.5) * 30;
+
+        // Shadow slope
+        ctx.beginPath();
+        ctx.moveTo(dwx - dx * 0.5, dwy - dy * 0.5);
+        ctx.quadraticCurveTo(dwx - dy * 0.1, dwy + dx * 0.1 + cpOffset, dwx + dx * 0.5, dwy + dy * 0.5);
+        ctx.lineWidth = 14;
+        ctx.strokeStyle = 'rgba(150, 115, 60, 0.45)';
+        ctx.stroke();
+
+        // Crisp dune crest
+        ctx.beginPath();
+        ctx.moveTo(dwx - dx * 0.5, dwy - dy * 0.5);
+        ctx.quadraticCurveTo(dwx - dy * 0.1, dwy + dx * 0.1 + cpOffset, dwx + dx * 0.5, dwy + dy * 0.5);
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = 'rgba(238, 212, 150, 0.65)';
+        ctx.stroke();
+      }
+
+      // 2. Rock Boulders / Mesa outcrops
+      const rockCount = Math.min(40, Math.max(12, Math.floor(rad / 25)));
+      const rockColors = [
+        '#42301c',
+        '#543d24',
+        '#684c2d',
+        '#382716',
+        '#7d5c37'
+      ];
+      for (let i = 0; i < rockCount; i++) {
+        const dist = Math.sqrt(rng()) * rad * 0.82;
+        const angle = rng() * Math.PI * 2;
+        const rwx = cx + Math.cos(angle) * dist;
+        const rwy = cy + Math.sin(angle) * dist;
+        const rw = 12 + rng() * 26;
+        const rh = 10 + rng() * 22;
+        const rRot = rng() * Math.PI;
+
+        ctx.save();
+        ctx.translate(rwx, rwy);
+        ctx.rotate(rRot);
+
+        // Cast shadow
+        ctx.fillStyle = 'rgba(25, 18, 10, 0.5)';
+        ctx.beginPath();
+        ctx.ellipse(rw * 0.2, rh * 0.2, rw * 0.9, rh * 0.9, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Boulder body
+        ctx.fillStyle = rockColors[Math.floor(rng() * rockColors.length)];
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rw * 0.8, rh * 0.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Top highlight
+        ctx.fillStyle = 'rgba(215, 180, 130, 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(-rw * 0.18, -rh * 0.18, rw * 0.45, rh * 0.45, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    } else if (landType === 'city') {
+      // City: Urban road network and multi-story building blocks
+      // 1. Street Grid
+      const gridSpacing = Math.max(90, Math.min(180, Math.floor(rad / 3.5)));
+      const minX = cx - rad;
+      const maxX = cx + rad;
+      const minY = cy - rad;
+      const maxY = cy + rad;
+
+      ctx.lineWidth = 18;
+      ctx.strokeStyle = '#22262e';
+      ctx.beginPath();
+      let gx = minX + (Math.abs(minX) % gridSpacing);
+      while (gx < maxX) {
+        ctx.moveTo(gx, minY);
+        ctx.lineTo(gx, maxY);
+        gx += gridSpacing;
+      }
+      let gy = minY + (Math.abs(minY) % gridSpacing);
+      while (gy < maxY) {
+        ctx.moveTo(minX, gy);
+        ctx.lineTo(maxX, gy);
+        gy += gridSpacing;
+      }
+      ctx.stroke();
+
+      // Road dividing stripes
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255, 230, 120, 0.35)';
+      ctx.setLineDash([12, 16]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 2. City Buildings
+      const bldgCount = Math.min(65, Math.max(16, Math.floor(rad / 18)));
+      const bldgColors = ['#454b57', '#525966', '#3b404a', '#5d6473', '#666e7d'];
+
+      for (let i = 0; i < bldgCount; i++) {
+        const dist = Math.sqrt(rng()) * rad * 0.78;
+        const angle = rng() * Math.PI * 2;
+        const bwx = cx + Math.cos(angle) * dist;
+        const bwy = cy + Math.sin(angle) * dist;
+        const bw = 35 + rng() * 65;
+        const bh = 35 + rng() * 65;
+
+        // Building drop shadow
+        ctx.fillStyle = 'rgba(12, 15, 20, 0.65)';
+        ctx.fillRect(bwx - bw * 0.5 + 8, bwy - bh * 0.5 + 8, bw, bh);
+
+        // Building rooftop
+        ctx.fillStyle = bldgColors[Math.floor(rng() * bldgColors.length)];
+        ctx.fillRect(bwx - bw * 0.5, bwy - bh * 0.5, bw, bh);
+
+        // Rooftop border
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#262930';
+        ctx.strokeRect(bwx - bw * 0.5, bwy - bh * 0.5, bw, bh);
+
+        // Rooftop HVAC units or Helipad
+        const featureRoll = rng();
+        if (featureRoll < 0.22 && bw >= 45 && bh >= 45) {
+          // Helipad: Yellow circle with white H
+          ctx.strokeStyle = '#ffcc00';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(bwx, bwy, Math.min(bw, bh) * 0.3, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 12px "Quantico", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('H', bwx, bwy);
+        } else if (featureRoll < 0.65) {
+          // HVAC units (small rectangles)
+          ctx.fillStyle = '#7a8391';
+          const hvacW = 8 + rng() * 12;
+          const hvacH = 6 + rng() * 10;
+          ctx.fillRect(bwx - hvacW * 0.5, bwy - hvacH * 0.5, hvacW, hvacH);
+        }
+      }
+    }
   }
 
   // Draw military combat zone perimeter, restricted airspace, and Ace Combat Return Line

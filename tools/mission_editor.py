@@ -12,6 +12,7 @@ import sys
 import json
 import math
 import copy
+import random
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from PIL import Image, ImageTk
@@ -23,9 +24,10 @@ PLANES_DIR = os.path.join(BASE_DIR, "assets", "planes")
 PORTRAITS_DIR = os.path.join(BASE_DIR, "assets", "portraits")
 
 AI_LEVELS = ["dummy", "drone", "rookie", "veteran", "elite", "ace", "boss", "strike"]
-AIRCRAFT_MODELS = ["su27", "f15c", "f111f", "su57", "f22", "mig21"]
-SHIP_TYPES = ["carrier", "cruiser", "destroyer", "frigate", "gunboat"]
-GROUND_TYPES = ["sam", "flak", "radar"]
+AIRCRAFT_MODELS = ["f15c", "su27", "mig21", "su57", "f22", "f111f", "a4", "etendard", "mig17", "f15manx"]
+SHIP_TYPES = ["destroyer", "cruiser", "carrier", "light_carrier", "cargo", "landing_craft", "frigate", "gunboat"]
+SPECIAL_WEAPON_TYPES = ["none", "qaam", "4aam", "saam", "ugb", "lasm", "mpbm", "hpaa", "sffs"]
+GROUND_TYPES = ["apc", "tank", "pillbox", "bunker", "sam_battery", "flak_aa", "radar_station"]
 
 TRIGGER_EVENTS = [
     "ON_START",
@@ -67,7 +69,8 @@ AI_ORDER_TYPES = [
     "INTERCEPT_PLAYER",
     "FORMATION_FLIGHT",
     "DEFEND_POINT",
-    "ADVANCE_AND_ATTACK"
+    "ADVANCE_AND_ATTACK",
+    "STATIONARY"
 ]
 
 
@@ -369,8 +372,16 @@ class MissionEditorApp(tk.Tk):
     # TAB 1: LAYER 1 - MAP & TERRAIN
     # ----------------------------------------------------
     def build_tab_map(self):
-        frame = tk.Frame(self.tab_map, bg="#0a121c", padx=12, pady=12)
-        frame.pack(fill="both", expand=True)
+        canvas = tk.Canvas(self.tab_map, bg="#0a121c", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.tab_map, orient="vertical", command=canvas.yview)
+        frame = tk.Frame(canvas, bg="#0a121c", padx=10, pady=10)
+
+        frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
         box_meta = tk.LabelFrame(frame, text=" Map Boundaries & Size ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=8)
         box_meta.pack(fill="x", pady=4)
@@ -430,12 +441,13 @@ class MissionEditorApp(tk.Tk):
         self.f_forced_loadout.grid(row=2, column=2, columnspan=2, sticky="w")
 
         tk.Label(self.f_forced_loadout, text="Plane:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 8)).pack(side="left")
-        self.cb_forced_plane = ttk.Combobox(self.f_forced_loadout, values=["f15c", "su27", "f111f", "su57"], state="readonly", width=8)
+        self.cb_forced_plane = ttk.Combobox(self.f_forced_loadout, values=AIRCRAFT_MODELS, state="readonly", width=10)
         self.cb_forced_plane.set("f15c")
         self.cb_forced_plane.pack(side="left", padx=2)
 
         tk.Label(self.f_forced_loadout, text="SPW:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 8)).pack(side="left", padx=(4, 0))
-        self.cb_forced_spw = ttk.Combobox(self.f_forced_loadout, values=["qaam", "saam", "4aam", "hpaa", "ugb", "lasm", "sffs", "mpbm"], state="readonly", width=7)
+        forced_spw_list = [s for s in SPECIAL_WEAPON_TYPES if s != "none"]
+        self.cb_forced_spw = ttk.Combobox(self.f_forced_loadout, values=forced_spw_list, state="readonly", width=8)
         self.cb_forced_spw.set("qaam")
         self.cb_forced_spw.pack(side="left", padx=2)
 
@@ -452,6 +464,91 @@ class MissionEditorApp(tk.Tk):
         # Row 4: Operational Notes / Rules
         self.lbl_mode_notes = tk.Label(box_mode, text="", bg="#101c2b", fg="#88a898", font=("Consolas", 8), wraplength=480, justify="left")
         self.lbl_mode_notes.grid(row=4, column=0, columnspan=4, sticky="w", pady=3)
+
+        # ----------------------------------------------------
+        # PLAYER STARTING STATE & TWEAKABLES PANEL
+        # ----------------------------------------------------
+        box_pt = tk.LabelFrame(frame, text=" Player Starting State & Tweakables (Health, Ammo, Abilities) ", bg="#101c2b", fg="#00ffcc", font=("Consolas", 10, "bold"), padx=10, pady=8)
+        box_pt.pack(fill="x", pady=4)
+
+        self.var_pt_enabled = tk.BooleanVar(value=False)
+        self.chk_pt_enabled = tk.Checkbutton(
+            box_pt, text="Enable Custom Starting Tweakables (Uncheck to use default plane loadout)",
+            variable=self.var_pt_enabled, bg="#101c2b", fg="#00ffcc", selectcolor="#05121c",
+            activebackground="#101c2b", activeforeground="#ffffff", font=("Consolas", 9, "bold")
+        )
+        self.chk_pt_enabled.grid(row=0, column=0, columnspan=6, sticky="w", pady=(0, 6))
+
+        # Row 1: Health & Godmode
+        tk.Label(box_pt, text="Start HP:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=1, column=0, sticky="w", pady=3)
+        self.ent_pt_start_hp = ttk.Entry(box_pt, width=6)
+        self.ent_pt_start_hp.insert(0, "100")
+        self.ent_pt_start_hp.grid(row=1, column=1, sticky="w", padx=3, pady=3)
+
+        tk.Label(box_pt, text="Max HP:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=1, column=2, sticky="w", padx=(6, 2), pady=3)
+        self.ent_pt_max_hp = ttk.Entry(box_pt, width=6)
+        self.ent_pt_max_hp.insert(0, "100")
+        self.ent_pt_max_hp.grid(row=1, column=3, sticky="w", padx=3, pady=3)
+
+        self.var_pt_invulnerable = tk.BooleanVar(value=False)
+        self.chk_pt_invulnerable = tk.Checkbutton(
+            box_pt, text="Invulnerable (God Mode)", variable=self.var_pt_invulnerable,
+            bg="#101c2b", fg="#ffcc00", selectcolor="#443300", activebackground="#101c2b", activeforeground="#ffee44",
+            font=("Consolas", 8, "bold")
+        )
+        self.chk_pt_invulnerable.grid(row=1, column=4, columnspan=2, sticky="w", padx=6, pady=3)
+
+        # Row 2: Primary Armament & Unlimited Ammo
+        tk.Label(box_pt, text="Gun Ammo:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=2, column=0, sticky="w", pady=3)
+        self.ent_pt_gun_ammo = ttk.Entry(box_pt, width=6)
+        self.ent_pt_gun_ammo.insert(0, "800")
+        self.ent_pt_gun_ammo.grid(row=2, column=1, sticky="w", padx=3, pady=3)
+
+        tk.Label(box_pt, text="Missiles:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=2, column=2, sticky="w", padx=(6, 2), pady=3)
+        self.ent_pt_msl = ttk.Entry(box_pt, width=6)
+        self.ent_pt_msl.insert(0, "120")
+        self.ent_pt_msl.grid(row=2, column=3, sticky="w", padx=3, pady=3)
+
+        self.var_pt_unlimited_ammo = tk.BooleanVar(value=False)
+        self.chk_pt_unlimited_ammo = tk.Checkbutton(
+            box_pt, text="Unlimited Ammo (Gun/MSL/SPW/FLR)", variable=self.var_pt_unlimited_ammo,
+            bg="#101c2b", fg="#00e5ff", selectcolor="#003344", activebackground="#101c2b", activeforeground="#66ffff",
+            font=("Consolas", 8, "bold")
+        )
+        self.chk_pt_unlimited_ammo.grid(row=2, column=4, columnspan=2, sticky="w", padx=6, pady=3)
+
+        # Row 3: Secondary Armament & Countermeasures & Ability
+        tk.Label(box_pt, text="SPW Ammo:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=3, column=0, sticky="w", pady=3)
+        self.ent_pt_spw = ttk.Entry(box_pt, width=6)
+        self.ent_pt_spw.insert(0, "24")
+        self.ent_pt_spw.grid(row=3, column=1, sticky="w", padx=3, pady=3)
+
+        tk.Label(box_pt, text="Flares:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=3, column=2, sticky="w", padx=(6, 2), pady=3)
+        self.ent_pt_flares = ttk.Entry(box_pt, width=6)
+        self.ent_pt_flares.insert(0, "30")
+        self.ent_pt_flares.grid(row=3, column=3, sticky="w", padx=3, pady=3)
+
+        tk.Label(box_pt, text="Ability Charges:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=3, column=4, sticky="w", padx=(6, 2), pady=3)
+        self.ent_pt_ability = ttk.Entry(box_pt, width=5)
+        self.ent_pt_ability.insert(0, "1")
+        self.ent_pt_ability.grid(row=3, column=5, sticky="w", padx=3, pady=3)
+
+        # Row 4: Initial Flight State & Reset
+        tk.Label(box_pt, text="Airspeed:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=4, column=0, sticky="w", pady=3)
+        self.ent_pt_speed = ttk.Entry(box_pt, width=6)
+        self.ent_pt_speed.insert(0, "335")
+        self.ent_pt_speed.grid(row=4, column=1, sticky="w", padx=3, pady=3)
+
+        tk.Label(box_pt, text="Altitude:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=4, column=2, sticky="w", padx=(6, 2), pady=3)
+        self.ent_pt_alt = ttk.Entry(box_pt, width=6)
+        self.ent_pt_alt.insert(0, "1.0")
+        self.ent_pt_alt.grid(row=4, column=3, sticky="w", padx=3, pady=3)
+
+        btn_pt_reset = tk.Button(
+            box_pt, text="Reset Defaults", bg="#15283c", fg="#a0d8ef", font=("Consolas", 8, "bold"),
+            command=self.reset_player_tweakables_to_default
+        )
+        btn_pt_reset.grid(row=4, column=4, sticky="w", padx=6, pady=3)
 
         # Ace Combat Return Line (Resupply Zone) Settings
         box_rl = tk.LabelFrame(frame, text=" Return Line (Ace Combat Resupply Zone) ", bg="#101c2b", fg="#00e5ff", font=("Consolas", 10, "bold"), padx=10, pady=8)
@@ -490,6 +587,11 @@ class MissionEditorApp(tk.Tk):
         tk.Button(t_btns, text="- Remove Island", bg="#4a1818", fg="#ff8888", font=("Consolas", 8), command=self.delete_selected_island).pack(side="left", padx=2)
         tk.Button(t_btns, text="- Delete Vertex", bg="#3a2210", fg="#ffaa44", font=("Consolas", 8), command=self.delete_selected_vertex).pack(side="left", padx=2)
 
+        tk.Label(t_btns, text="Draw Type:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 8)).pack(side="left", padx=(6, 2))
+        self.cb_default_land_type = ttk.Combobox(t_btns, values=["island", "desert", "city"], state="readonly", width=8)
+        self.cb_default_land_type.set("island")
+        self.cb_default_land_type.pack(side="left", padx=2)
+
         self.terrain_listbox = tk.Listbox(box_terrain, bg="#132030", fg="#c0f0d0", selectbackground="#00aa55",
                                           font=("Consolas", 9), height=7, bd=0)
         self.terrain_listbox.pack(fill="both", expand=True, pady=4)
@@ -509,8 +611,30 @@ class MissionEditorApp(tk.Tk):
         btn_upd_isl = tk.Button(prop_frame, text="Apply", bg="#1a3248", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.update_island_from_form)
         btn_upd_isl.grid(row=0, column=6, padx=6)
 
+        # Land Type Selector & Quick Preset Switcher
+        tk.Label(prop_frame, text="Land Type:", bg="#101c2b", fg="#00ffcc", font=("Consolas", 9, "bold")).grid(row=1, column=0, sticky="w", pady=4)
+        self.cb_land_type = ttk.Combobox(prop_frame, values=["island", "desert", "city"], state="readonly", width=9)
+        self.cb_land_type.set("island")
+        self.cb_land_type.grid(row=1, column=1, columnspan=2, sticky="w", padx=4, pady=4)
+        self.cb_land_type.bind("<<ComboboxSelected>>", self.on_land_type_changed)
+
+        quick_type_frame = tk.Frame(prop_frame, bg="#101c2b")
+        quick_type_frame.grid(row=1, column=3, columnspan=4, sticky="w", padx=4)
+
+        btn_t_isl = tk.Button(quick_type_frame, text="🌿 Island", bg="#183d28", fg="#66ff99", font=("Consolas", 8, "bold"),
+                              command=lambda: self.set_selected_island_type("island"))
+        btn_t_isl.pack(side="left", padx=2)
+
+        btn_t_des = tk.Button(quick_type_frame, text="🏜️ Desert", bg="#4d3818", fg="#ffcc66", font=("Consolas", 8, "bold"),
+                              command=lambda: self.set_selected_island_type("desert"))
+        btn_t_des.pack(side="left", padx=2)
+
+        btn_t_cit = tk.Button(quick_type_frame, text="🏙️ City", bg="#2a303d", fg="#c0d0f0", font=("Consolas", 8, "bold"),
+                              command=lambda: self.set_selected_island_type("city"))
+        btn_t_cit.pack(side="left", padx=2)
+
         self.lbl_isl_info = tk.Label(prop_frame, text="Select an island on map or list to inspect", bg="#101c2b", fg="#00e5ff", font=("Consolas", 8))
-        self.lbl_isl_info.grid(row=1, column=0, columnspan=7, sticky="w", pady=3)
+        self.lbl_isl_info.grid(row=2, column=0, columnspan=7, sticky="w", pady=3)
 
     def apply_map_resize(self):
         try:
@@ -521,6 +645,31 @@ class MissionEditorApp(tk.Tk):
             messagebox.showinfo("Resized", f"Map bounds resized to {sz}m x {sz}m.")
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def reset_player_tweakables_to_default(self):
+        if hasattr(self, 'var_pt_enabled'):
+            self.var_pt_enabled.set(False)
+        if hasattr(self, 'ent_pt_start_hp'):
+            self.ent_pt_start_hp.delete(0, tk.END)
+            self.ent_pt_start_hp.insert(0, "100")
+            self.ent_pt_max_hp.delete(0, tk.END)
+            self.ent_pt_max_hp.insert(0, "100")
+            self.var_pt_invulnerable.set(False)
+            self.var_pt_unlimited_ammo.set(False)
+            self.ent_pt_gun_ammo.delete(0, tk.END)
+            self.ent_pt_gun_ammo.insert(0, "800")
+            self.ent_pt_msl.delete(0, tk.END)
+            self.ent_pt_msl.insert(0, "120")
+            self.ent_pt_spw.delete(0, tk.END)
+            self.ent_pt_spw.insert(0, "24")
+            self.ent_pt_flares.delete(0, tk.END)
+            self.ent_pt_flares.insert(0, "30")
+            self.ent_pt_ability.delete(0, tk.END)
+            self.ent_pt_ability.insert(0, "1")
+            self.ent_pt_speed.delete(0, tk.END)
+            self.ent_pt_speed.insert(0, "335")
+            self.ent_pt_alt.delete(0, tk.END)
+            self.ent_pt_alt.insert(0, "1.0")
 
     def apply_return_line(self):
         try:
@@ -568,7 +717,7 @@ class MissionEditorApp(tk.Tk):
         u_btns = tk.Frame(box_units, bg="#101c2b")
         u_btns.pack(fill="x", pady=2)
         tk.Button(u_btns, text="+ Air Unit", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.add_air_unit).pack(side="left", padx=2)
-        tk.Button(u_btns, text="+ SAM Site", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.add_sam_unit).pack(side="left", padx=2)
+        tk.Button(u_btns, text="+ Ground Unit", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.add_ground_unit).pack(side="left", padx=2)
         tk.Button(u_btns, text="+ Warship", bg="#183048", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.add_naval_unit).pack(side="left", padx=2)
         tk.Button(u_btns, text="Duplicate", bg="#1f3b58", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.duplicate_unit).pack(side="left", padx=2)
         tk.Button(u_btns, text="Copy", bg="#15283c", fg="#a0d8ef", font=("Consolas", 8), command=self.copy_unit).pack(side="left", padx=2)
@@ -588,23 +737,35 @@ class MissionEditorApp(tk.Tk):
         self.ent_u_name.grid(row=0, column=1, sticky="w", padx=4)
 
         tk.Label(self.u_insp, text="AI Level:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=0, column=2, sticky="w")
-        self.cb_u_ai = ttk.Combobox(self.u_insp, values=AI_LEVELS, state="readonly", width=10)
+        self.cb_u_ai = ttk.Combobox(self.u_insp, values=AI_LEVELS, state="readonly", width=12)
         self.cb_u_ai.grid(row=0, column=3, sticky="w", padx=4)
+
+        # Unit Subtype / Aircraft Model / Ship Class
+        self.lbl_u_model = tk.Label(self.u_insp, text="Plane Model:", bg="#101c2b", fg="#00ffcc", font=("Consolas", 9, "bold"))
+        self.lbl_u_model.grid(row=1, column=0, sticky="w", pady=3)
+        self.cb_u_model = ttk.Combobox(self.u_insp, values=AIRCRAFT_MODELS, state="readonly", width=18)
+        self.cb_u_model.grid(row=1, column=1, sticky="w", padx=4, pady=3)
+
+        # Weapon / SPW / Armament
+        self.lbl_u_weapon = tk.Label(self.u_insp, text="SP Weapon:", bg="#101c2b", fg="#00ffcc", font=("Consolas", 9, "bold"))
+        self.lbl_u_weapon.grid(row=1, column=2, sticky="w", pady=3)
+        self.cb_u_weapon = ttk.Combobox(self.u_insp, values=SPECIAL_WEAPON_TYPES, state="readonly", width=12)
+        self.cb_u_weapon.grid(row=1, column=3, sticky="w", padx=4, pady=3)
 
         # Dormant / Active Checkbox for story spawn/despawn
         self.var_u_active = tk.BooleanVar(value=True)
         self.cb_u_active = tk.Checkbutton(self.u_insp, text="Active at Start (Uncheck to start dormant/spawned via trigger)",
                                           variable=self.var_u_active, bg="#101c2b", fg="#00ffcc", selectcolor="#005522",
                                           font=("Consolas", 9))
-        self.cb_u_active.grid(row=1, column=0, columnspan=4, sticky="w", pady=4)
+        self.cb_u_active.grid(row=2, column=0, columnspan=4, sticky="w", pady=3)
 
         # AI Order & Pathing
-        tk.Label(self.u_insp, text="AI Order / Path:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=2, column=0, sticky="w")
+        tk.Label(self.u_insp, text="AI Order / Path:", bg="#101c2b", fg="#88c0a0", font=("Consolas", 9)).grid(row=3, column=0, sticky="w")
         self.cb_u_order = ttk.Combobox(self.u_insp, values=AI_ORDER_TYPES, state="readonly", width=18)
-        self.cb_u_order.grid(row=2, column=1, sticky="w", padx=4)
+        self.cb_u_order.grid(row=3, column=1, sticky="w", padx=4)
 
         btn_save_u = tk.Button(self.u_insp, text="Apply Unit Changes", bg="#1a3248", fg="#00ffcc", font=("Consolas", 8, "bold"), command=self.update_unit_from_form)
-        btn_save_u.grid(row=2, column=2, columnspan=2, sticky="e", padx=4)
+        btn_save_u.grid(row=3, column=2, columnspan=2, sticky="e", padx=4)
 
     # ----------------------------------------------------
     # TAB 3: LAYER 3 - DYNAMICS, DIALOGUE & TRIGGERS
@@ -1036,6 +1197,39 @@ class MissionEditorApp(tk.Tk):
 
         self.on_mission_type_changed()
 
+        # Player Tweakables & State
+        pt = self.mission.get("playerTweakables", {})
+        if hasattr(self, 'var_pt_enabled'):
+            self.var_pt_enabled.set(bool(pt.get("enabled", False)))
+        if hasattr(self, 'ent_pt_start_hp'):
+            self.ent_pt_start_hp.delete(0, tk.END)
+            self.ent_pt_start_hp.insert(0, str(pt.get("startingHp", 100) if pt.get("startingHp") is not None else 100))
+            self.ent_pt_max_hp.delete(0, tk.END)
+            self.ent_pt_max_hp.insert(0, str(pt.get("maxHp", 100) if pt.get("maxHp") is not None else 100))
+            self.var_pt_invulnerable.set(bool(pt.get("invulnerable", False)))
+            self.var_pt_unlimited_ammo.set(bool(pt.get("unlimitedAmmo", False)))
+
+            self.ent_pt_gun_ammo.delete(0, tk.END)
+            self.ent_pt_gun_ammo.insert(0, str(pt.get("gunAmmo", 800) if pt.get("gunAmmo") is not None else 800))
+
+            self.ent_pt_msl.delete(0, tk.END)
+            self.ent_pt_msl.insert(0, str(pt.get("mslCount", 120) if pt.get("mslCount") is not None else 120))
+
+            self.ent_pt_spw.delete(0, tk.END)
+            self.ent_pt_spw.insert(0, str(pt.get("spwCount", 24) if pt.get("spwCount") is not None else 24))
+
+            self.ent_pt_flares.delete(0, tk.END)
+            self.ent_pt_flares.insert(0, str(pt.get("flareCount", 30) if pt.get("flareCount") is not None else 30))
+
+            self.ent_pt_ability.delete(0, tk.END)
+            self.ent_pt_ability.insert(0, str(pt.get("abilityCharges", 1) if pt.get("abilityCharges") is not None else 1))
+
+            self.ent_pt_speed.delete(0, tk.END)
+            self.ent_pt_speed.insert(0, str(pt.get("startSpeed", 335) if pt.get("startSpeed") is not None else 335))
+
+            self.ent_pt_alt.delete(0, tk.END)
+            self.ent_pt_alt.insert(0, str(pt.get("startAltitude", 1.0) if pt.get("startAltitude") is not None else 1.0))
+
         # Return Line settings
         rl = m.get("returnLine", {})
         self.var_rl_enabled.set(bool(rl.get("enabled", False)))
@@ -1047,10 +1241,11 @@ class MissionEditorApp(tk.Tk):
         self.terrain_listbox.delete(0, tk.END)
         for i, t in enumerate(m.get("terrain", [])):
             pts = t.get("points")
+            l_type = (t.get("landType") or "island").upper()
             if pts and len(pts) >= 3:
-                self.terrain_listbox.insert(tk.END, f"[POLY] {t.get('id', f'poly_{i}')} | {len(pts)} pts | pos: ({int(t.get('x',0))}, {int(t.get('y',0))}) rad: {int(t.get('radius',300))}")
+                self.terrain_listbox.insert(tk.END, f"[POLY/{l_type}] {t.get('id', f'poly_{i}')} | {len(pts)} pts | pos: ({int(t.get('x',0))}, {int(t.get('y',0))}) rad: {int(t.get('radius',300))}")
             else:
-                self.terrain_listbox.insert(tk.END, f"[CIRC] {t.get('id', f'isl_{i}')} | pos: ({int(t.get('x',0))}, {int(t.get('y',0))}) rad: {int(t.get('radius',300))}")
+                self.terrain_listbox.insert(tk.END, f"[CIRC/{l_type}] {t.get('id', f'isl_{i}')} | pos: ({int(t.get('x',0))}, {int(t.get('y',0))}) rad: {int(t.get('radius',300))}")
 
         # Spawns list
         u = self.mission.get("units", {})
@@ -1063,13 +1258,20 @@ class MissionEditorApp(tk.Tk):
         self.units_listbox.delete(0, tk.END)
         for a in u.get("airUnits", []):
             dorm = " [DORMANT]" if (a.get("active") is False or a.get("spawned") is False) else ""
-            self.units_listbox.insert(tk.END, f"[AIR] {a.get('name', 'Plane')} ({int(a.get('x',0))}, {int(a.get('y',0))}){dorm}")
+            m_str = a.get("model", "plane").upper()
+            spw = a.get("specialWeapon")
+            spw_str = f"/{spw.upper()}" if spw and spw != "none" else ""
+            self.units_listbox.insert(tk.END, f"[AIR/{m_str}{spw_str}] {a.get('name', 'Plane')} ({int(a.get('x',0))}, {int(a.get('y',0))}){dorm}")
         for g in u.get("groundUnits", []):
             dorm = " [DORMANT]" if (g.get("active") is False or g.get("spawned") is False) else ""
-            self.units_listbox.insert(tk.END, f"[GND] {g.get('name', 'SAM')} ({int(g.get('x',0))}, {int(g.get('y',0))}){dorm}")
+            stat = " [STAT]" if (g.get("orders", {}).get("type") == "STATIONARY" or g.get("speed", 0) == 0) else ""
+            g_str = (g.get("groundType") or g.get("subType") or "gnd").upper()
+            self.units_listbox.insert(tk.END, f"[GND/{g_str}{stat}] {g.get('name', 'Unit')} ({int(g.get('x',0))}, {int(g.get('y',0))}){dorm}")
         for n in u.get("navalUnits", []):
             dorm = " [DORMANT]" if (n.get("active") is False or n.get("spawned") is False) else ""
-            self.units_listbox.insert(tk.END, f"[NAV] {n.get('name', 'Ship')} ({int(n.get('x',0))}, {int(n.get('y',0))}){dorm}")
+            stat = " [STAT]" if (n.get("orders", {}).get("type") == "STATIONARY" or n.get("speed", 1) == 0) else ""
+            s_str = (n.get("subType") or n.get("shipType") or "ship").upper()
+            self.units_listbox.insert(tk.END, f"[NAV/{s_str}{stat}] {n.get('name', 'Ship')} ({int(n.get('x',0))}, {int(n.get('y',0))}){dorm}")
 
         # Objectives & Triggers
         d = self.mission.get("dynamics", {})
@@ -1184,11 +1386,16 @@ class MissionEditorApp(tk.Tk):
         self.ent_isl_y.insert(0, str(int(isl.get("y", 0))))
         self.ent_isl_rad.delete(0, tk.END)
         self.ent_isl_rad.insert(0, str(int(isl.get("radius", 350))))
+
+        l_type = isl.get("landType", "island")
+        if hasattr(self, 'cb_land_type'):
+            self.cb_land_type.set(l_type)
+
         pts = isl.get("points")
         if pts:
-            self.lbl_isl_info.config(text=f"[POLYGON] {len(pts)} vertices | Bounding Rad: {int(isl.get('radius', 350))}m")
+            self.lbl_isl_info.config(text=f"[POLYGON / {l_type.upper()}] {len(pts)} vertices | Bounding Rad: {int(isl.get('radius', 350))}m")
         else:
-            self.lbl_isl_info.config(text=f"[CIRCULAR] Radius: {int(isl.get('radius', 350))}m")
+            self.lbl_isl_info.config(text=f"[CIRCULAR / {l_type.upper()}] Radius: {int(isl.get('radius', 350))}m")
         self.redraw_canvas()
 
     def on_select_island_item(self, event):
@@ -1196,11 +1403,42 @@ class MissionEditorApp(tk.Tk):
         if not sel: return
         self.select_island(sel[0])
 
+    def set_selected_island_type(self, new_type):
+        if not self.selected_item or self.selected_item[1] != "island":
+            return
+        idx = self.selected_item[2]
+        terrain = self.mission["map"].get("terrain", [])
+        if idx >= len(terrain):
+            return
+        isl = terrain[idx]
+        isl["landType"] = new_type
+        if new_type == "island":
+            isl["color"] = "#1a382d"
+            isl["sandColor"] = "#45594b"
+        elif new_type == "desert":
+            isl["color"] = "#b89558"
+            isl["sandColor"] = "#d4b373"
+        elif new_type == "city":
+            isl["color"] = "#383d47"
+            isl["sandColor"] = "#252930"
+        if hasattr(self, 'cb_land_type'):
+            self.cb_land_type.set(new_type)
+        self.populate_form_from_mission()
+        self.select_island(idx, self.selected_vertex_idx)
+
+    def on_land_type_changed(self, event=None):
+        if hasattr(self, 'cb_land_type'):
+            new_type = self.cb_land_type.get()
+            if new_type:
+                self.set_selected_island_type(new_type)
+
     def update_island_from_form(self):
         if not self.selected_item or self.selected_item[1] != "island": return
         idx = self.selected_item[2]
         terrain = self.mission["map"].get("terrain", [])
         if idx < len(terrain):
+            if hasattr(self, 'cb_land_type'):
+                terrain[idx]["landType"] = self.cb_land_type.get() or "island"
             new_x = float(self.ent_isl_x.get() or 0)
             new_y = float(self.ent_isl_y.get() or 0)
             dx = new_x - terrain[idx].get("x", 0)
@@ -1261,6 +1499,30 @@ class MissionEditorApp(tk.Tk):
                 self.cb_u_order.set(orders.get("type", "PATROL_AREA"))
                 is_active = unit.get("active", True) if unit.get("spawned") is None else unit.get("spawned", True)
                 self.var_u_active.set(bool(is_active))
+
+                # Contextually update Unit Type / Model and Weapon selectors
+                if hasattr(self, 'cb_u_model') and hasattr(self, 'cb_u_weapon'):
+                    if kind == "air":
+                        self.lbl_u_model.config(text="Plane Model:")
+                        self.cb_u_model.config(values=AIRCRAFT_MODELS)
+                        self.cb_u_model.set(unit.get("model", "mig21"))
+                        self.lbl_u_weapon.config(text="SP Weapon:")
+                        self.cb_u_weapon.config(values=SPECIAL_WEAPON_TYPES)
+                        self.cb_u_weapon.set(unit.get("specialWeapon") or "none")
+                    elif kind == "naval":
+                        self.lbl_u_model.config(text="Ship Class:")
+                        self.cb_u_model.config(values=SHIP_TYPES)
+                        self.cb_u_model.set(unit.get("subType") or unit.get("shipType") or "destroyer")
+                        self.lbl_u_weapon.config(text="Armament:")
+                        self.cb_u_weapon.config(values=["standard_armament", "guided_missiles_vls", "ciws_only", "heavy_flak", "unarmed_transport"])
+                        self.cb_u_weapon.set(unit.get("weaponType", "standard_armament"))
+                    elif kind == "ground":
+                        self.lbl_u_model.config(text="Ground Type:")
+                        self.cb_u_model.config(values=GROUND_TYPES)
+                        self.cb_u_model.set(unit.get("groundType", "tank"))
+                        self.lbl_u_weapon.config(text="Armament:")
+                        self.cb_u_weapon.config(values=["standard_cannon", "autocannon", "heavy_machine_gun", "standard_missiles", "heavy_sam", "rapid_flak", "unarmed"])
+                        self.cb_u_weapon.set(unit.get("weaponType", "standard_cannon" if unit.get("groundType") in ("apc", "tank") else "standard_missiles"))
         self.redraw_canvas()
 
     def on_select_spawn_item(self, event):
@@ -1296,7 +1558,148 @@ class MissionEditorApp(tk.Tk):
             unit["aiType"] = self.cb_u_ai.get()
             unit["active"] = bool(self.var_u_active.get())
             unit["orders"] = {"type": self.cb_u_order.get()}
+
+            # Save unit model / ship class / weapon
+            if hasattr(self, 'cb_u_model') and hasattr(self, 'cb_u_weapon'):
+                if u_type == "air":
+                    unit["model"] = self.cb_u_model.get()
+                    spw = self.cb_u_weapon.get()
+                    unit["specialWeapon"] = spw if spw != "none" else None
+                elif u_type == "naval":
+                    s_class = self.cb_u_model.get()
+                    old_class = unit.get("subType") or unit.get("shipType")
+                    unit["subType"] = s_class
+                    unit["shipType"] = s_class
+                    unit["weaponType"] = self.cb_u_weapon.get()
+                    if s_class != old_class:
+                        if s_class == "carrier":
+                            unit["hp"] = unit["maxHp"] = 450
+                            unit["hitRadius"] = 75
+                            unit["hasCIWS"] = True
+                            unit["ciwsChannels"] = 2
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = False
+                        elif s_class == "light_carrier":
+                            unit["hp"] = unit["maxHp"] = 280
+                            unit["hitRadius"] = 52
+                            unit["hasCIWS"] = True
+                            unit["ciwsChannels"] = 1
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = True
+                        elif s_class == "cruiser":
+                            unit["hp"] = unit["maxHp"] = 280
+                            unit["hitRadius"] = 50
+                            unit["hasCIWS"] = True
+                            unit["ciwsChannels"] = 1
+                            unit["hasSAM"] = True
+                            unit["hasFlak"] = False
+                        elif s_class == "destroyer":
+                            unit["hp"] = unit["maxHp"] = 200
+                            unit["hitRadius"] = 44
+                            unit["hasCIWS"] = True
+                            unit["ciwsChannels"] = 1
+                            unit["hasSAM"] = True
+                            unit["hasFlak"] = True
+                        elif s_class == "frigate":
+                            unit["hp"] = unit["maxHp"] = 160
+                            unit["hitRadius"] = 38
+                            unit["hasCIWS"] = False
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = True
+                        elif s_class == "cargo":
+                            unit["hp"] = unit["maxHp"] = 160
+                            unit["hitRadius"] = 46
+                            unit["hasCIWS"] = False
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = False
+                        elif s_class == "landing_craft":
+                            unit["hp"] = unit["maxHp"] = 70
+                            unit["hitRadius"] = 24
+                            unit["hasCIWS"] = False
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = False
+                        else:  # gunboat
+                            unit["hp"] = unit["maxHp"] = 120
+                            unit["hitRadius"] = 34
+                            unit["hasCIWS"] = False
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = False
+
+                    if self.cb_u_order.get() == "STATIONARY":
+                        unit["speed"] = 0
+                    elif unit.get("speed", 0) == 0:
+                        unit["speed"] = 10 if s_class in ("cargo", "landing_craft") else 18
+                elif u_type == "ground":
+                    g_type = self.cb_u_model.get()
+                    old_type = unit.get("groundType")
+                    unit["groundType"] = g_type
+                    unit["subType"] = g_type
+                    unit["weaponType"] = self.cb_u_weapon.get()
+                    if g_type != old_type:
+                        if g_type == "apc":
+                            unit["hp"] = unit["maxHp"] = 32
+                            unit["hitRadius"] = 18
+                            unit["speed"] = 32
+                            unit["code"] = "TGT [GND]"
+                            unit["range"] = 0
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = False
+                        elif g_type == "tank":
+                            unit["hp"] = unit["maxHp"] = 64
+                            unit["hitRadius"] = 22
+                            unit["speed"] = 22
+                            unit["code"] = "TGT [GND]"
+                            unit["range"] = 0
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = False
+                        elif g_type == "pillbox":
+                            unit["hp"] = unit["maxHp"] = 96
+                            unit["hitRadius"] = 24
+                            unit["speed"] = 0
+                            unit["code"] = "TGT [GND]"
+                            unit["range"] = 0
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = False
+                        elif g_type == "bunker":
+                            unit["hp"] = unit["maxHp"] = 128
+                            unit["hitRadius"] = 30
+                            unit["speed"] = 0
+                            unit["code"] = "TGT [GND]"
+                            unit["range"] = 0
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = False
+                        elif g_type == "flak_aa":
+                            unit["hp"] = unit["maxHp"] = 48
+                            unit["hitRadius"] = 24
+                            unit["speed"] = 0
+                            unit["code"] = "TGT [AA]"
+                            unit["range"] = 2100
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = True
+                        elif g_type == "radar_station":
+                            unit["hp"] = unit["maxHp"] = 64
+                            unit["hitRadius"] = 28
+                            unit["speed"] = 0
+                            unit["code"] = "TGT [RADAR]"
+                            unit["range"] = 4200
+                            unit["hasSAM"] = False
+                            unit["hasFlak"] = False
+                        else:  # sam_battery
+                            unit["hp"] = unit["maxHp"] = 64
+                            unit["hitRadius"] = 32
+                            unit["speed"] = 0
+                            unit["code"] = "TGT [SAM]"
+                            unit["range"] = 3400
+                            unit["hasSAM"] = True
+                            unit["hasFlak"] = False
+
+                    if self.cb_u_order.get() == "STATIONARY" or g_type in ("pillbox", "bunker", "sam_battery", "radar_station", "flak_aa"):
+                        unit["speed"] = 0
+                    elif unit.get("speed", 0) == 0 and g_type in ("apc", "tank"):
+                        unit["speed"] = 32 if g_type == "apc" else 22
+
             self.populate_form_from_mission()
+            self.select_unit(u_type, idx)
 
     def on_select_trigger_item(self, event):
         sel = self.trigs_listbox.curselection()
@@ -1457,14 +1860,22 @@ class MissionEditorApp(tk.Tk):
     # ----------------------------------------------------
     def add_island(self, x=0, y=0, radius=400):
         terrain = self.mission["map"].setdefault("terrain", [])
+        l_type = self.cb_default_land_type.get() if hasattr(self, 'cb_default_land_type') else "island"
+        if l_type == "desert":
+            col, scol = "#b89558", "#d4b373"
+        elif l_type == "city":
+            col, scol = "#383d47", "#252930"
+        else:
+            col, scol = "#1a382d", "#45594b"
         new_isl = {
             "id": f"island_{len(terrain) + 1}",
             "type": "island",
+            "landType": l_type,
             "x": float(x),
             "y": float(y),
             "radius": float(radius),
-            "color": "#1a382d",
-            "sandColor": "#45594b"
+            "color": col,
+            "sandColor": scol
         }
         terrain.append(new_isl)
         self.populate_form_from_mission()
@@ -1495,15 +1906,24 @@ class MissionEditorApp(tk.Tk):
         cy = sum(p[1] for p in pts) / len(pts)
         max_r = max(math.hypot(p[0] - cx, p[1] - cy) for p in pts) + 30.0
 
+        l_type = self.cb_default_land_type.get() if hasattr(self, 'cb_default_land_type') else "island"
+        if l_type == "desert":
+            col, scol = "#b89558", "#d4b373"
+        elif l_type == "city":
+            col, scol = "#383d47", "#252930"
+        else:
+            col, scol = "#1a382d", "#45594b"
+
         new_isl = {
             "id": f"poly_island_{len(terrain) + 1}",
             "type": "polygon",
+            "landType": l_type,
             "x": round(cx, 1),
             "y": round(cy, 1),
             "radius": round(max_r, 1),
             "points": pts,
-            "color": "#1a382d",
-            "sandColor": "#45594b"
+            "color": col,
+            "sandColor": scol
         }
         terrain.append(new_isl)
         self.poly_drawing_pts = []
@@ -1604,12 +2024,15 @@ class MissionEditorApp(tk.Tk):
 
     def add_air_unit(self, x=0, y=0):
         air = self.mission["units"].setdefault("airUnits", [])
-        air.append({
+        m_model = self.cb_u_model.get() if hasattr(self, 'cb_u_model') and self.cb_u_model.get() in AIRCRAFT_MODELS else "f15c"
+        spw = self.cb_u_weapon.get() if hasattr(self, 'cb_u_weapon') and self.cb_u_weapon.get() in SPECIAL_WEAPON_TYPES else "none"
+        new_unit = {
             "id": f"fighter_custom_{len(air) + 1}",
-            "name": f"MiG-21 Custom #{len(air) + 1}",
+            "name": f"{m_model.upper()} Fighter #{len(air) + 1}",
             "code": "TGT [AIR]",
             "type": "air",
-            "model": "mig21",
+            "model": m_model,
+            "specialWeapon": spw if spw != "none" else None,
             "aiType": "rookie",
             "team": "enemy",
             "active": True,
@@ -1621,54 +2044,114 @@ class MissionEditorApp(tk.Tk):
             "maxHp": 48,
             "hitRadius": 32,
             "orders": {"type": "PATROL_AREA", "centerX": float(x), "centerY": float(y), "radius": 2000}
-        })
+        }
+        air.append(new_unit)
         self.populate_form_from_mission()
+        self.select_unit("air", len(air) - 1)
 
-    def add_sam_unit(self, x=0, y=0):
+    def add_ground_unit(self, x=0, y=0):
         gnd = self.mission["units"].setdefault("groundUnits", [])
-        gnd.append({
-            "id": f"sam_custom_{len(gnd) + 1}",
-            "name": f"SAM Battery #{len(gnd) + 1}",
-            "code": "TGT [SAM]",
-            "type": "ground",
-            "team": "enemy",
-            "active": True,
-            "x": float(x),
-            "y": float(y),
-            "hp": 40,
-            "maxHp": 40,
-            "hitRadius": 32,
-            "range": 3400,
-            "fireInterval": 9.0,
-            "orders": {"type": "DEFEND_POINT", "targetX": float(x), "targetY": float(y)}
-        })
-        self.populate_form_from_mission()
+        g_type = self.cb_u_model.get() if hasattr(self, 'cb_u_model') and self.cb_u_model.get() in GROUND_TYPES else "tank"
 
-    def add_naval_unit(self, x=0, y=0):
-        nav = self.mission["units"].setdefault("navalUnits", [])
-        nav.append({
-            "id": f"destroyer_custom_{len(nav) + 1}",
-            "name": f"Destroyer DDG #{len(nav) + 1}",
-            "code": "TGT [NAV]",
-            "type": "naval",
-            "subType": "destroyer",
+        if g_type == "apc":
+            hp, r, spd, code, rng, fir = 32, 18, 32, "TGT [GND]", 0, 0
+        elif g_type == "tank":
+            hp, r, spd, code, rng, fir = 64, 22, 22, "TGT [GND]", 0, 0
+        elif g_type == "pillbox":
+            hp, r, spd, code, rng, fir = 96, 24, 0, "TGT [GND]", 0, 0
+        elif g_type == "bunker":
+            hp, r, spd, code, rng, fir = 128, 30, 0, "TGT [GND]", 0, 0
+        elif g_type == "flak_aa":
+            hp, r, spd, code, rng, fir = 48, 24, 0, "TGT [AA]", 2100, 2.0
+        elif g_type == "radar_station":
+            hp, r, spd, code, rng, fir = 64, 28, 0, "TGT [RADAR]", 4200, 0
+        else:  # sam_battery
+            hp, r, spd, code, rng, fir = 64, 32, 0, "TGT [SAM]", 3400, 7.5
+
+        order_type = self.cb_u_order.get() if hasattr(self, 'cb_u_order') and self.cb_u_order.get() in AI_ORDER_TYPES else ("STATIONARY" if spd == 0 else "DEFEND_POINT")
+
+        new_unit = {
+            "id": f"{g_type}_custom_{len(gnd) + 1}",
+            "name": f"{g_type.replace('_', ' ').title()} #{len(gnd) + 1}",
+            "code": code,
+            "type": "ground",
+            "groundType": g_type,
+            "subType": g_type,
             "team": "enemy",
             "active": True,
             "x": float(x),
             "y": float(y),
             "heading": 0.0,
-            "speed": 18,
-            "hp": 190,
-            "maxHp": 190,
-            "hitRadius": 44,
-            "hasCIWS": True,
-            "ciwsChannels": 1,
-            "ciwsRange": 850,
-            "hasSAM": True,
-            "samRange": 3400,
-            "orders": {"type": "FORMATION_ORBIT", "centerX": float(x), "centerY": float(y), "radius": 2000}
-        })
+            "speed": 0 if order_type == "STATIONARY" else spd,
+            "hp": hp,
+            "maxHp": hp,
+            "hitRadius": r,
+            "range": rng,
+            "fireInterval": fir,
+            "hasSAM": g_type == "sam_battery",
+            "hasFlak": g_type == "flak_aa",
+            "orders": {"type": order_type, "targetX": float(x), "targetY": float(y)}
+        }
+        gnd.append(new_unit)
         self.populate_form_from_mission()
+        self.select_unit("ground", len(gnd) - 1)
+
+    add_sam_unit = add_ground_unit
+
+    def add_naval_unit(self, x=0, y=0):
+        nav = self.mission["units"].setdefault("navalUnits", [])
+        s_class = self.cb_u_model.get() if hasattr(self, 'cb_u_model') and self.cb_u_model.get() in SHIP_TYPES else "destroyer"
+
+        # Ship stats & armament defaults by class
+        if s_class == "carrier":
+            hp, r, spd, ciws, sam, flak = 450, 75, 18, 2, False, False
+        elif s_class == "light_carrier":
+            hp, r, spd, ciws, sam, flak = 280, 52, 14, 1, False, True
+        elif s_class == "cruiser":
+            hp, r, spd, ciws, sam, flak = 280, 50, 18, 1, True, False
+        elif s_class == "destroyer":
+            hp, r, spd, ciws, sam, flak = 200, 44, 18, 1, True, True
+        elif s_class == "frigate":
+            hp, r, spd, ciws, sam, flak = 160, 38, 18, 0, False, True
+        elif s_class == "cargo":
+            hp, r, spd, ciws, sam, flak = 160, 46, 10, 0, False, False
+        elif s_class == "landing_craft":
+            hp, r, spd, ciws, sam, flak = 70, 24, 12, 0, False, False
+        else:  # gunboat
+            hp, r, spd, ciws, sam, flak = 120, 34, 16, 0, False, False
+
+        order_type = self.cb_u_order.get() if hasattr(self, 'cb_u_order') and self.cb_u_order.get() in AI_ORDER_TYPES else "FORMATION_ORBIT"
+        if s_class in ("cargo", "landing_craft") and (not hasattr(self, 'cb_u_order') or self.cb_u_order.get() == "FORMATION_ORBIT"):
+            order_type = "STATIONARY"
+
+        new_unit = {
+            "id": f"{s_class}_custom_{len(nav) + 1}",
+            "name": f"{s_class.replace('_', ' ').title()} #{len(nav) + 1}",
+            "code": "TGT [NAV]",
+            "type": "naval",
+            "subType": s_class,
+            "shipType": s_class,
+            "team": "enemy",
+            "active": True,
+            "x": float(x),
+            "y": float(y),
+            "heading": 0.0,
+            "speed": 0 if order_type == "STATIONARY" else spd,
+            "hp": hp,
+            "maxHp": hp,
+            "hitRadius": r,
+            "hasCIWS": ciws > 0,
+            "ciwsChannels": ciws,
+            "ciwsRange": 850,
+            "hasSAM": sam,
+            "samRange": 3400,
+            "hasFlak": flak,
+            "flakRange": 2100,
+            "orders": {"type": order_type, "centerX": float(x), "centerY": float(y), "radius": 2000}
+        }
+        nav.append(new_unit)
+        self.populate_form_from_mission()
+        self.select_unit("naval", len(nav) - 1)
 
     def add_dialogue_trigger(self):
         trigs = self.mission["dynamics"].setdefault("triggers", [])
@@ -2234,6 +2717,9 @@ class MissionEditorApp(tk.Tk):
                 flat_coords = [c for p in scr_pts for c in p]
                 self.canvas.create_polygon(flat_coords, fill=fill_col, outline=outline_col, width=2 if is_sel else 1)
 
+                # Draw polygon interior land decorations (vegetation, dunes/rocks, or city buildings)
+                self.draw_land_decorations(isl, idx, is_sel)
+
                 cx, cy = isl.get("x", 0), isl.get("y", 0)
                 scx, scy = self.world_to_screen(cx, cy)
                 self.canvas.create_text(scx, scy, text=isl.get("id", f"poly_{idx+1}"), fill="#88c0a0" if not is_sel else "#00ffcc", font=("Consolas", 7))
@@ -2252,6 +2738,9 @@ class MissionEditorApp(tk.Tk):
                 s_rad = max(3, rad * self.zoom)
                 self.canvas.create_oval(sx - s_rad, sy - s_rad, sx + s_rad, sy + s_rad,
                                         fill=fill_col, outline=outline_col, width=2 if is_sel else 1)
+
+                # Draw circular interior land decorations (vegetation, dunes/rocks, or city buildings)
+                self.draw_land_decorations(isl, idx, is_sel)
 
         # Operational Areas & Trigger Zones (Visible in Editor, Invisible In-Game)
         areas = self.mission.get("dynamics", {}).get("areas", [])
@@ -2330,7 +2819,8 @@ class MissionEditorApp(tk.Tk):
             p3 = (sx - cosH * 7 + sinH * 6, sy - sinH * 7 - cosH * 6)
             self.canvas.create_polygon([p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]], fill=col,
                                         outline="#ffffff" if is_sel else ("#555555" if not is_active else ""))
-            label = a.get("name", "Fighter")[:12] + (" (DORMANT)" if not is_active else "")
+            m_str = a.get("model", "plane").upper()
+            label = f"{m_str}: {a.get('name', 'Fighter')[:10]}" + (" (DORMANT)" if not is_active else "")
             self.canvas.create_text(sx, sy + 10, text=label, fill=col, font=("Consolas", 7))
 
             # Patrol radius ring if selected
@@ -2338,26 +2828,60 @@ class MissionEditorApp(tk.Tk):
                 prad = (a.get("orders", {}).get("radius") or 2000) * self.zoom
                 self.canvas.create_oval(sx - prad, sy - prad, sx + prad, sy + prad, outline=col, dash=(3, 3))
 
-        # 5. Layer 2: Ground / SAM Units
+        # 5. Layer 2: Ground Units
         for idx, g in enumerate(self.mission["units"].get("groundUnits", [])):
             sx, sy = self.world_to_screen(g.get("x", 0), g.get("y", 0))
             is_sel = (self.selected_item == ("units", "ground", idx))
             is_active = g.get("active", True) if g.get("spawned") is None else g.get("spawned", True)
             col = "#ffff00" if is_sel else ("#ff6600" if g.get("team") == "enemy" else "#00ccff")
             if not is_active: col = "#777777"
+            gtype = (g.get("groundType") or g.get("subType") or "sam_battery").lower()
 
-            self.canvas.create_rectangle(sx - 5, sy - 5, sx + 5, sy + 5, fill=col, outline="#ffffff" if is_sel else "")
-            s_range = (g.get("range") or 3400) * self.zoom
-            self.canvas.create_oval(sx - s_range, sy - s_range, sx + s_range, sy + s_range, outline=col, width=1, dash=(2, 4))
-            self.canvas.create_text(sx, sy - 8, text=g.get("name", "SAM")[:10], fill=col, font=("Consolas", 7))
+            # Distinct silhouettes on editor canvas
+            if gtype == "apc":
+                self.canvas.create_rectangle(sx - 6, sy - 4, sx + 6, sy + 4, fill=col, outline="#ffffff" if is_sel else "")
+            elif gtype == "tank":
+                self.canvas.create_rectangle(sx - 7, sy - 5, sx + 7, sy + 5, fill=col, outline="#ffffff" if is_sel else "")
+                self.canvas.create_line(sx, sy, sx + 9, sy, fill="#000000", width=1.5)
+            elif gtype == "pillbox":
+                self.canvas.create_oval(sx - 6, sy - 6, sx + 6, sy + 6, fill=col, outline="#ffffff" if is_sel else "")
+            elif gtype == "bunker":
+                self.canvas.create_rectangle(sx - 9, sy - 7, sx + 9, sy + 7, fill=col, outline="#ffffff" if is_sel else "")
+                self.canvas.create_line(sx - 5, sy - 4, sx + 5, sy + 4, fill="#000000", width=1)
+            else:
+                self.canvas.create_rectangle(sx - 5, sy - 5, sx + 5, sy + 5, fill=col, outline="#ffffff" if is_sel else "")
+
+            s_range = (g.get("range") or 0) * self.zoom
+            if s_range > 0:
+                self.canvas.create_oval(sx - s_range, sy - s_range, sx + s_range, sy + s_range, outline=col, width=1, dash=(2, 4))
+
+            tag_str = gtype.upper()
+            self.canvas.create_text(sx, sy - 9, text=f"[{tag_str}] {g.get('name', 'GND')[:8]}", fill=col, font=("Consolas", 7))
 
         # 6. Layer 2: Naval Units
         for idx, n in enumerate(self.mission["units"].get("navalUnits", [])):
             sx, sy = self.world_to_screen(n.get("x", 0), n.get("y", 0))
             is_sel = (self.selected_item == ("units", "naval", idx))
             col = "#ffff00" if is_sel else ("#ff2244" if n.get("team") == "enemy" else "#2288ff")
-            self.canvas.create_oval(sx - 7, sy - 4, sx + 7, sy + 4, fill=col, outline="#ffffff" if is_sel else "")
-            self.canvas.create_text(sx, sy + 8, text=n.get("name", "Ship")[:14], fill=col, font=("Consolas", 7, "bold"))
+            stype = (n.get("subType") or n.get("shipType") or "ship").lower()
+            is_stat = (n.get("orders", {}).get("type") == "STATIONARY" or n.get("speed", 1) == 0)
+
+            # Tailor silhouette sizes on the editor radar
+            if stype == "carrier":
+                self.canvas.create_rectangle(sx - 14, sy - 6, sx + 14, sy + 6, fill=col, outline="#ffffff" if is_sel else "")
+            elif stype in ("light_carrier", "cruiser"):
+                self.canvas.create_rectangle(sx - 11, sy - 5, sx + 11, sy + 5, fill=col, outline="#ffffff" if is_sel else "")
+            elif stype == "cargo":
+                self.canvas.create_rectangle(sx - 10, sy - 5, sx + 10, sy + 5, fill=col, outline="#ffffff" if is_sel else "")
+                self.canvas.create_line(sx - 6, sy, sx + 6, sy, fill="#000000", width=1)
+            elif stype == "landing_craft":
+                self.canvas.create_rectangle(sx - 5, sy - 3, sx + 5, sy + 3, fill=col, outline="#ffffff" if is_sel else "")
+            else:
+                self.canvas.create_oval(sx - 7, sy - 4, sx + 7, sy + 4, fill=col, outline="#ffffff" if is_sel else "")
+
+            stat_icon = " [STAT]" if is_stat else ""
+            s_str = stype.replace("_", " ").upper()
+            self.canvas.create_text(sx, sy + 9, text=f"[{s_str}]{stat_icon} {n.get('name', 'Ship')[:10]}", fill=col, font=("Consolas", 7, "bold"))
 
         # 7. Layer 3: Scripted Nukes Visual Indicators
         for tr in self.mission["dynamics"].get("triggers", []):
@@ -2401,6 +2925,132 @@ class MissionEditorApp(tk.Tk):
                 if math.hypot(msx - first_p[0], msy - first_p[1]) < 14:
                     self.canvas.create_oval(first_p[0] - 8, first_p[1] - 8, first_p[0] + 8, first_p[1] + 8, outline="#ffea00", width=2)
                     self.canvas.create_text(msx, msy - 14, text="[CLICK TO CLOSE]", fill="#ffea00", font=("Consolas", 8, "bold"))
+
+    def draw_land_decorations(self, isl, idx, is_sel):
+        """Draws deterministic internal terrain features (vegetation, dunes/rocks, or city buildings)."""
+        land_type = isl.get("landType", "island")
+        pts = isl.get("points")
+        is_poly = bool(pts and len(pts) >= 3)
+        cx = float(isl.get("x", 0))
+        cy = float(isl.get("y", 0))
+        rad = float(isl.get("radius", 350))
+
+        # Frustum culling check against current editor viewport
+        scx, scy = self.world_to_screen(cx, cy)
+        s_rad = rad * self.zoom
+        cw = self.canvas.winfo_width() or 800
+        ch = self.canvas.winfo_height() or 600
+        if scx + s_rad < 0 or scx - s_rad > cw or scy + s_rad < 0 or scy - s_rad > ch:
+            return
+
+        # Deterministic seed based on island properties so decorations never jitter during pan/zoom
+        seed_val = int(abs(cx * 137.0 + cy * 313.0 + idx * 7919.0 + rad * 17.0)) % 2147483647
+        rng = random.Random(seed_val)
+
+        def is_inside(wx, wy):
+            if is_poly:
+                return is_point_in_polygon(wx, wy, pts)
+            else:
+                return (wx - cx) ** 2 + (wy - cy) ** 2 <= (rad * 0.85) ** 2
+
+        if land_type == "island":
+            # Vegetation: clusters of lush tree canopies
+            num_clusters = min(35, max(8, int(rad / 25)))
+            green_shades = ["#132e22", "#1a3d2e", "#24533e", "#2f694f", "#3a8262"]
+            for _ in range(num_clusters * 2):
+                wx = cx + (rng.random() * 2 - 1) * rad * 0.82
+                wy = cy + (rng.random() * 2 - 1) * rad * 0.82
+                if is_inside(wx, wy):
+                    sx, sy = self.world_to_screen(wx, wy)
+                    sub_count = rng.randint(2, 4)
+                    for _ in range(sub_count):
+                        ox = (rng.random() - 0.5) * 16 * self.zoom
+                        oy = (rng.random() - 0.5) * 16 * self.zoom
+                        c_rad = max(2, int((6 + rng.random() * 14) * self.zoom))
+                        col = rng.choice(green_shades)
+                        self.canvas.create_oval(sx + ox - c_rad, sy + oy - c_rad,
+                                                sx + ox + c_rad, sy + oy + c_rad,
+                                                fill=col, outline="")
+
+        elif land_type == "desert":
+            # Desert: Sand dunes (curved ridges) & rock outcroppings / boulders
+            # 1. Dunes
+            num_dunes = min(10, max(3, int(rad / 65)))
+            for _ in range(num_dunes):
+                dwx = cx + (rng.random() * 2 - 1) * rad * 0.75
+                dwy = cy + (rng.random() * 2 - 1) * rad * 0.75
+                dlen = (40 + rng.random() * 90)
+                angle = rng.uniform(0.3, 0.8)
+                dx = math.cos(angle) * dlen
+                dy = math.sin(angle) * dlen
+                p1 = (dwx - dx * 0.5, dwy - dy * 0.5)
+                p2 = (dwx, dwy + (rng.random() - 0.5) * 16)
+                p3 = (dwx + dx * 0.5, dwy + dy * 0.5)
+                if is_inside(p1[0], p1[1]) and is_inside(p3[0], p3[1]):
+                    s1 = self.world_to_screen(p1[0], p1[1])
+                    s2 = self.world_to_screen(p2[0], p2[1])
+                    s3 = self.world_to_screen(p3[0], p3[1])
+                    self.canvas.create_line(s1[0], s1[1] + 1, s2[0], s2[1] + 1, s3[0], s3[1] + 1,
+                                            fill="#9c7c46", width=max(1, int(2.5 * self.zoom)), smooth=True)
+                    self.canvas.create_line(s1[0], s1[1], s2[0], s2[1], s3[0], s3[1],
+                                            fill="#dfc386", width=max(1, int(1.5 * self.zoom)), smooth=True)
+
+            # 2. Rock Boulders
+            num_rocks = min(28, max(8, int(rad / 28)))
+            rock_colors = ["#47331f", "#5c432a", "#382818", "#6e5234"]
+            for _ in range(num_rocks * 2):
+                rwx = cx + (rng.random() * 2 - 1) * rad * 0.82
+                rwy = cy + (rng.random() * 2 - 1) * rad * 0.82
+                if is_inside(rwx, rwy):
+                    rsx, rsy = self.world_to_screen(rwx, rwy)
+                    rw = max(2, int((5 + rng.random() * 12) * self.zoom))
+                    rh = max(2, int((4 + rng.random() * 10) * self.zoom))
+                    r_col = rng.choice(rock_colors)
+                    self.canvas.create_oval(rsx - rw, rsy - rh, rsx + rw, rsy + rh,
+                                            fill=r_col, outline="#2a1e12")
+
+        elif land_type == "city":
+            # City: Street grid and rectangular building blocks
+            # 1. Road lines
+            grid_spacing = max(60, min(140, int(rad / 4)))
+            min_x, max_x = cx - rad, cx + rad
+            min_y, max_y = cy - rad, cy + rad
+
+            gx = min_x + (abs(min_x) % grid_spacing)
+            while gx < max_x:
+                if is_inside(gx, cy - rad * 0.6) or is_inside(gx, cy + rad * 0.6):
+                    s1 = self.world_to_screen(gx, cy - rad * 0.65)
+                    s2 = self.world_to_screen(gx, cy + rad * 0.65)
+                    self.canvas.create_line(s1[0], s1[1], s2[0], s2[1], fill="#262a33", width=max(1, int(3 * self.zoom)))
+                gx += grid_spacing
+
+            gy = min_y + (abs(min_y) % grid_spacing)
+            while gy < max_y:
+                if is_inside(cx - rad * 0.6, gy) or is_inside(cx + rad * 0.6, gy):
+                    s1 = self.world_to_screen(cx - rad * 0.65, gy)
+                    s2 = self.world_to_screen(cx + rad * 0.65, gy)
+                    self.canvas.create_line(s1[0], s1[1], s2[0], s2[1], fill="#262a33", width=max(1, int(3 * self.zoom)))
+                gy += grid_spacing
+
+            # 2. Buildings
+            num_bldgs = min(40, max(10, int(rad / 22)))
+            bldg_colors = ["#484e5b", "#545b69", "#3d424e", "#5f6675", "#6a7282"]
+            for _ in range(num_bldgs * 2):
+                bwx = cx + (rng.random() * 2 - 1) * rad * 0.78
+                bwy = cy + (rng.random() * 2 - 1) * rad * 0.78
+                bw = (25 + rng.random() * 55)
+                bh = (25 + rng.random() * 55)
+                if is_inside(bwx - bw * 0.5, bwy - bh * 0.5) and is_inside(bwx + bw * 0.5, bwy + bh * 0.5):
+                    s1 = self.world_to_screen(bwx - bw * 0.5, bwy - bh * 0.5)
+                    s2 = self.world_to_screen(bwx + bw * 0.5, bwy + bh * 0.5)
+                    bcol = rng.choice(bldg_colors)
+                    self.canvas.create_rectangle(s1[0], s1[1], s2[0], s2[1], fill=bcol, outline="#20242b", width=1)
+                    if rng.random() < 0.25 and (s2[0] - s1[0] > 10):
+                        mid_x = (s1[0] + s2[0]) * 0.5
+                        mid_y = (s1[1] + s2[1]) * 0.5
+                        hr = max(2, int(4 * self.zoom))
+                        self.canvas.create_oval(mid_x - hr, mid_y - hr, mid_x + hr, mid_y + hr,
+                                                fill="#ffcc00", outline="#ffffff")
 
     def adjust_zoom(self, factor):
         self.zoom = max(0.004, min(0.12, self.zoom * factor))
@@ -2867,6 +3517,58 @@ class MissionEditorApp(tk.Tk):
             lc["noRespawn"] = no_resp
             if no_resp:
                 lc["playerDestroyed"] = True
+
+        # Player Tweakables & Initial State
+        pt = self.mission.setdefault("playerTweakables", {})
+        if hasattr(self, 'var_pt_enabled'):
+            pt["enabled"] = bool(self.var_pt_enabled.get())
+        if hasattr(self, 'ent_pt_start_hp'):
+            try:
+                pt["startingHp"] = int(self.ent_pt_start_hp.get().strip() or "100")
+            except ValueError:
+                pt["startingHp"] = 100
+            try:
+                pt["maxHp"] = int(self.ent_pt_max_hp.get().strip() or "100")
+            except ValueError:
+                pt["maxHp"] = 100
+
+            pt["invulnerable"] = bool(self.var_pt_invulnerable.get())
+            pt["unlimitedAmmo"] = bool(self.var_pt_unlimited_ammo.get())
+
+            try:
+                pt["gunAmmo"] = int(self.ent_pt_gun_ammo.get().strip() or "800")
+            except ValueError:
+                pt["gunAmmo"] = 800
+
+            try:
+                pt["mslCount"] = int(self.ent_pt_msl.get().strip() or "120")
+            except ValueError:
+                pt["mslCount"] = 120
+
+            try:
+                pt["spwCount"] = int(self.ent_pt_spw.get().strip() or "24")
+            except ValueError:
+                pt["spwCount"] = 24
+
+            try:
+                pt["flareCount"] = int(self.ent_pt_flares.get().strip() or "30")
+            except ValueError:
+                pt["flareCount"] = 30
+
+            try:
+                pt["abilityCharges"] = int(self.ent_pt_ability.get().strip() or "1")
+            except ValueError:
+                pt["abilityCharges"] = 1
+
+            try:
+                pt["startSpeed"] = float(self.ent_pt_speed.get().strip() or "335")
+            except ValueError:
+                pt["startSpeed"] = 335.0
+
+            try:
+                pt["startAltitude"] = float(self.ent_pt_alt.get().strip() or "1.0")
+            except ValueError:
+                pt["startAltitude"] = 1.0
 
         out_file = os.path.join(MISSIONS_DIR, f"{m_id}.json")
         os.makedirs(MISSIONS_DIR, exist_ok=True)

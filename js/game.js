@@ -487,8 +487,9 @@ class FlightGame {
   }
 
   resize() {
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
+    const rect = this.canvas.getBoundingClientRect();
+    this.width = Math.round(rect.width || window.innerWidth);
+    this.height = Math.round(rect.height || window.innerHeight);
     this.canvas.width = this.width;
     this.canvas.height = this.height;
   }
@@ -498,8 +499,9 @@ class FlightGame {
 
     // Mouse movement
     window.addEventListener('mousemove', (e) => {
-      this.input.rawMouseX = e.clientX;
-      this.input.rawMouseY = e.clientY;
+      const rect = this.canvas.getBoundingClientRect();
+      this.input.rawMouseX = e.clientX - rect.left;
+      this.input.rawMouseY = e.clientY - rect.top;
       this.updateMouseWorldCoords();
     });
 

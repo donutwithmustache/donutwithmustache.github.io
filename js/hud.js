@@ -1,6 +1,7 @@
 // Ace Combat Authentic Tactical Flight HUD with Styled Minimal Instrument Console & Circular Radar
 
 import { getTargetStealth } from './aircraft.js';
+import { stripAIDifficulty } from './targets.js';
 
 export class FlightHUD {
   constructor() {
@@ -64,16 +65,17 @@ export class FlightHUD {
         ctx.shadowColor = '#ff8800';
         ctx.shadowBlur = 12;
         ctx.textAlign = 'center';
-        const cleanNotif = (n.text || '').trim().replace(/^<<\s*/, '').replace(/\s*>>$/, '');
+        const rawClean = (n.text || '').trim().replace(/^<<\s*/, '').replace(/\s*>>$/, '');
+        const cleanNotif = stripAIDifficulty(rawClean);
         ctx.fillText(`<< ${cleanNotif} >>`, centerX, notifY);
         ctx.restore();
         notifY += 22;
       }
     }
 
-    // 4B. Mission Story & Tactical Radio Messages (Scaled down 30%, customizable color)
+    // 4B. Mission Story & Tactical Radio Messages (customizable color, placed right above OverG/tactical warnings)
     if (missionManager && missionManager.radioMessages && missionManager.radioMessages.length > 0) {
-      let radioY = 110;
+      let radioY = Math.round(centerY - 195);
       for (const m of missionManager.radioMessages) {
         if (!m || !m.text || m.life <= 0) continue;
         const alpha = Math.min(1.0, m.life);
@@ -773,7 +775,7 @@ export class FlightHUD {
         ctx.font = 'bold 10px monospace';
         ctx.fillStyle = color;
         ctx.textAlign = 'center';
-        ctx.fillText(`${tgt.name.toUpperCase()} [${(dist / 1000).toFixed(1)}KM]`, 0, size + 19);
+        ctx.fillText(`${stripAIDifficulty(tgt.name).toUpperCase()} [${(dist / 1000).toFixed(1)}KM]`, 0, size + 19);
 
         ctx.restore();
       } else {
@@ -2096,8 +2098,8 @@ export class FlightHUD {
     const edgeMargin = 35;
     const requiredRightSpace = Math.max(portraitW + edgeMargin, maxMetaW + edgeMargin);
     const portraitX = canvasWidth - requiredRightSpace + slideOffset;
-    // Anchor transmission ~1/3rd down from top of screen to guarantee radio comms are never obstructed
-    const portraitY = Math.max(140, Math.round(canvasHeight * 0.32));
+    // Anchor dialogue transmission back at top right of the screen
+    const portraitY = 24;
 
     // Speech bubble dynamic sizing based on text length & word wrapping
     const fontStr = "bold 22px 'Share Tech Mono', 'Courier New', monospace";

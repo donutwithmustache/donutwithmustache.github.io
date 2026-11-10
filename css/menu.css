@@ -726,7 +726,7 @@
   max-width: 90%;
   max-height: 90%;
   object-fit: contain;
-  transform: rotate(-45deg);
+  transform: rotate(90deg);
 }
 
 /* ==========================================================================
@@ -873,20 +873,21 @@
 }
 
 .spw-preview-thumb {
-  width: 60px;
-  height: 48px;
+  width: 54px;
+  height: 54px;
   background: #242426;
   border: 1px solid #505058;
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .spw-preview-thumb img {
   max-width: 85%;
   max-height: 85%;
   object-fit: contain;
-  transform: rotate(-35deg);
+  transform: rotate(90deg);
 }
 
 /* Upgrade Confirmation Modal (Mockup 5) */
@@ -1040,6 +1041,136 @@
   line-height: 1.6;
   max-height: 60vh;
   overflow-y: auto;
+}
+
+/* Scrollable Aircraft Selection List (User Request) */
+.hangar-plane-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 8px;
+  box-sizing: border-box;
+}
+
+.hangar-plane-select-list::-webkit-scrollbar {
+  width: 6px;
+}
+.hangar-plane-select-list::-webkit-scrollbar-track {
+  background: rgba(10, 14, 20, 0.6);
+  border: 1px solid rgba(80, 80, 90, 0.3);
+}
+.hangar-plane-select-list::-webkit-scrollbar-thumb {
+  background: #00ffaa;
+  box-shadow: 0 0 8px rgba(0, 255, 170, 0.5);
+}
+
+.hangar-plane-list-row {
+  display: flex;
+  align-items: center;
+  background: rgba(28, 28, 32, 0.95);
+  border: 1px solid rgba(90, 90, 100, 0.5);
+  padding: 10px 16px;
+  gap: 18px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.hangar-plane-list-row:hover {
+  background: rgba(45, 45, 52, 0.98);
+  border-color: #00ffaa;
+  transform: translateX(4px);
+}
+
+.hangar-plane-list-row.equipped {
+  border-color: #00ffaa;
+  background: rgba(18, 38, 28, 0.85);
+  box-shadow: inset 0 0 12px rgba(0, 255, 170, 0.15);
+}
+
+.plane-list-thumb-box {
+  width: 72px;
+  height: 60px;
+  background: rgba(10, 14, 18, 0.85);
+  border: 1px solid rgba(120, 120, 130, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.plane-list-thumb-img {
+  max-width: 88%;
+  max-height: 88%;
+  object-fit: contain;
+  transform: rotate(45deg);
+}
+
+.plane-list-info-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plane-list-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.plane-list-name {
+  font-size: 19px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 1.5px;
+}
+
+.plane-list-tier-lvl {
+  font-size: 12px;
+  font-weight: bold;
+  color: #00e5ff;
+  letter-spacing: 1.2px;
+}
+
+.plane-list-role {
+  font-size: 11px;
+  color: #94a3b8;
+  letter-spacing: 1px;
+}
+
+.plane-list-action-col {
+  flex-shrink: 0;
+}
+
+.plane-list-equip-btn {
+  padding: 8px 18px;
+  font-family: var(--font-tactical);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  background: #1e293b;
+  border: 1px solid #475569;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.plane-list-equip-btn:hover {
+  background: #00ffaa;
+  color: #000000;
+  border-color: #00ffaa;
+  box-shadow: 0 0 10px rgba(0, 255, 170, 0.5);
+}
+
+.plane-list-equip-btn.equipped {
+  background: #00ffaa;
+  color: #000000;
+  border-color: #00ffaa;
+  box-shadow: 0 0 12px rgba(0, 255, 170, 0.6);
 }
 
 /* Plane Shop Grid */

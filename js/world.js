@@ -1170,41 +1170,46 @@ export class World {
             }
           }
         } else if (archetype === 6) {
-          // Archetype 6: Hospital & Emergency Medical Center (Red Cross on roof + dedicated Trauma Helipad)
-          const hospW = blockSize - 20;
-          const hospH = blockSize - 20;
-          const hospX = bx + 10;
-          const hospY = by + 10;
+          // Archetype 6: Corporate HQ & Technology Center (Solar arrays, HVAC units + Executive Helipad)
+          const bldW = blockSize - 20;
+          const bldH = blockSize - 20;
+          const bldX = bx + 10;
+          const bldY = by + 10;
 
           ctx.fillStyle = 'rgba(10, 14, 20, 0.70)';
-          ctx.fillRect(hospX + 6, hospY + 8, hospW, hospH);
-          ctx.fillStyle = '#4b5563';
-          ctx.fillRect(hospX, hospY, hospW, hospH);
+          ctx.fillRect(bldX + 6, bldY + 8, bldW, bldH);
+          ctx.fillStyle = '#374151';
+          ctx.fillRect(bldX, bldY, bldW, bldH);
           ctx.strokeStyle = '#1e293b';
           ctx.lineWidth = 1.5;
-          ctx.strokeRect(hospX, hospY, hospW, hospH);
+          ctx.strokeRect(bldX, bldY, bldW, bldH);
 
-          // White medical landing pad field
-          const padW = 40;
-          const padH = 40;
-          const padX = hospX + hospW - padW - 10;
-          const padY = hospY + 10;
-          ctx.fillStyle = '#f8fafc';
-          ctx.fillRect(padX, padY, padW, padH);
-          ctx.strokeStyle = '#94a3b8';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(padX, padY, padW, padH);
+          // Dark blue photovoltaic solar panel arrays on one wing
+          const solarW = Math.round(bldW * 0.45);
+          const solarH = Math.round(bldH * 0.65);
+          const solarX = bldX + bldW - solarW - 8;
+          const solarY = bldY + 8;
+          ctx.fillStyle = '#1e3a8a';
+          ctx.fillRect(solarX, solarY, solarW, solarH);
+          ctx.strokeStyle = '#60a5fa';
+          ctx.lineWidth = 0.8;
+          ctx.strokeRect(solarX, solarY, solarW, solarH);
+          // Solar panel grid gridlines
+          for (let gx = solarX + 8; gx < solarX + solarW; gx += 8) {
+            ctx.beginPath(); ctx.moveTo(gx, solarY); ctx.lineTo(gx, solarY + solarH); ctx.stroke();
+          }
+          for (let gy = solarY + 8; gy < solarY + solarH; gy += 8) {
+            ctx.beginPath(); ctx.moveTo(solarX, gy); ctx.lineTo(solarX + solarW, gy); ctx.stroke();
+          }
 
-          // Red Cross symbol on roof
-          ctx.fillStyle = '#dc2626';
-          const rcx = padX + padW * 0.5;
-          const rcy = padY + padH * 0.5;
-          ctx.fillRect(rcx - 4, rcy - 14, 8, 28);
-          ctx.fillRect(rcx - 14, rcy - 4, 28, 8);
+          // Rooftop HVAC chiller units
+          ctx.fillStyle = '#64748b';
+          ctx.fillRect(bldX + 8, bldY + 8, 22, 14);
+          ctx.fillRect(bldX + 8, bldY + 26, 22, 14);
 
-          // Dedicated Emergency Trauma Helipad on the other wing
-          const hcx = hospX + 32;
-          const hcy = hospY + hospH * 0.5;
+          // Executive Corporate Helipad on the other wing
+          const hcx = bldX + 28;
+          const hcy = bldY + bldH * 0.65;
           ctx.strokeStyle = '#ffcc00';
           ctx.lineWidth = 2.0;
           ctx.beginPath();

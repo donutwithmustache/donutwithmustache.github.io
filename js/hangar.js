@@ -652,22 +652,32 @@ export class HangarManager {
     if (!profile) return;
 
     const owned = profile.ownedPlanes || ['f15c'];
-    let html = '<div class="shop-grid">';
+    let html = '<div class="hangar-plane-select-list">';
 
     owned.forEach(planeId => {
       const p = AIRCRAFT_DATA[planeId];
       if (!p) return;
       const isEquipped = (planeId === this.equippedPlaneId);
       const lvl = profileManager.getPlaneLevel(planeId);
+      const roleStr = (p.role || p.planeRole || 'FIGHTER').toUpperCase();
 
       html += `
-        <div class="shop-plane-card" data-plane-id="${planeId}" style="${isEquipped ? 'border-color:#2ecc71;' : ''}">
-          <img src="${p.sprite || './assets/planes/f15c.png'}" class="shop-plane-img" alt="${p.name}">
-          <div class="shop-plane-name">${p.name}</div>
-          <div style="font-size:12px; color:#c4c4cc;">TIER ${p.tier !== undefined ? p.tier : 0} // LVL ${lvl}</div>
-          <button class="shop-plane-buy-btn" style="${isEquipped ? 'background:#2ecc71; color:#000;' : ''}">
-            ${isEquipped ? 'EQUIPPED' : 'EQUIP AIRCRAFT'}
-          </button>
+        <div class="hangar-plane-list-row ${isEquipped ? 'equipped' : ''}" data-plane-id="${planeId}">
+          <div class="plane-list-thumb-box">
+            <img src="${p.sprite || './assets/planes/f15c.png'}" class="plane-list-thumb-img" alt="${p.name}">
+          </div>
+          <div class="plane-list-info-col">
+            <div class="plane-list-name-row">
+              <span class="plane-list-name">${p.name.toUpperCase()}</span>
+              <span class="plane-list-tier-lvl">TIER ${p.tier !== undefined ? p.tier : 0} // LVL ${lvl}</span>
+            </div>
+            <div class="plane-list-role">${roleStr}</div>
+          </div>
+          <div class="plane-list-action-col">
+            <button class="plane-list-equip-btn ${isEquipped ? 'equipped' : ''}">
+              ${isEquipped ? 'EQUIPPED' : 'EQUIP'}
+            </button>
+          </div>
         </div>
       `;
     });
@@ -677,9 +687,9 @@ export class HangarManager {
     this.menu.showTacticalModal('SELECT AIRCRAFT', html);
 
     setTimeout(() => {
-      document.querySelectorAll('.shop-plane-card').forEach(card => {
-        card.addEventListener('click', () => {
-          const planeId = card.getAttribute('data-plane-id');
+      document.querySelectorAll('.hangar-plane-list-row').forEach(row => {
+        row.addEventListener('click', () => {
+          const planeId = row.getAttribute('data-plane-id');
           if (planeId && AIRCRAFT_DATA[planeId]) {
             this.menu.audio.playMenuSelect();
             profileManager.setEquippedPlane(planeId);

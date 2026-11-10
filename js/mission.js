@@ -414,13 +414,19 @@ export class MissionManager {
       profileManager.recordSortie(true, 2, 0);
     }
 
-    // If mission wasn't already ending via scripted fade transition, schedule return to main menu
+    // If mission wasn't already ending via scripted fade transition, schedule transition & return to main menu after 5s pop-up delay
     if (!this.isScriptedEnding) {
       setTimeout(() => {
-        if (this.game && this.game.exitToMainMenu && !this.isFailed) {
-          this.game.exitToMainMenu();
+        if (!this.isFailed) {
+          this.startFadeTransition({
+            title: 'MISSION COMPLETE',
+            subtitle: 'SORTIE COMPLETED // RETURNING TO BASE',
+            fadeTime: 2.0,
+            holdTime: 3.0,
+            isMissionEnd: true
+          });
         }
-      }, 4500);
+      }, 5000);
     }
   }
 
@@ -878,13 +884,16 @@ export class MissionManager {
           obj.isCompleted = true;
         }
         this.onMissionCompleted();
-        this.startFadeTransition({
-          title: 'MISSION COMPLETE',
-          subtitle: (this.scriptedEndText || 'TUTORIAL COMPLETE').toUpperCase(),
-          fadeTime: act.fadeTime || 2.0,
-          holdTime: 2.8,
-          isMissionEnd: true
-        });
+        // 5-second delay between the initial in-flight MISSION COMPLETE pop-up and the loading screen to unload the mission
+        setTimeout(() => {
+          this.startFadeTransition({
+            title: 'MISSION COMPLETE',
+            subtitle: (this.scriptedEndText || 'TUTORIAL COMPLETE').toUpperCase(),
+            fadeTime: act.fadeTime || 2.0,
+            holdTime: 3.0,
+            isMissionEnd: true
+          });
+        }, 5000);
       } else if (act.type === 'COMPLETE_OBJECTIVE') {
         const targetId = act.objectiveId || act.text || act.title;
         const obj = this.objectives.find(o => o.id === targetId || o.title === targetId || o.type === targetId);

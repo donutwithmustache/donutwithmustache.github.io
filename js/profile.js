@@ -3,7 +3,7 @@
 // ==========================================
 
 import { CONFIG } from './config.js';
-import { getUpgradeCost } from './aircraft.js';
+import { AIRCRAFT_DATA, getUpgradeCost } from './aircraft.js';
 
 const PROFILES_KEY = 'legion_profiles_v1';
 const SESSION_KEY = 'legion_session_v1';

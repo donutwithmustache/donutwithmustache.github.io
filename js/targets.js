@@ -1,6 +1,11 @@
 // Targets Engine: Enemy MiG-21 Air Targets, Naval Gunboats, SAM Sites, and Missile Engagement
 import { AIRCRAFT_DATA } from './aircraft.js';
 
+export function stripAIDifficulty(name) {
+  if (!name) return '';
+  return name.replace(/\s*\[(ROOKIE|VETERAN|ELITE|ACE|DUMMY|DRONE|STRIKE|BOSS|TARGET|LEADER|WINGMAN|TRAINER)\]/gi, '').trim();
+}
+
 export const STANDARD_MSL_DAMAGE = 32;
 
 // Plane health tied to AI level (based on standard MSL damage of 32):
@@ -79,7 +84,7 @@ export class TargetManager {
       // 1A. Enemy MiG-21 Fishbeds (Scattered Solo Patrols) - Rookie AI (Dies in 1.5 MSL hits, fires 1 MSL at a time, basic evasion)
       {
         id: 'mig21_1',
-        name: 'MiG-21bis Fishbed [ROOKIE]',
+        name: 'MiG-21bis Fishbed',
         code: 'TGT [AIR]',
         type: 'air',
         model: 'mig21',
@@ -104,7 +109,7 @@ export class TargetManager {
       },
       {
         id: 'mig21_2',
-        name: 'MiG-21bis Fishbed [ROOKIE]',
+        name: 'MiG-21bis Fishbed',
         code: 'TGT [AIR]',
         type: 'air',
         model: 'mig21',
@@ -129,7 +134,7 @@ export class TargetManager {
       },
       {
         id: 'mig21_3',
-        name: 'MiG-21bis Fishbed [ROOKIE]',
+        name: 'MiG-21bis Fishbed',
         code: 'TGT [AIR]',
         type: 'air',
         model: 'mig21',
@@ -310,10 +315,10 @@ export class TargetManager {
         respawnTimer: 0
       },
 
-      // 4. Enemy Su-27 Flanker [VETERAN] (Bottom-Right Combat Sector) - Dies in 2 MSL hits (64 HP)
+      // 4. Enemy Su-27 Flanker (Bottom-Right Combat Sector) - Dies in 2 MSL hits (64 HP)
       {
         id: 'ace_su27',
-        name: 'Su-27 Flanker [VETERAN]',
+        name: 'Su-27 Flanker',
         code: 'TGT [AIR]',
         type: 'air',
         model: 'su27',
@@ -351,7 +356,7 @@ export class TargetManager {
       // 5. Target Drone - Drone AI (Dies in 1 MSL hit - 32 HP)
       {
         id: 'drone_1',
-        name: 'Target Drone MQ-99 [DRONE]',
+        name: 'Target Drone MQ-99',
         code: 'TGT [AIR]',
         type: 'air',
         model: 'mig21',
@@ -373,7 +378,7 @@ export class TargetManager {
       // 6. Strike Aircraft - Strike AI (Dies in 2.5 MSL hits - 80 HP)
       {
         id: 'strike_1',
-        name: 'Su-25TM Frogfoot [STRIKE]',
+        name: 'Su-25TM Frogfoot',
         code: 'TGT [AIR]',
         type: 'air',
         model: 'mig21',
@@ -393,10 +398,10 @@ export class TargetManager {
         respawnTimer: 0
       },
 
-      // 7. Enemy F-22A Raptor [ACE] (Far Bottom-Left Combat Sector) - Dies in 5 MSL hits (160 HP)
+      // 7. Enemy F-22A Raptor (Far Bottom-Left Combat Sector) - Dies in 5 MSL hits (160 HP)
       {
         id: 'ace_f22',
-        name: 'F-22A Raptor [ACE]',
+        name: 'F-22A Raptor',
         code: 'TGT [AIR]',
         type: 'air',
         model: 'f22',
@@ -437,10 +442,10 @@ export class TargetManager {
         respawnTimer: 0
       },
 
-      // 7B. Enemy Su-57 Felon [BOSS] (Far Bottom-Right Combat Sector) - Takes 6 MSL hits (192 HP)
+      // 7B. Enemy Su-57 Felon (Far Bottom-Right Combat Sector) - Takes 6 MSL hits (192 HP)
       {
         id: 'boss_su57',
-        name: 'Su-57 Felon [BOSS]',
+        name: 'Su-57 Felon',
         code: 'TGT [AIR]',
         type: 'air',
         model: 'su27',
@@ -2220,7 +2225,7 @@ export class TargetManager {
       if (audio.playTargetDestroyed) audio.playTargetDestroyed();
     }
     this.destroyedNotifications.push({
-      text: `DESTROYED // ${tgt.name.toUpperCase()}`,
+      text: `DESTROYED // ${stripAIDifficulty(tgt.name).toUpperCase()}`,
       code: 'COMMAND',
       life: 2.2
     });
@@ -2254,7 +2259,7 @@ export class TargetManager {
         }
 
         this.destroyedNotifications.push({
-          text: `DESTROYED // ${tgt.name.toUpperCase()}`,
+          text: `DESTROYED // ${stripAIDifficulty(tgt.name).toUpperCase()}`,
           code: tgt.code,
           life: 2.5
         });
@@ -2272,7 +2277,7 @@ export class TargetManager {
         }
 
         this.destroyedNotifications.push({
-          text: `DESTROYED // ${tgt.name.toUpperCase()}`,
+          text: `DESTROYED // ${stripAIDifficulty(tgt.name).toUpperCase()}`,
           code: tgt.code,
           life: 2.5
         });

@@ -79,14 +79,18 @@ export class MenuManager {
     screens.forEach(s => s.classList.remove('active'));
 
     const crtOverlay = document.getElementById('crt-overlay');
+    const gameCanvas = document.getElementById('gameCanvas');
 
     if (screenName === 'game') {
-      // Gameplay active: hide all menu screens, strictly disable CRT
+      // Gameplay active: show game canvas, hide all menu screens, strictly disable CRT
+      if (gameCanvas) gameCanvas.style.display = 'block';
       if (crtOverlay) crtOverlay.style.display = 'none';
       document.getElementById('menu-system').style.display = 'none';
       return;
     }
 
+    // In any menu screen: gameCanvas is strictly hidden
+    if (gameCanvas) gameCanvas.style.display = 'none';
     document.getElementById('menu-system').style.display = 'block';
 
     if (screenName === 'hangar') {
@@ -125,9 +129,13 @@ export class MenuManager {
       rememberBox.classList.toggle('checked', this.rememberMe);
     });
 
-    // Login submit
+    // Single unified submit handler for login & register
     document.getElementById('btn-login-submit')?.addEventListener('click', () => {
-      this.handleLogin();
+      if (this.isRegisterMode) {
+        this.handleRegister();
+      } else {
+        this.handleLogin();
+      }
     });
 
     // Register button: replaces login button with email input
@@ -174,54 +182,74 @@ export class MenuManager {
 
     if (this.isRegisterMode) {
       if (emailField) emailField.style.display = 'block';
-      if (loginBtn) {
-        loginBtn.textContent = 'REGISTER ACCOUNT';
-        loginBtn.onclick = () => this.handleRegister();
-      }
+      if (loginBtn) loginBtn.textContent = 'REGISTER';
       if (registerToggle) registerToggle.textContent = 'BACK TO LOGIN';
     } else {
       if (emailField) emailField.style.display = 'none';
-      if (loginBtn) {
-        loginBtn.textContent = 'LOG IN';
-        loginBtn.onclick = () => this.handleLogin();
-      }
+      if (loginBtn) loginBtn.textContent = 'LOG IN';
       if (registerToggle) registerToggle.textContent = 'REGISTER';
     }
   }
 
-  handleLogin() {
+  async handleLogin() {
     const user = document.getElementById('login-username')?.value;
     const pass = document.getElementById('login-password')?.value;
+    const loginBtn = document.getElementById('btn-login-submit');
 
     this.audio.init();
-    const res = profileManager.login(user, pass, this.rememberMe);
+    if (loginBtn) {
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'VERIFYING...';
+    }
 
-    if (res.success) {
-      this.audio.playMenuSelect();
-      this.showScreen('main-menu');
-      this.showToast(`WELCOME BACK, PILOT ${res.profile.username.toUpperCase()}`);
-    } else {
-      this.audio.playMenuError();
-      this.showToast(res.message);
+    try {
+      const res = await profileManager.login(user, pass, this.rememberMe);
+
+      if (res.success) {
+        this.audio.playMenuSelect();
+        this.showScreen('main-menu');
+        this.showToast(`WELCOME BACK, PILOT ${res.profile.username.toUpperCase()}`);
+      } else {
+        this.audio.playMenuError();
+        this.showToast(res.message);
+      }
+    } finally {
+      if (loginBtn) {
+        loginBtn.disabled = false;
+        loginBtn.textContent = this.isRegisterMode ? 'REGISTER' : 'LOG IN';
+      }
     }
   }
 
-  handleRegister() {
+  async handleRegister() {
     const user = document.getElementById('login-username')?.value;
     const pass = document.getElementById('login-password')?.value;
     const email = document.getElementById('login-email')?.value;
+    const loginBtn = document.getElementById('btn-login-submit');
 
     this.audio.init();
-    const res = profileManager.register(user, pass, email, this.rememberMe);
+    if (loginBtn) {
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'REGISTERING...';
+    }
 
-    if (res.success) {
-      this.audio.playUpgradeSound();
-      this.showScreen('main-menu');
-      // Show first login tutorial recommendation popup!
-      this.showNewPlayerWelcome(res.profile.username);
-    } else {
-      this.audio.playMenuError();
-      this.showToast(res.message);
+    try {
+      const res = await profileManager.register(user, pass, email, this.rememberMe);
+
+      if (res.success) {
+        this.audio.playUpgradeSound();
+        this.showScreen('main-menu');
+        // Show first login tutorial recommendation popup!
+        this.showNewPlayerWelcome(res.profile.username);
+      } else {
+        this.audio.playMenuError();
+        this.showToast(res.message);
+      }
+    } finally {
+      if (loginBtn) {
+        loginBtn.disabled = false;
+        loginBtn.textContent = this.isRegisterMode ? 'REGISTER' : 'LOG IN';
+      }
     }
   }
 
@@ -340,7 +368,8 @@ export class MenuManager {
         break;
 
       case 'shop':
-        this.openShopModal();
+        this.audio.playMenuError();
+        this.showToast('SHOP // COMING SOON');
         break;
 
       case 'multiplayer':

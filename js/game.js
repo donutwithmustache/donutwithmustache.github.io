@@ -108,6 +108,11 @@ class FlightGame {
     this.menu.init();
     this.isPaused = (this.menu.activeScreen !== 'game');
 
+    // Hide gameCanvas if starting in menu system
+    if (this.canvas && this.menu.activeScreen !== 'game') {
+      this.canvas.style.display = 'none';
+    }
+
     // Start loop
     requestAnimationFrame(this.loop.bind(this));
   }
@@ -423,21 +428,13 @@ class FlightGame {
         this.triggerAbility(); // A: Activate Tactical Ability
       } else if (e.code === 'KeyZ') {
         this.input.z = true; // Z: Hold for Full Map Mode
-      } else if (e.code === 'KeyC') {
-        this.cycleSpecialWeapon();
-      } else if (e.code === 'Digit1') {
-        this.selectAircraft('su27');
-      } else if (e.code === 'Digit2') {
-        this.selectAircraft('f15c');
-      } else if (e.code === 'Digit3') {
-        this.selectAircraft('f111f');
-      } else if (e.code === 'Digit4') {
-        this.selectAircraft('su57');
       } else if (e.code === 'KeyM') {
         this.audio.toggleMute();
       } else if (e.code === 'Escape') {
-        this.togglePause();
-        e.preventDefault();
+        if (this.menu && this.menu.activeScreen === 'game') {
+          this.togglePause();
+          e.preventDefault();
+        }
       }
     });
 
@@ -474,6 +471,9 @@ class FlightGame {
 
   // Tactical Mission Deployment Flow (Invoked from Menus)
   startMissionFlow(missionId, planeId, spwId) {
+    if (this.canvas) {
+      this.canvas.style.display = 'block';
+    }
     if (planeId && AIRCRAFT_DATA[planeId]) {
       this.selectAircraft(planeId, true);
     }
@@ -498,6 +498,9 @@ class FlightGame {
   exitToMainMenu() {
     this.isPaused = true;
     this.togglePause(false);
+    if (this.canvas) {
+      this.canvas.style.display = 'none';
+    }
     if (this.menu) {
       this.menu.showScreen('main-menu');
     }
@@ -1389,6 +1392,11 @@ class FlightGame {
   }
 
   togglePause(forceState = null) {
+    if (this.menu && this.menu.activeScreen !== 'game') {
+      const pauseMenu = document.getElementById('pause-menu');
+      if (pauseMenu) pauseMenu.classList.add('hidden');
+      return;
+    }
     this.isPaused = (forceState !== null) ? !!forceState : !this.isPaused;
     const pauseMenu = document.getElementById('pause-menu');
     if (pauseMenu) {
@@ -1453,7 +1461,7 @@ class FlightGame {
   }
 
   loop(timestamp) {
-    if (this.isPaused) {
+    if (this.isPaused || (this.menu && this.menu.activeScreen !== 'game')) {
       this.lastTime = timestamp;
       requestAnimationFrame(this.loop.bind(this));
       return;

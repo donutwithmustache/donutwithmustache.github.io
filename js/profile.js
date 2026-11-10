@@ -1,7 +1,8 @@
 // ==========================================
-// PLAYER PROFILE & LOCAL PERSISTENCE SYSTEM
+// PLAYER PROFILE & SUPABASE PERSISTENCE SYSTEM
 // ==========================================
 
+import { CONFIG } from './config.js';
 import { getUpgradeCost } from './aircraft.js';
 
 const PROFILES_KEY = 'legion_profiles_v1';
@@ -11,6 +12,7 @@ export class ProfileManager {
   constructor() {
     this.profiles = this.loadProfiles();
     this.activeProfile = null;
+    this.accessToken = null;
   }
 
   loadProfiles() {
@@ -39,9 +41,14 @@ export class ProfileManager {
       const raw = localStorage.getItem(SESSION_KEY);
       if (!raw) return null;
       const session = JSON.parse(raw);
-      if (session && session.username && session.rememberMe && this.profiles[session.username]) {
-        this.activeProfile = this.profiles[session.username];
-        return this.activeProfile;
+      if (session && session.rememberMe) {
+        const key = (session.username || session.email || '').toLowerCase().trim();
+        const profile = this.profiles[key];
+        if (profile) {
+          this.activeProfile = profile;
+          if (session.accessToken) this.accessToken = session.accessToken;
+          return this.activeProfile;
+        }
       }
     } catch (e) {
       console.warn('[ProfileManager] Failed to retrieve session:', e);
@@ -49,32 +56,13 @@ export class ProfileManager {
     return null;
   }
 
-  login(username, password, rememberMe = false) {
-    if (!username || !password) {
-      return { success: false, message: 'USERNAME AND PASSWORD REQUIRED' };
-    }
-    const cleanUser = username.trim();
-    const user = this.profiles[cleanUser];
-    if (!user || user.password !== password) {
-      return { success: false, message: 'INVALID USERNAME OR PASSWORD' };
-    }
-
-    this.activeProfile = user;
-    if (rememberMe) {
-      try {
-        localStorage.setItem(SESSION_KEY, JSON.stringify({ username: cleanUser, rememberMe: true }));
-      } catch (e) {}
-    } else {
-      localStorage.removeItem(SESSION_KEY);
-    }
-
-    return { success: true, profile: this.activeProfile };
-  }
-
-  register(username, password, email, rememberMe = false) {
+  // =========================================================================
+  // SUPABASE REGISTRATION FLOW
+  // =========================================================================
+  async register(username, password, email, rememberMe = false) {
     const cleanUser = (username || '').trim();
     const cleanPass = (password || '').trim();
-    const cleanEmail = (email || '').trim();
+    const cleanEmail = (email || '').trim().toLowerCase();
 
     if (!cleanUser) {
       return { success: false, message: 'USERNAME REQUIRED' };
@@ -85,13 +73,64 @@ export class ProfileManager {
     if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
       return { success: false, message: 'VALID EMAIL IS REQUIRED FOR REGISTRATION' };
     }
-    if (this.profiles[cleanUser]) {
-      return { success: false, message: 'ACCOUNT USERNAME ALREADY EXISTS' };
+
+    const userKey = cleanUser.toLowerCase();
+    if (this.profiles[userKey] || this.profiles[cleanEmail]) {
+      return { success: false, message: 'ACCOUNT USERNAME OR EMAIL ALREADY EXISTS' };
     }
 
-    // Initialize new player profile according to specification
+    let supabaseId = null;
+    let token = null;
+
+    // 1. Call Supabase Auth API
+    if (CONFIG && CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY) {
+      try {
+        const res = await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/signup`, {
+          method: 'POST',
+          headers: {
+            'apikey': CONFIG.SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: cleanEmail,
+            password: cleanPass,
+            data: {
+              username: cleanUser,
+              callsign: cleanUser
+            }
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          supabaseId = data.id || (data.user && data.user.id);
+          token = data.access_token || (data.session && data.session.access_token);
+          this.accessToken = token;
+          console.log('[ProfileManager] Supabase Auth registered successfully:', supabaseId);
+
+          // Update callsign on the Supabase profiles table if we have token
+          if (token && supabaseId) {
+            await this.syncSupabaseProfile(supabaseId, {
+              callsign: cleanUser,
+              equipped_plane: 'f15c'
+            }, token);
+          }
+        } else {
+          console.warn('[ProfileManager] Supabase Auth response:', data);
+          if (data.msg?.includes('already registered') || data.message?.includes('already registered')) {
+            return { success: false, message: 'EMAIL ALREADY REGISTERED IN DATABASE' };
+          }
+        }
+      } catch (err) {
+        console.warn('[ProfileManager] Supabase connection error:', err);
+      }
+    }
+
+    // 2. Initialize and save player profile
     const newProfile = {
+      id: supabaseId || `pilot_${Date.now()}`,
       username: cleanUser,
+      callsign: cleanUser,
       password: cleanPass,
       email: cleanEmail,
       credits: 1000,                  // Starting capital ₡1,000
@@ -99,11 +138,11 @@ export class ProfileManager {
       completedTutorial: false,        // Hangar locked until tutorial completion
       seenHangarTutorial: false,       // 2-page tutorial popup in hangar
       hasChosenStarterPlane: false,    // First tier 0 plane is free
-      ownedPlanes: [],                 // Empty initially; picked in shop
-      equippedPlane: null,
-      upgrades: {},                    // { [planeId]: currentLevel (1-5) }
-      equippedSpw: {},                 // { [planeId]: spwId }
-      equippedParts: {},               // { [planeId]: [partId, ...] }
+      ownedPlanes: ['f15c'],           // Initial service aircraft
+      equippedPlane: 'f15c',
+      upgrades: { f15c: 1 },
+      equippedSpw: { f15c: '4aam' },
+      equippedParts: {},
       stats: {
         sorties: 0,
         kills: 0,
@@ -113,13 +152,20 @@ export class ProfileManager {
       createdAt: Date.now()
     };
 
-    this.profiles[cleanUser] = newProfile;
+    // Index by both lowercase username and email for instant login lookups
+    this.profiles[userKey] = newProfile;
+    this.profiles[cleanEmail] = newProfile;
     this.saveProfiles();
     this.activeProfile = newProfile;
 
     if (rememberMe) {
       try {
-        localStorage.setItem(SESSION_KEY, JSON.stringify({ username: cleanUser, rememberMe: true }));
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          username: cleanUser,
+          email: cleanEmail,
+          accessToken: token,
+          rememberMe: true
+        }));
       } catch (e) {}
     } else {
       localStorage.removeItem(SESSION_KEY);
@@ -128,8 +174,124 @@ export class ProfileManager {
     return { success: true, profile: newProfile, isFirstLogin: true };
   }
 
+  // =========================================================================
+  // SUPABASE LOGIN FLOW
+  // =========================================================================
+  async login(usernameOrEmail, password, rememberMe = false) {
+    if (!usernameOrEmail || !password) {
+      return { success: false, message: 'USERNAME AND PASSWORD REQUIRED' };
+    }
+
+    const cleanInput = usernameOrEmail.trim();
+    const cleanKey = cleanInput.toLowerCase();
+    const cleanPass = password.trim();
+
+    // Check local profile first
+    let profile = this.profiles[cleanKey];
+
+    // Attempt Supabase authentication if configured
+    if (CONFIG && CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY) {
+      const emailToAuth = profile ? profile.email : (cleanInput.includes('@') ? cleanInput : null);
+
+      if (emailToAuth) {
+        try {
+          const res = await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+            method: 'POST',
+            headers: {
+              'apikey': CONFIG.SUPABASE_ANON_KEY,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email: emailToAuth,
+              password: cleanPass
+            })
+          });
+
+          const data = await res.json();
+          if (res.ok && data.access_token) {
+            this.accessToken = data.access_token;
+            console.log('[ProfileManager] Supabase Auth authenticated successfully');
+
+            // If profile wasn't in local storage, populate from Supabase user metadata
+            if (!profile) {
+              const u = data.user || {};
+              const uname = u.user_metadata?.username || u.user_metadata?.callsign || cleanInput;
+              profile = {
+                id: u.id,
+                username: uname,
+                callsign: uname,
+                password: cleanPass,
+                email: emailToAuth,
+                credits: 1000,
+                level: 1,
+                completedTutorial: false,
+                seenHangarTutorial: false,
+                hasChosenStarterPlane: false,
+                ownedPlanes: ['f15c'],
+                equippedPlane: 'f15c',
+                upgrades: { f15c: 1 },
+                equippedSpw: { f15c: '4aam' },
+                equippedParts: {},
+                stats: { sorties: 0, kills: 0, deaths: 0, missionsWon: 0 },
+                createdAt: Date.now()
+              };
+              this.profiles[uname.toLowerCase()] = profile;
+              this.profiles[emailToAuth.toLowerCase()] = profile;
+              this.saveProfiles();
+            }
+          } else if (data.error_code === 'email_not_confirmed') {
+            console.log('[ProfileManager] Supabase email confirmation pending, checking local credentials');
+          }
+        } catch (err) {
+          console.warn('[ProfileManager] Supabase login network error:', err);
+        }
+      }
+    }
+
+    // Verify password against stored profile
+    if (profile && profile.password === cleanPass) {
+      this.activeProfile = profile;
+      if (rememberMe) {
+        try {
+          localStorage.setItem(SESSION_KEY, JSON.stringify({
+            username: profile.username,
+            email: profile.email,
+            accessToken: this.accessToken,
+            rememberMe: true
+          }));
+        } catch (e) {}
+      } else {
+        localStorage.removeItem(SESSION_KEY);
+      }
+      return { success: true, profile: this.activeProfile };
+    }
+
+    return { success: false, message: 'INVALID USERNAME OR PASSWORD' };
+  }
+
+  // Sync profile data to Supabase profiles table
+  async syncSupabaseProfile(userId, patchData, token = null) {
+    const authHeader = token || this.accessToken;
+    if (!CONFIG || !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY || !authHeader) return;
+    try {
+      await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${authHeader}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(patchData)
+      });
+    } catch (e) {
+      console.warn('[ProfileManager] Failed to sync to Supabase:', e);
+    }
+  }
+
   signOut() {
     this.activeProfile = null;
+    this.accessToken = null;
     try {
       localStorage.removeItem(SESSION_KEY);
     } catch (e) {}
@@ -162,10 +324,15 @@ export class ProfileManager {
     const newLevel = check.nextLevel;
     this.activeProfile.upgrades[planeId] = newLevel;
 
-    // Recalculate player level as highest plane upgrade or progression
     this.activeProfile.level = Math.max(this.activeProfile.level || 1, newLevel);
-
     this.saveProfiles();
+
+    if (this.activeProfile.id) {
+      this.syncSupabaseProfile(this.activeProfile.id, {
+        score: this.activeProfile.credits
+      });
+    }
+
     return { success: true, newLevel, remainingCredits: this.activeProfile.credits };
   }
 
@@ -181,11 +348,16 @@ export class ProfileManager {
       if (!this.activeProfile.upgrades) this.activeProfile.upgrades = {};
       if (!this.activeProfile.upgrades[planeId]) this.activeProfile.upgrades[planeId] = 1;
 
-      // Equip if first plane
       if (!this.activeProfile.equippedPlane) {
         this.activeProfile.equippedPlane = planeId;
       }
       this.saveProfiles();
+
+      if (this.activeProfile.id) {
+        this.syncSupabaseProfile(this.activeProfile.id, {
+          unlocked_planes: this.activeProfile.ownedPlanes
+        });
+      }
       return true;
     }
     return true;
@@ -195,6 +367,12 @@ export class ProfileManager {
     if (!this.activeProfile) return;
     this.activeProfile.equippedPlane = planeId;
     this.saveProfiles();
+
+    if (this.activeProfile.id) {
+      this.syncSupabaseProfile(this.activeProfile.id, {
+        equipped_plane: planeId
+      });
+    }
   }
 
   setEquippedSpw(planeId, spwId) {
@@ -233,9 +411,19 @@ export class ProfileManager {
     this.activeProfile.stats.deaths = (this.activeProfile.stats.deaths || 0) + deaths;
     if (won) {
       this.activeProfile.stats.missionsWon = (this.activeProfile.stats.missionsWon || 0) + 1;
-      this.activeProfile.credits = (this.activeProfile.credits || 0) + 2500; // Mission reward
+      this.activeProfile.credits = (this.activeProfile.credits || 0) + 2500;
     }
     this.saveProfiles();
+
+    if (this.activeProfile.id) {
+      this.syncSupabaseProfile(this.activeProfile.id, {
+        sorties: this.activeProfile.stats.sorties,
+        kills: this.activeProfile.stats.kills,
+        deaths: this.activeProfile.stats.deaths,
+        wins: this.activeProfile.stats.missionsWon,
+        score: this.activeProfile.credits
+      });
+    }
   }
 }
 

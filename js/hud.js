@@ -879,7 +879,7 @@ export class FlightHUD {
 
     ctx.font = '9px monospace';
     ctx.fillStyle = 'rgba(0, 255, 102, 0.65)';
-    ctx.fillText('SPECIAL WEAPONS [C: CYCLE | X: ARM]:', x, startY + 6);
+    ctx.fillText('EQUIPPED SP WEAPON [X: ARM]:', x, startY + 6);
 
     let spwOffsetX = x;
     const spwLineY = startY + 20;

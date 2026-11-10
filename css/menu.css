@@ -51,6 +51,7 @@
   width: 100%;
   height: 100%;
   z-index: 50;
+  background: #0d0103;
   pointer-events: none;
   overflow: hidden;
   font-family: var(--font-tactical);
